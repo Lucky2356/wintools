@@ -1,0 +1,126 @@
+# ==========================================================================
+#  protected.def - hard DENYLIST. Any tweak targeting one of these makes
+#  wintweaks stop with exit code 6. Nothing here is ever modified.
+#  Format:  SVC:<service name>   (exact match)
+#           KEY:<registry key>   (prefix match, case insensitive)
+# ==========================================================================
+
+# --- core RPC / WMI / logging / scheduling ---
+SVC:RpcSs
+SVC:DcomLaunch
+SVC:RpcEptMapper
+SVC:Winmgmt
+SVC:EventLog
+SVC:Schedule
+SVC:PlugPlay
+SVC:Power
+SVC:nsi
+SVC:BrokerInfrastructure
+SVC:SystemEventsBroker
+
+# --- identity / profiles / crypto ---
+SVC:ProfSvc
+SVC:UserManager
+SVC:CryptSvc
+SVC:SamSs
+SVC:LSM
+SVC:TokenBroker
+
+# --- security: never touched, in any profile ---
+SVC:WinDefend
+SVC:SecurityHealthService
+SVC:wscsvc
+SVC:MpsSvc
+SVC:BFE
+SVC:mpssvc
+SVC:Sense
+SVC:WdNisSvc
+
+# --- servicing / store / update: deferral is done with policy, not services --
+SVC:TrustedInstaller
+SVC:msiserver
+SVC:wuauserv
+SVC:UsoSvc
+SVC:WaaSMedicSvc
+SVC:AppXSvc
+SVC:StateRepository
+SVC:ClipSVC
+
+# --- networking basics ---
+SVC:Dhcp
+SVC:Dnscache
+SVC:NlaSvc
+SVC:netprofm
+SVC:LanmanWorkstation
+SVC:LanmanServer
+SVC:WlanSvc
+SVC:AudioSrv
+SVC:AudioEndpointBuilder
+
+# --- registry areas that must never be rewritten by a tweak ---
+KEY:HKLM\SYSTEM\CurrentControlSet\Control\Winlogon
+KEY:HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+KEY:HKLM\SYSTEM\CurrentControlSet\Services\WinDefend
+KEY:HKLM\SOFTWARE\Microsoft\Windows Defender
+KEY:HKLM\SOFTWARE\Policies\Microsoft\Windows Defender
+KEY:HKLM\SYSTEM\CurrentControlSet\Control\SafeBoot
+KEY:HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management
+KEY:HKLM\BCD00000000
+KEY:HKLM\SECURITY
+KEY:HKLM\SAM
+
+# --- AppX packages that must never be removed ---
+APPX:Microsoft.WindowsStore
+APPX:Microsoft.StorePurchaseApp
+APPX:Microsoft.DesktopAppInstaller
+APPX:Microsoft.Winget.Source
+APPX:Microsoft.SecHealthUI
+APPX:Microsoft.Windows.ShellExperienceHost
+APPX:Microsoft.Windows.StartMenuExperienceHost
+APPX:Microsoft.Windows.CloudExperienceHost
+APPX:Microsoft.Windows.ContentDeliveryManager
+APPX:Microsoft.Windows.Search
+APPX:Microsoft.UI.Xaml.CBS
+APPX:Microsoft.AAD.BrokerPlugin
+APPX:Microsoft.AccountsControl
+APPX:Microsoft.CredDialogHost
+APPX:Microsoft.LockApp
+APPX:Microsoft.Win32WebViewHost
+APPX:Microsoft.ECApp
+APPX:MicrosoftWindows.Client.CBS
+APPX:MicrosoftWindows.Client.Core
+APPX:MicrosoftWindows.Client.FileExp
+APPX:MicrosoftWindows.UndockedDevKit
+APPX:Microsoft.WindowsAppRuntime.CBS
+APPX:Microsoft.MicrosoftEdgeDevToolsClient
+APPX:Microsoft.WebpImageExtension
+APPX:Microsoft.LanguageExperiencePackru-RU
+APPX:NVIDIACorp.NVIDIAControlPanel
+APPX:RealtekSemiconductorCorp.RealtekAudioControl
+
+# --- added after inventory: breaks the system or the shell ---
+SVC:BITS
+SVC:gpsvc
+SVC:Themes
+SVC:CoreMessagingRegistrar
+SVC:TimeBrokerSvc
+SVC:EventSystem
+SVC:KeyIso
+SVC:VaultSvc
+SVC:sppsvc
+SVC:StorSvc
+SVC:Wcmsvc
+SVC:TextInputManagementService
+SVC:ShellHWDetection
+SVC:FontCache
+SVC:DispBrokerDesktopSvc
+SVC:DeviceInstall
+SVC:CryptSvc
+SVC:Appinfo
+SVC:SENS
+SVC:PolicyAgent
+SVC:IKEEXT
+SVC:webthreatdefsvc
+SVC:MDCoreSvc
+SVC:InstallService
+SVC:LicenseManager

@@ -1,0 +1,243 @@
+# ==========================================================================
+#  wintweaks tweak table   (ASCII only - the console runs in an OEM codepage)
+#
+#  ID | PROFILE | RISK | OS | TYPE | TARGET | NAME | VTYPE | VALUE
+#
+#  PROFILE : core < balanced < extended   (cumulative)
+#  RISK    : low | med | high   (high needs /include-risky)
+#  OS      : any | win10 | win11
+#  TYPE    : REG | SVC | TASK
+#  TARGET  : REG = key, SVC = service name, TASK = full task path
+#  NAME    : REG value name, @DEFAULT@ for the (Default) value, "-" otherwise
+#  VTYPE   : REG_DWORD / REG_SZ ; "start" for SVC ; "state" for TASK
+#  VALUE   : REG data (@EMPTY@ = empty string) / sc start keyword / disable
+#
+#  Rules: no empty fields (use "-"), no pipe, no "!", no spaces in value names.
+#  @HKCU@ is replaced at runtime by HKCU (or HKU\<SID> with /user-sid).
+# ==========================================================================
+
+# --- privacy / telemetry ---------------------------------------------------
+# Telemetry level 1 = Required/Basic. 0 is Enterprise-only and is silently
+# treated as 1 on Pro, so we write the value that is actually honoured.
+PRIV-TELEMETRY|core|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection|AllowTelemetry|REG_DWORD|1
+PRIV-FEEDBACK-NOTIF|core|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\DataCollection|DoNotShowFeedbackNotifications|REG_DWORD|1
+PRIV-TAILORED|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Privacy|TailoredExperiencesWithDiagnosticDataEnabled|REG_DWORD|0
+PRIV-ADVID-USER|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo|Enabled|REG_DWORD|0
+PRIV-ADVID-POLICY|core|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo|DisabledByGroupPolicy|REG_DWORD|1
+PRIV-ACTIVITY-FEED|core|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\System|EnableActivityFeed|REG_DWORD|0
+PRIV-ACTIVITY-PUB|core|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\System|PublishUserActivities|REG_DWORD|0
+PRIV-ACTIVITY-UPL|core|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\System|UploadUserActivities|REG_DWORD|0
+PRIV-INK-TEXT|core|low|any|REG|@HKCU@\Software\Microsoft\InputPersonalization|RestrictImplicitTextCollection|REG_DWORD|1
+PRIV-INK-INK|core|low|any|REG|@HKCU@\Software\Microsoft\InputPersonalization|RestrictImplicitInkCollection|REG_DWORD|1
+PRIV-SIUF|core|low|any|REG|@HKCU@\Software\Microsoft\Siuf\Rules|NumberOfSIUFInPeriod|REG_DWORD|0
+PRIV-CDM-SILENTAPPS|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SilentInstalledAppsEnabled|REG_DWORD|0
+PRIV-CDM-SYSPANE|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SystemPaneSuggestionsEnabled|REG_DWORD|0
+PRIV-CDM-PREINSTALL|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|PreInstalledAppsEnabled|REG_DWORD|0
+PRIV-CDM-OEMPREINSTALL|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|OemPreInstalledAppsEnabled|REG_DWORD|0
+PRIV-CDM-338388|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-338388Enabled|REG_DWORD|0
+PRIV-CDM-338389|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-338389Enabled|REG_DWORD|0
+PRIV-CDM-353694|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-353694Enabled|REG_DWORD|0
+PRIV-CDM-353696|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-353696Enabled|REG_DWORD|0
+PRIV-CONSUMER|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent|DisableWindowsConsumerFeatures|REG_DWORD|1
+PRIV-SOFTLANDING|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent|DisableSoftLanding|REG_DWORD|1
+PRIV-LLMNR|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient|EnableMulticast|REG_DWORD|0
+# Windows Error Reporting off = no crash dumps to Microsoft and thinner local
+# diagnostics for 3rd party apps. Reversible, but opinionated -> RISK=high.
+PRIV-WER|extended|high|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting|Disabled|REG_DWORD|1
+
+# --- UI / Explorer ---------------------------------------------------------
+UI-FILEEXT|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|HideFileExt|REG_DWORD|0
+UI-HIDDEN|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|Hidden|REG_DWORD|1
+UI-LAUNCHTO|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|LaunchTo|REG_DWORD|1
+UI-MENUDELAY|balanced|low|any|REG|@HKCU@\Control Panel\Desktop|MenuShowDelay|REG_SZ|200
+UI-STARTUPDELAY|balanced|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Serialize|StartupDelayInMSec|REG_DWORD|0
+UI-SEARCHBOX|balanced|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Search|SearchboxTaskbarMode|REG_DWORD|1
+UI-TASKBAR-LEFT|balanced|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|TaskbarAl|REG_DWORD|0
+UI-WIDGETS|balanced|low|win11|REG|HKLM\SOFTWARE\Policies\Microsoft\Dsh|AllowNewsAndInterests|REG_DWORD|0
+UI-FEEDS|balanced|low|win10|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds|EnableFeeds|REG_DWORD|0
+UI-CHATICON|balanced|low|win11|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\Windows Chat|ChatIcon|REG_DWORD|3
+UI-SPOTLIGHT-OVERLAY|balanced|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|RotatingLockScreenOverlayEnabled|REG_DWORD|0
+UI-SPOTLIGHT-338387|balanced|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-338387Enabled|REG_DWORD|0
+UI-TASKBARANIM|extended|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|TaskbarAnimations|REG_DWORD|0
+UI-BING-POLICY|extended|low|any|REG|@HKCU@\SOFTWARE\Policies\Microsoft\Windows\Explorer|DisableSearchBoxSuggestions|REG_DWORD|1
+UI-BING-USER|extended|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Search|BingSearchEnabled|REG_DWORD|0
+UI-CORTANA-CONSENT|extended|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Search|CortanaConsent|REG_DWORD|0
+# Classic (full) context menu on Windows 11. HKCU only, no shell replacement.
+# Revert deletes the CLSID key we created (topmost_missing in core.cmd).
+UI-CLASSIC-CONTEXT|extended|low|win11|REG|@HKCU@\Software\Classes\CLSID\{86ca1aa0-34aa-4e8b-a509-50c905bae2a2}\InprocServer32|@DEFAULT@|REG_SZ|@EMPTY@
+
+# --- performance -----------------------------------------------------------
+PERF-NETTHROTTLE|balanced|low|any|REG|HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile|NetworkThrottlingIndex|REG_DWORD|0xffffffff
+
+# --- Windows Update: defer feature updates only, never disable updates ------
+UPD-NOREBOOT|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU|NoAutoRebootWithLoggedOnUsers|REG_DWORD|1
+UPD-DO-LAN|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization|DODownloadMode|REG_DWORD|1
+UPD-DEFER-FEATURE|extended|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate|DeferFeatureUpdates|REG_DWORD|1
+UPD-DEFER-DAYS|extended|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate|DeferFeatureUpdatesPeriodInDays|REG_DWORD|180
+
+# --- services (start type only, nothing is ever uninstalled) ----------------
+PRIV-SVC-DIAGTRACK|balanced|low|any|SVC|DiagTrack|-|start|disabled
+PRIV-SVC-DMWAPP|balanced|low|any|SVC|dmwappushservice|-|start|disabled
+SVC-RETAILDEMO|balanced|low|any|SVC|RetailDemo|-|start|disabled
+SVC-MAPSBROKER|extended|low|any|SVC|MapsBroker|-|start|disabled
+SVC-FAX|extended|low|any|SVC|Fax|-|start|disabled
+SVC-XBL-AUTH|extended|low|any|SVC|XblAuthManager|-|start|disabled
+SVC-XBL-SAVE|extended|low|any|SVC|XblGameSave|-|start|disabled
+SVC-XBL-NETAPI|extended|low|any|SVC|XboxNetApiSvc|-|start|disabled
+SVC-XBOX-GIP|extended|low|any|SVC|XboxGipSvc|-|start|disabled
+# SysMain is only applied when the system disk is an SSD (guard in core.cmd).
+PERF-SYSMAIN|extended|high|any|SVC|SysMain|-|start|disabled
+# WSearch deliberately breaks Start/Explorer/Outlook search. Fully reversible
+# (the index rebuilds itself) but never applied without /include-risky.
+PERF-WSEARCH|extended|high|any|SVC|WSearch|-|start|disabled
+
+# --- scheduled tasks (enable flag only, definitions untouched) --------------
+PRIV-TASK-APPRAISER|balanced|low|any|TASK|\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser|-|state|disable
+PRIV-TASK-APPRAISER-EXP|balanced|low|any|TASK|\Microsoft\Windows\Application Experience\Microsoft Compatibility Appraiser Exp|-|state|disable
+PRIV-TASK-PROGDATA|balanced|low|any|TASK|\Microsoft\Windows\Application Experience\ProgramDataUpdater|-|state|disable
+PRIV-TASK-CEIP-CONS|balanced|low|any|TASK|\Microsoft\Windows\Customer Experience Improvement Program\Consolidator|-|state|disable
+PRIV-TASK-CEIP-USB|balanced|low|any|TASK|\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip|-|state|disable
+PRIV-TASK-DMCLIENT|balanced|low|any|TASK|\Microsoft\Windows\Feedback\Siuf\DmClient|-|state|disable
+PRIV-TASK-DMCLIENTSCEN|balanced|low|any|TASK|\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload|-|state|disable
+
+# ==========================================================================
+#  profile "manual" = never applied by a bulk profile, only by an explicit
+#  /id:<ID>. This is what the interactive menu uses for per-tweak control.
+# ==========================================================================
+
+# --- appearance / Explorer extras -------------------------------------------
+UI-SYNC-NOTIFY|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|ShowSyncProviderNotifications|REG_DWORD|0
+UI-SHOW-SECONDS|manual|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|ShowSecondsInSystemClock|REG_DWORD|1
+UI-END-TASK|manual|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced\TaskbarDeveloperSettings|TaskbarEndTask|REG_DWORD|1
+UI-COMPACT-VIEW|manual|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|UseCompactMode|REG_DWORD|1
+UI-NO-RECENT|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer|ShowRecent|REG_DWORD|0
+UI-NO-FREQUENT|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer|ShowFrequent|REG_DWORD|0
+UI-NO-TRACKDOCS|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|Start_TrackDocs|REG_DWORD|0
+UI-DARK-APPS|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize|AppsUseLightTheme|REG_DWORD|0
+UI-DARK-SYSTEM|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize|SystemUsesLightTheme|REG_DWORD|0
+
+# --- privacy extras ---------------------------------------------------------
+PRIV-CLOUD-SEARCH-MSA|manual|low|any|REG|@HKCU@\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings|IsMSACloudSearchEnabled|REG_DWORD|0
+PRIV-CLOUD-SEARCH-AAD|manual|low|any|REG|@HKCU@\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings|IsAADCloudSearchEnabled|REG_DWORD|0
+PRIV-SEARCH-HISTORY|manual|low|any|REG|@HKCU@\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings|IsDeviceSearchHistoryEnabled|REG_DWORD|0
+PRIV-COPILOT-OFF|manual|low|win11|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot|TurnOffWindowsCopilot|REG_DWORD|1
+PRIV-RECALL-OFF|manual|low|win11|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\WindowsAI|DisableAIDataAnalysis|REG_DWORD|1
+
+# --- gaming / capture -------------------------------------------------------
+PERF-GAMEDVR-USER|manual|low|any|REG|@HKCU@\System\GameConfigStore|GameDVR_Enabled|REG_DWORD|0
+PERF-GAMEDVR-POLICY|manual|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\GameDVR|AllowGameDVR|REG_DWORD|0
+
+# --- Microsoft Edge: reversible settings first ------------------------------
+EDGE-STARTUP-BOOST|manual|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Edge|StartupBoostEnabled|REG_DWORD|0
+EDGE-BACKGROUND-OFF|manual|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Edge|BackgroundModeEnabled|REG_DWORD|0
+EDGE-NO-DESKTOP-ICON|manual|low|any|REG|HKLM\SOFTWARE\Microsoft\EdgeUpdate|CreateDesktopShortcutDefault|REG_DWORD|0
+EDGE-TASK-CORE|manual|low|any|TASK|\MicrosoftEdgeUpdateTaskMachineCore|-|state|disable
+EDGE-TASK-UA|manual|low|any|TASK|\MicrosoftEdgeUpdateTaskMachineUA|-|state|disable
+# Uninstalling Edge has no local backup - revert can only print instructions.
+EDGE-UNINSTALL|manual|high|any|EDGE|MicrosoftEdge|-|edge|uninstall
+
+# --- built-in apps: per-user unregister, payload kept, revert re-registers ---
+APP-NEWS|manual|med|any|APPX|Microsoft.BingNews|-|appx|remove
+APP-WEATHER|manual|med|any|APPX|Microsoft.BingWeather|-|appx|remove
+APP-BINGSEARCH|manual|med|any|APPX|Microsoft.BingSearch|-|appx|remove
+APP-GETHELP|manual|med|any|APPX|Microsoft.GetHelp|-|appx|remove
+APP-GETSTARTED|manual|med|any|APPX|Microsoft.Getstarted|-|appx|remove
+APP-FEEDBACK|manual|med|any|APPX|Microsoft.WindowsFeedbackHub|-|appx|remove
+APP-SOLITAIRE|manual|med|any|APPX|Microsoft.MicrosoftSolitaireCollection|-|appx|remove
+APP-PEOPLE|manual|med|any|APPX|Microsoft.People|-|appx|remove
+APP-MAPS|manual|med|any|APPX|Microsoft.WindowsMaps|-|appx|remove
+APP-SKYPE|manual|med|any|APPX|Microsoft.SkypeApp|-|appx|remove
+APP-TODOS|manual|med|any|APPX|Microsoft.Todos|-|appx|remove
+APP-CLIPCHAMP|manual|med|any|APPX|Clipchamp.Clipchamp|-|appx|remove
+APP-TEAMS|manual|med|any|APPX|MicrosoftTeams|-|appx|remove
+APP-TEAMS-NEW|manual|med|any|APPX|MSTeams|-|appx|remove
+APP-CORTANA|manual|med|any|APPX|Microsoft.549981C3F5F10|-|appx|remove
+APP-COPILOT|manual|med|any|APPX|Microsoft.Copilot|-|appx|remove
+APP-PHONELINK|manual|med|any|APPX|Microsoft.YourPhone|-|appx|remove
+APP-CROSSDEVICE|manual|med|any|APPX|MicrosoftWindows.CrossDevice|-|appx|remove
+APP-MEDIAPLAYER|manual|med|any|APPX|Microsoft.ZuneMusic|-|appx|remove
+APP-MOVIES|manual|med|any|APPX|Microsoft.ZuneVideo|-|appx|remove
+APP-XBOX|manual|med|any|APPX|Microsoft.GamingApp|-|appx|remove
+APP-XBOX-OVERLAY|manual|med|any|APPX|Microsoft.XboxGamingOverlay|-|appx|remove
+APP-XBOX-TCUI|manual|med|any|APPX|Microsoft.Xbox.TCUI|-|appx|remove
+APP-XBOX-SPEECH|manual|med|any|APPX|Microsoft.XboxSpeechToTextOverlay|-|appx|remove
+APP-DEVHOME|manual|med|any|APPX|Microsoft.Windows.DevHome|-|appx|remove
+APP-STARTEXP|manual|med|any|APPX|Microsoft.StartExperiencesApp|-|appx|remove
+APP-WIDGETS-RT|manual|med|any|APPX|Microsoft.WidgetsPlatformRuntime|-|appx|remove
+APP-EDGE-GAMEASSIST|manual|med|any|APPX|Microsoft.Edge.GameAssist|-|appx|remove
+APP-3DVIEWER|manual|med|any|APPX|Microsoft.Microsoft3DViewer|-|appx|remove
+APP-PAINT3D|manual|med|any|APPX|Microsoft.MSPaint|-|appx|remove
+APP-MIXEDREALITY|manual|med|any|APPX|Microsoft.MixedReality.Portal|-|appx|remove
+APP-ALARMS|manual|med|any|APPX|Microsoft.WindowsAlarms|-|appx|remove
+APP-CAMERA|manual|med|any|APPX|Microsoft.WindowsCamera|-|appx|remove
+
+# --- services, individually selectable in the menu catalogue ---
+SVC-WMPNETWORKSVC|manual|low|any|SVC|WMPNetworkSvc|-|start|disabled
+SVC-WALLETSERVICE|manual|low|any|SVC|WalletService|-|start|disabled
+SVC-SEMGRSVC|manual|low|any|SVC|SEMgrSvc|-|start|disabled
+SVC-WISVC|manual|low|any|SVC|wisvc|-|start|disabled
+SVC-SNMPTRAP|manual|low|any|SVC|SNMPTrap|-|start|disabled
+SVC-MSISCSI|manual|low|any|SVC|MSiSCSI|-|start|disabled
+SVC-PEERDISTSVC|manual|low|any|SVC|PeerDistSvc|-|start|disabled
+SVC-TAPISRV|manual|low|any|SVC|TapiSrv|-|start|disabled
+SVC-PHONESVC|manual|low|any|SVC|PhoneSvc|-|start|disabled
+SVC-WPCMONSVC|manual|low|any|SVC|WpcMonSvc|-|start|disabled
+SVC-TZAUTOUPDATE|manual|low|any|SVC|tzautoupdate|-|start|disabled
+SVC-PUSHTOINSTALL|manual|low|any|SVC|PushToInstall|-|start|disabled
+SVC-ICSSVC|manual|low|any|SVC|icssvc|-|start|disabled
+SVC-WFDSCONMGRSVC|manual|low|any|SVC|WFDSConMgrSvc|-|start|disabled
+SVC-SCARDSVR|manual|low|any|SVC|SCardSvr|-|start|disabled
+SVC-SCDEVICEENUM|manual|low|any|SVC|ScDeviceEnum|-|start|disabled
+SVC-SCPOLICYSVC|manual|low|any|SVC|SCPolicySvc|-|start|disabled
+SVC-CERTPROPSVC|manual|low|any|SVC|CertPropSvc|-|start|disabled
+SVC-SENSORDATASERVICE|manual|low|any|SVC|SensorDataService|-|start|disabled
+SVC-SENSRSVC|manual|low|any|SVC|SensrSvc|-|start|disabled
+SVC-SENSORSERVICE|manual|low|any|SVC|SensorService|-|start|disabled
+SVC-MSKEYBOARDFILTER|manual|low|any|SVC|MsKeyboardFilter|-|start|disabled
+SVC-PERCEPTIONSIMULATION|manual|low|any|SVC|perceptionsimulation|-|start|disabled
+SVC-EMBEDDEDMODE|manual|low|any|SVC|embeddedmode|-|start|disabled
+SVC-NATURALAUTHENTICATION|manual|low|any|SVC|NaturalAuthentication|-|start|disabled
+SVC-STISVC|manual|med|any|SVC|StiSvc|-|start|disabled
+SVC-WIARPC|manual|med|any|SVC|WiaRpc|-|start|disabled
+SVC-SESSIONENV|manual|med|any|SVC|SessionEnv|-|start|disabled
+SVC-TERMSERVICE|manual|med|any|SVC|TermService|-|start|disabled
+SVC-UMRDPSERVICE|manual|med|any|SVC|UmRdpService|-|start|disabled
+SVC-BTHSERV|manual|med|any|SVC|bthserv|-|start|disabled
+SVC-BTHAVCTPSVC|manual|med|any|SVC|BthAvctpSvc|-|start|disabled
+SVC-BTAGSERVICE|manual|med|any|SVC|BTAGService|-|start|disabled
+SVC-SPOOLER|manual|med|any|SVC|Spooler|-|start|disabled
+SVC-PRINTNOTIFY|manual|med|any|SVC|PrintNotify|-|start|disabled
+SVC-PRINTSCANBROKERSERVICE|manual|med|any|SVC|PrintScanBrokerService|-|start|disabled
+SVC-PRINTDEVICECONFIGURATIONSERVICE|manual|med|any|SVC|PrintDeviceConfigurationService|-|start|disabled
+SVC-FRAMESERVER|manual|med|any|SVC|FrameServer|-|start|disabled
+SVC-FRAMESERVERMONITOR|manual|med|any|SVC|FrameServerMonitor|-|start|disabled
+SVC-QWAVE|manual|med|any|SVC|QWAVE|-|start|disabled
+SVC-TRKWKS|manual|med|any|SVC|TrkWks|-|start|disabled
+SVC-SSDPSRV|manual|med|any|SVC|SSDPSRV|-|start|disabled
+SVC-UPNPHOST|manual|med|any|SVC|upnphost|-|start|disabled
+SVC-LLTDSVC|manual|med|any|SVC|lltdsvc|-|start|disabled
+SVC-FDPHOST|manual|med|any|SVC|fdPHost|-|start|disabled
+SVC-FDRESPUB|manual|med|any|SVC|FDResPub|-|start|disabled
+SVC-WEBCLIENT|manual|med|any|SVC|WebClient|-|start|disabled
+SVC-WINRM|manual|med|any|SVC|WinRM|-|start|disabled
+SVC-DPS|manual|med|any|SVC|DPS|-|start|disabled
+SVC-WDISERVICEHOST|manual|med|any|SVC|WdiServiceHost|-|start|disabled
+SVC-WDISYSTEMHOST|manual|med|any|SVC|WdiSystemHost|-|start|disabled
+SVC-TROUBLESHOOTINGSVC|manual|med|any|SVC|TroubleshootingSvc|-|start|disabled
+SVC-WERCPLSUPPORT|manual|med|any|SVC|wercplsupport|-|start|disabled
+SVC-WERSVC|manual|med|any|SVC|WerSvc|-|start|disabled
+SVC-PCASVC|manual|med|any|SVC|PcaSvc|-|start|disabled
+SVC-CDPSVC|manual|med|any|SVC|CDPSvc|-|start|disabled
+SVC-DOSVC|manual|med|any|SVC|DoSvc|-|start|disabled
+SVC-DUSMSVC|manual|med|any|SVC|DusmSvc|-|start|disabled
+SVC-INVENTORYSVC|manual|med|any|SVC|InventorySvc|-|start|disabled
+SVC-DEFRAGSVC|manual|med|any|SVC|defragsvc|-|start|disabled
+SVC-GAMINGSERVICES|manual|med|any|SVC|GamingServices|-|start|disabled
+SVC-GAMINGSERVICESNET|manual|med|any|SVC|GamingServicesNet|-|start|disabled
+SVC-EDGEUPDATE|manual|med|any|SVC|edgeupdate|-|start|disabled
+SVC-EDGEUPDATEM|manual|med|any|SVC|edgeupdatem|-|start|disabled
+SVC-WBIOSRVC|manual|high|any|SVC|WbioSrvc|-|start|disabled
+SVC-WLIDSVC|manual|high|any|SVC|wlidsvc|-|start|disabled
+SVC-WPNSERVICE|manual|high|any|SVC|WpnService|-|start|disabled
+SVC-RASMAN|manual|high|any|SVC|RasMan|-|start|disabled
+SVC-SHAREDACCESS|manual|high|any|SVC|SharedAccess|-|start|disabled
