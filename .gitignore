@@ -9,3 +9,5 @@ backups/
 
 # подробные логи запусков
 logs/
+reports/
+dist/

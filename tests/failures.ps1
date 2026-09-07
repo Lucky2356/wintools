@@ -57,6 +57,7 @@ exit $LASTEXITCODE
       ('set "WT_PAYLOAD=' + $fixture + '\payload"'), ('set "LOCALAPPDATA=' + $fixture + '\local"'),
       'set "RUNID=test-run"','set "LOGDATE=2026-09-07"','set "LOGFILE="','set "OPT_DRY=0"',
       'set "JOURNAL_FAILED=0"','set "OPT_RUN="','set "OPT_IDS="'
+      'set "OPT_YES=1"','set "OPT_RP=no"'
     )
     $batch = Join-Path $fixture 'case.cmd'
     [IO.File]::WriteAllText($batch,(($preamble + $body + 'exit /b %ERRORLEVEL%') -join "`r`n") + "`r`n",[Text.Encoding]::ASCII)

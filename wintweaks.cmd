@@ -1,6 +1,6 @@
 @echo off
 rem ============================================================================
-rem  wintweaks - safe, fully revertible Windows tweak tool
+rem  wintweaks - Windows maintenance with recorded rollback
 rem  ASCII only on purpose (console runs in an OEM codepage).
 rem  Usage:  wintweaks.cmd <command> [options]     ("wintweaks.cmd help")
 rem ============================================================================
@@ -24,7 +24,7 @@ shift
 
 rem ---------------------------------------------------------------- defaults
 set "OPT_DRY=0"
-set "OPT_PROFILE=extended"
+set "OPT_PROFILE=core"
 set "OPT_RISKY=0"
 set "OPT_RECYCLE=0"
 set "OPT_STRICT=0"
@@ -67,7 +67,7 @@ if /i not "%OPT_PROFILE%"=="core" if /i not "%OPT_PROFILE%"=="balanced" if /i no
 
 rem ---- validate the command before doing anything privileged --------------
 set "_KNOWN=0"
-for %%C in (help menu status apply revert verify cleanup system-change) do if /i "%CMDNAME%"=="%%C" set "_KNOWN=1"
+for %%C in (help menu status diagnose apply revert verify cleanup system-change) do if /i "%CMDNAME%"=="%%C" set "_KNOWN=1"
 if "%_KNOWN%"=="0" (
     echo [ERROR] Unknown command: %CMDNAME%
     call :print_help
@@ -75,6 +75,10 @@ if "%_KNOWN%"=="0" (
 )
 
 if /i "%CMDNAME%"=="help" goto do_help
+if /i "%CMDNAME%"=="diagnose" (
+    %PSH% -Action Diagnose -Root "%APPROOT%"
+    exit /b !ERRORLEVEL!
+)
 if /i "%CMDNAME%"=="menu" (
     endlocal
     call "%~dp0menu.cmd"
@@ -98,6 +102,7 @@ if /i "%CMDNAME%"=="system-change" goto do_syschange
 rem ------------------------------------------------------------------ apply
 :do_apply
 call "%LIBDIR%\core.cmd" :plan_apply
+if errorlevel 1 goto bail
 call "%LIBDIR%\core.cmd" :confirm "Apply tweaks now (profile=%OPT_PROFILE% risky=%OPT_RISKY% dry=%OPT_DRY%)"
 if errorlevel 1 goto bail
 call "%LIBDIR%\core.cmd" :restorepoint
@@ -194,7 +199,7 @@ endlocal & exit /b 0
 
 :print_help
 echo(
-echo   wintweaks - safe, fully revertible Windows tweaks
+echo   wintweaks - Windows maintenance with recorded rollback
 echo(
 echo   wintweaks.cmd ^<command^> [options]
 echo(
@@ -202,6 +207,7 @@ echo   Commands:
 echo     apply           apply tweaks from data\tweaks.def according to the profile
 echo     revert          restore everything recorded in state\applied.dat
 echo     status          show OS info and what is currently applied
+echo     diagnose        save a read-only resource and startup report (no admin needed)
 echo     verify          compare the live system against the journal (read only)
 echo     cleanup         safe disk cleanup (never touched by revert)
 echo     system-change   reversible system configuration (power / network / fs)
@@ -210,7 +216,7 @@ echo     help            this text
 echo(
 echo   Options:
 echo     /dry                  show what would change, change nothing
-echo     /profile:core^|balanced^|extended     tweak set (default: extended)
+echo     /profile:core^|balanced^|extended     tweak set (default: core)
 echo     /id:^<TWEAK-ID^>        act on a single tweak only (repeatable)
 echo     /run:^<RUNID^>          revert only that run
 echo     /include-risky        allow RISK=high tweaks (SysMain, WSearch, WER)

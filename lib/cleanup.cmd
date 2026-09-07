@@ -13,43 +13,48 @@ shift
 goto %_ENTRY%
 
 :main
+set "CLEANFAIL=0"
+if not defined OPT_IDS set "OPT_IDS= CLN-USERTEMP CLN-WINTEMP "
 set "FREE_BEFORE=0"
 for /f "usebackq tokens=1,2 delims==" %%A in (`%PSH% -Action DiskFree 2^>nul`) do set "%%A=%%B"
 set "FREE_BEFORE=%FREEMB%"
 call "%LIBDIR%\core.cmd" :log INFO "Disk cleanup starting. Free on %SystemDrive% now: %FREE_BEFORE% MB (dry=%OPT_DRY%)"
 
-call :step_temp "%TEMP%" 3 CLN-USERTEMP
-call :step_temp "%SystemRoot%\Temp" 3 CLN-WINTEMP
-call :step_temp "%LOCALAPPDATA%\CrashDumps" 7 CLN-CRASHDUMPS
+call :step_temp CLN-USERTEMP
+if errorlevel 1 set "CLEANFAIL=1"
+call :step_temp CLN-WINTEMP
+if errorlevel 1 set "CLEANFAIL=1"
+call :step_temp CLN-CRASHDUMPS
+if errorlevel 1 set "CLEANFAIL=1"
 call :step_do_cache
+if errorlevel 1 set "CLEANFAIL=1"
 call :step_wu_download
+if errorlevel 1 set "CLEANFAIL=1"
 call :step_cleanmgr
+if errorlevel 1 set "CLEANFAIL=1"
 call :step_dism
+if errorlevel 1 set "CLEANFAIL=1"
 call :step_recycle
+if errorlevel 1 set "CLEANFAIL=1"
 
 set "FREEMB=0"
 for /f "usebackq tokens=1,2 delims==" %%A in (`%PSH% -Action DiskFree 2^>nul`) do set "%%A=%%B"
 set /a _FREED=%FREEMB%-%FREE_BEFORE%
-call "%LIBDIR%\core.cmd" :log INFO "Cleanup done. Free now %FREEMB% MB (delta %_FREED% MB)."
+call "%LIBDIR%\core.cmd" :log INFO "Cleanup finished. Free now %FREEMB% MB (delta %_FREED% MB; includes other system activity)."
+if "%CLEANFAIL%"=="1" exit /b 4
 exit /b 0
 
 rem ---------------------------------------------------------- :step_temp ----
-rem  args: <dir> <min age in days> <id>
+rem  args: <cleanup ID>; the helper resolves an allowlisted directory.
 :step_temp
-call "%LIBDIR%\core.cmd" :want_step "%~3"
+call "%LIBDIR%\core.cmd" :want_step "%~1"
 if errorlevel 1 exit /b 0
-if not exist "%~1" (
-    call "%LIBDIR%\core.cmd" :log INFO "SKIPPED %~3 (%~1 does not exist)"
-    exit /b 0
+%PSH% -Action CleanupFiles -Name "%~1" >> "%LOGFILE%" 2>&1
+if errorlevel 1 (
+    call "%LIBDIR%\core.cmd" :log WARN "%~1: incomplete cleanup; see the log for counts."
+    exit /b 4
 )
-set "FILES=0" & set "SIZEMB=0"
-for /f "usebackq tokens=1,2 delims==" %%A in (`%PSH% -Action DirStat -Full "%~1" -Name "%~2" 2^>nul`) do set "%%A=%%B"
-if "%OPT_DRY%"=="1" (
-    call "%LIBDIR%\core.cmd" :log INFO "DRY %~3: would delete %FILES% file(s), about %SIZEMB% MB, older than %~2 day(s) in %~1"
-    exit /b 0
-)
-forfiles /P "%~1" /S /D -%~2 /C "cmd /c if @isdir==FALSE del /q /f @path" >nul 2>&1
-call "%LIBDIR%\core.cmd" :log INFO "%~3: cleaned %~1 - up to %FILES% file(s) / %SIZEMB% MB older than %~2 day(s). Files in use are skipped."
+call "%LIBDIR%\core.cmd" :log INFO "%~1: completed (dry=%OPT_DRY%); counts in log."
 exit /b 0
 
 rem ------------------------------------------------------ :step_do_cache ----
@@ -62,7 +67,8 @@ if "%OPT_DRY%"=="1" (
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Delete-DeliveryOptimizationCache -Force -ErrorAction Stop } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 (
-    call "%LIBDIR%\core.cmd" :log WARN "CLN-DO-CACHE: Delivery Optimization cache not cleared (cmdlet unavailable or nothing to clear)"
+    call "%LIBDIR%\core.cmd" :log WARN "CLN-DO-CACHE: cache not cleared"
+    exit /b 4
 ) else (
     call "%LIBDIR%\core.cmd" :log INFO "CLN-DO-CACHE: Delivery Optimization cache cleared"
 )
@@ -87,13 +93,12 @@ if errorlevel 1 (
     call "%LIBDIR%\core.cmd" :log INFO "SKIPPED CLN-WU-DOWNLOAD (declined)"
     exit /b 0
 )
-net stop wuauserv >nul 2>&1
-net stop bits     >nul 2>&1
-del /q /f /s "%_WUD%\*" >nul 2>&1
-for /d %%D in ("%_WUD%\*") do rd /s /q "%%~D" >nul 2>&1
-net start bits     >nul 2>&1
-net start wuauserv >nul 2>&1
-call "%LIBDIR%\core.cmd" :log INFO "CLN-WU-DOWNLOAD: update download cache emptied, wuauserv and BITS restarted"
+%PSH% -Action CleanupUpdateCache >> "%LOGFILE%" 2>&1
+if errorlevel 1 (
+    call "%LIBDIR%\core.cmd" :log ERROR "CLN-WU-DOWNLOAD: incomplete cleanup or service restoration; see log."
+    exit /b 4
+)
+call "%LIBDIR%\core.cmd" :log INFO "CLN-WU-DOWNLOAD: download files cleared; original service running states restored."
 exit /b 0
 
 rem ------------------------------------------------------ :step_cleanmgr ----
@@ -117,15 +122,12 @@ if errorlevel 1 (
     exit /b 0
 )
 call "%LIBDIR%\core.cmd" :ensure_backupdir
+if errorlevel 1 exit /b 4
 reg export "%_VC%" "%BACKUPDIR%\volumecaches.reg" /y >nul 2>&1
+if errorlevel 1 exit /b 4
 call "%LIBDIR%\core.cmd" :log INFO "CLN-CLEANMGR: VolumeCaches backed up to %BACKUPDIR%\volumecaches.reg"
-for /f "usebackq delims=" %%K in (`reg query "%_VC%" 2^>nul`) do (
-    set "_SEL=0"
-    echo %%K| findstr /i /e /c:"\Temporary Files" /c:"\Thumbnail Cache" /c:"\Delivery Optimization Files" /c:"\Downloaded Program Files" /c:"\Windows Error Reporting Files" /c:"\System archived Windows Error Reporting" /c:"\System queued Windows Error Reporting" >nul
-    if not errorlevel 1 set "_SEL=2"
-    reg add "%%K" /v StateFlags0064 /t REG_DWORD /d !_SEL! /f >nul 2>&1
-)
-start "" /wait cleanmgr /sagerun:64
+%PSH% -Action CleanupManager >> "%LOGFILE%" 2>&1
+if errorlevel 1 exit /b 4
 call "%LIBDIR%\core.cmd" :log INFO "CLN-CLEANMGR: finished"
 exit /b 0
 
@@ -146,7 +148,8 @@ if errorlevel 1 (
     exit /b 0
 )
 DISM /Online /Cleanup-Image /StartComponentCleanup >> "%LOGFILE%" 2>&1
-call "%LIBDIR%\core.cmd" :log INFO "CLN-DISM: component store cleanup finished (exit %ERRORLEVEL%)"
+if errorlevel 1 exit /b 4
+call "%LIBDIR%\core.cmd" :log INFO "CLN-DISM: component store cleanup finished"
 exit /b 0
 
 rem ------------------------------------------------------- :step_recycle ----
@@ -166,6 +169,7 @@ if errorlevel 1 (
     call "%LIBDIR%\core.cmd" :log INFO "SKIPPED CLN-RECYCLE (declined)"
     exit /b 0
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Clear-RecycleBin -Force -ErrorAction SilentlyContinue" >nul 2>&1
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { Clear-RecycleBin -Force -ErrorAction Stop } catch { exit 4 }" >nul 2>&1
+if errorlevel 1 exit /b 4
 call "%LIBDIR%\core.cmd" :log INFO "CLN-RECYCLE: recycle bin emptied"
 exit /b 0

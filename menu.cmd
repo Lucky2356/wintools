@@ -83,6 +83,7 @@ call :catline  9 SYS   "Система: питание, сеть, диск"
 call :catline 10 CLEAN "Очистка диска"
 echo ------------------------------------------------------------------
 echo    S. Статус и журнал      V. Проверка системы     L. Логи
+echo    Q. Диагностика ресурсов и автозапуска
 echo    P. Создать точку восстановления сейчас
 echo    R. ОТКАТИТЬ ВСЁ         0. Выход
 echo ==================================================================
@@ -96,6 +97,7 @@ if not defined CHOICE (
 )
 set /a EMPTYIN=0
 if /i "!CHOICE!"=="D" (call :toggle M_DRY & goto main)
+if /i "!CHOICE!"=="Q" (call :run "diagnose" & goto main)
 if /i "!CHOICE!"=="S" (call :run "status" & goto main)
 if /i "!CHOICE!"=="V" (call :run "verify" & goto main)
 if /i "!CHOICE!"=="L" goto a_logs
@@ -266,6 +268,11 @@ call :run "revert /yes /id:!_ID!"
 exit /b 0
 
 :cat_apply_all
+for %%C in (SVC APPS SYS CLEAN EDGE PERF) do if /i "!CAT!"=="%%C" (
+    echo   В этой категории выбирайте пункты отдельно: последствия зависят от задач ПК.
+    call :pause
+    goto category
+)
 set "_IDS="
 for /f "usebackq eol=# tokens=1,2 delims=|" %%A in ("%DESCR%") do (
     if /i "%%B"=="!CAT!" (
@@ -288,7 +295,7 @@ if "%M_DRY%"=="1" (
 )
 call :ask "Продолжить"
 if errorlevel 1 goto category
-call :run "!CV! /yes /include-risky !_IDS!"
+call :run "!CV! /yes !_IDS!"
 goto category
 
 :cat_revert_all

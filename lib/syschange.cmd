@@ -11,7 +11,7 @@ goto %_ENTRY%
 
 rem ================================================================ :main ====
 :main
-if defined OPT_IDS goto sc_go
+if defined OPT_IDS goto sc_selected
 echo(
 echo   system-change will adjust, all of it reversible:
 echo     SYS-POWER-SCHEME     monitor timeout 20 min, no sleep, no disk timeout (AC)
@@ -20,7 +20,8 @@ echo     SYS-FASTSTARTUP-OFF  HiberbootEnabled = 0  (clean shutdown instead of h
 echo     SYS-LONGPATHS        LongPathsEnabled = 1  (paths longer than 260 chars)
 echo     SYS-TCP-AUTOTUNING   autotuninglevel = normal (the Windows default)
 echo     SYS-LASTACCESS       NTFS last access updates off
-call "%LIBDIR%\core.cmd" :confirm "Apply these system configuration changes"
+:sc_selected
+call "%LIBDIR%\core.cmd" :confirm "Apply the selected system configuration changes"
 if errorlevel 1 exit /b 5
 call "%LIBDIR%\core.cmd" :restorepoint
 :sc_go

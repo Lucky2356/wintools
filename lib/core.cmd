@@ -35,6 +35,8 @@ if errorlevel 1 (
     exit /b 4
 )
 set "LOCK_HELD=1"
+%PSH% -Action ValidateSelection -Root "%APPROOT%" -Name "%CMDNAME%"
+if errorlevel 1 exit /b 1
 %PSH% -Action ValidateData -Root "%APPROOT%"
 if errorlevel 1 (
     echo   [ERROR] Data validation failed. No system changes were made.
@@ -254,6 +256,10 @@ for /f "usebackq eol=# tokens=1-9 delims=|" %%A in ("%TWEAKDEF%") do (
 set "QUIET=0"
 echo(
 echo   %_PLANNED% tweak(s) selected. Backups go to %BACKUPDIR%
+if %_PLANNED% EQU 0 (
+    call :log WARN "No applicable tweaks selected. Check IDs, profile, OS and risk flags."
+    exit /b 1
+)
 exit /b 0
 
 rem ========================================================= :journal_add ====

@@ -37,7 +37,189 @@ function Read-Journal($path) {
   return ,$lines
 }
 
+function Remove-OldFiles([string]$directory, [int]$days, [bool]$dry) {
+  # Never recurse through junctions/symlinks or remove directories.
+  $resolved = [IO.Path]::GetFullPath($directory).TrimEnd('\')
+  if ($resolved -eq [IO.Path]::GetPathRoot($resolved).TrimEnd('\')) { throw 'Cleanup root cannot be a drive root.' }
+  $ancestor = $resolved
+  while ($ancestor) {
+    $item = Get-Item -LiteralPath $ancestor -Force -ErrorAction Stop
+    if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Cleanup root contains a reparse point.' }
+    $ancestor = Split-Path $ancestor -Parent
+  }
+  $pending = New-Object 'System.Collections.Generic.Stack[string]'
+  $pending.Push($resolved)
+  $cutoff = (Get-Date).AddDays(-$days)
+  $files=0; [long]$bytes=0; $failed=0; $links=0
+  while ($pending.Count) {
+    $current = $pending.Pop()
+    try {
+      $dir = Get-Item -LiteralPath $current -Force -ErrorAction Stop
+      if ($dir.Attributes -band [IO.FileAttributes]::ReparsePoint) { $links++; continue }
+      $children = @(Get-ChildItem -LiteralPath $current -Force -ErrorAction Stop)
+    } catch { $failed++; continue }
+    foreach ($child in $children) {
+      if ($child.Attributes -band [IO.FileAttributes]::ReparsePoint) { $links++; continue }
+      if ($child.PSIsContainer) { $pending.Push($child.FullName); continue }
+      if ($child.LastWriteTime -ge $cutoff) { continue }
+      try {
+        $path = [IO.Path]::GetFullPath($child.FullName)
+        if (-not $path.StartsWith($resolved + '\',[StringComparison]::OrdinalIgnoreCase)) { throw 'File outside cleanup root.' }
+        if (-not $dry) { Remove-Item -LiteralPath $path -Force -ErrorAction Stop }
+        $files++; $bytes += $child.Length
+      } catch { $failed++ }
+    }
+  }
+  Write-Output "Cleanup: files=$files bytes=$bytes failed=$failed linksSkipped=$links dry=$dry"
+  if ($failed) { throw 'Some files could not be processed; see cleanup counts.' }
+}
+
 switch ($Action) {
+
+  'CleanupManager' {
+    $ErrorActionPreference='Stop'
+    $saved = New-Object 'System.Collections.Generic.List[object]'
+    $failed=$false
+    $flag='StateFlags0064'
+    try {
+      $allowed=@('Temporary Files','Thumbnail Cache','Delivery Optimization Files','Downloaded Program Files','Windows Error Reporting Files','System archived Windows Error Reporting','System queued Windows Error Reporting')
+      foreach ($key in Get-ChildItem -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches') {
+        try {
+          $exists=$flag -in $key.GetValueNames()
+          $saved.Add([pscustomobject]@{path=$key.PSPath; exists=$exists; value=if($exists){$key.GetValue($flag)}else{$null}; kind=if($exists){$key.GetValueKind($flag).ToString()}else{'DWord'}})
+        } finally { $key.Close() }
+      }
+      foreach ($row in $saved) {
+        $leaf=Split-Path $row.path -Leaf
+        $value=if($leaf -in $allowed){2}else{0}
+        $null=New-ItemProperty -LiteralPath $row.path -Name $flag -Value $value -PropertyType DWord -Force
+      }
+      $process=Start-Process -FilePath (Join-Path $env:SystemRoot 'System32\cleanmgr.exe') -ArgumentList '/sagerun:64' -Wait -PassThru -WindowStyle Hidden
+      if($process.ExitCode -ne 0){ throw ('Disk Cleanup exit ' + $process.ExitCode) }
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); $failed=$true }
+    finally {
+      foreach($row in $saved) {
+        try {
+          if($row.exists){ $null=New-ItemProperty -LiteralPath $row.path -Name $flag -Value $row.value -PropertyType $row.kind -Force }
+          else { Remove-ItemProperty -LiteralPath $row.path -Name $flag -ErrorAction Stop }
+        } catch { Write-Output ('ERROR=Could not restore cleanup flags: ' + $row.path); $failed=$true }
+      }
+    }
+    if($failed){exit 4}
+    break
+  }
+
+  'CleanupFiles' {
+    $ErrorActionPreference='Stop'
+    try {
+      $days=3
+      $directory = switch ($Name) {
+        'CLN-USERTEMP' { $env:TEMP }
+        'CLN-WINTEMP' { Join-Path $env:SystemRoot 'Temp' }
+        'CLN-CRASHDUMPS' { $days=7; Join-Path $env:LOCALAPPDATA 'CrashDumps' }
+        default { throw 'Unknown cleanup target.' }
+      }
+      if (-not $directory) { throw 'Cleanup directory is undefined.' }
+      if (Test-Path -LiteralPath $directory) { Remove-OldFiles $directory $days ($env:OPT_DRY -eq '1') }
+      else { Write-Output 'Cleanup directory absent; nothing to remove.' }
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); exit 4 }
+    break
+  }
+
+  'CleanupUpdateCache' {
+    $ErrorActionPreference='Stop'
+    $restart = New-Object 'System.Collections.Generic.List[string]'
+    $failed=$false
+    try {
+      $directory=Join-Path $env:SystemRoot 'SoftwareDistribution\Download'
+      if ($env:OPT_DRY -eq '1') { Write-Output 'DRY: stop update services, clear download files, restore their original running state.'; break }
+      foreach ($serviceName in @('wuauserv','BITS')) {
+        $service=Get-Service -Name $serviceName
+        if ($service.Status -notin @('Running','Stopped')) { throw 'Update service is in transition; retry later.' }
+        if ($service.Status -eq 'Running') {
+          $restart.Add($serviceName)
+          Stop-Service -Name $serviceName -ErrorAction Stop
+          (Get-Service -Name $serviceName).WaitForStatus('Stopped',[timespan]::FromSeconds(30))
+        }
+      }
+      if (Test-Path -LiteralPath $directory) { Remove-OldFiles $directory 0 $false }
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); $failed=$true }
+    finally {
+      foreach ($serviceName in $restart) {
+        try { Start-Service -Name $serviceName; (Get-Service -Name $serviceName).WaitForStatus('Running',[timespan]::FromSeconds(30)) }
+        catch { Write-Output ('ERROR=Could not restart ' + $serviceName); $failed=$true }
+      }
+    }
+    if ($failed) { exit 4 }
+    break
+  }
+
+  'ValidateSelection' {
+    $ErrorActionPreference = 'Stop'
+    try {
+      $ids = @($env:OPT_IDS -split '\s+' | Where-Object { $_ })
+      $catalogue = @(Get-Content -LiteralPath (Join-Path $Root 'data\tweaks.def') | Where-Object { $_ -and -not $_.StartsWith('#') } | ForEach-Object { ($_ -split '\|')[0] })
+      $cleanup = @('CLN-USERTEMP','CLN-WINTEMP','CLN-CRASHDUMPS','CLN-DO-CACHE','CLN-WU-DOWNLOAD','CLN-CLEANMGR','CLN-DISM','CLN-RECYCLE')
+      $system = @('SYS-POWER-SCHEME','SYS-HIBERNATE-OFF','SYS-FASTSTARTUP-OFF','SYS-LONGPATHS','SYS-TCP-AUTOTUNING','SYS-LASTACCESS')
+      $allowed = switch ($Name) { 'apply' { $catalogue }; 'cleanup' { $cleanup }; 'system-change' { $system }; default { $catalogue; $cleanup; $system } }
+      # Historic IDs remain selectable after a catalogue update.
+      $journal = Join-Path $Root 'state\applied.dat'
+      if ($Name -in @('revert','verify') -and (Test-Path -LiteralPath $journal)) {
+        $history = Read-Journal $journal
+        $allowed += @($history | ForEach-Object { ($_ -split '\|')[1] })
+      }
+      foreach ($id in $ids) {
+        if ($id -cnotmatch '^[A-Z][A-Z0-9-]{1,63}$' -or $id -cnotin $allowed) { throw "Unknown ID for ${Name}: $id. Use the uppercase ID from the catalogue." }
+      }
+      if ($Name -eq 'system-change' -and $ids.Count -eq 0) { throw 'Select system changes explicitly with /id:SYS-...; there is no universal power/network preset.' }
+      if ($env:OPT_RUN -and $Name -notin @('revert','verify')) { throw '/run is supported only by revert and verify.' }
+      if ($env:OPT_STRICT -eq '1' -and $Name -ne 'apply') { throw '/strict is supported only by apply.' }
+      if ($env:OPT_RUN -and -not (Test-Path -LiteralPath $journal)) { throw 'Requested run is not present in the journal.' }
+      if ($env:OPT_RUN -and (Test-Path -LiteralPath $journal)) {
+        $history = Read-Journal $journal
+        $runs = @($history | ForEach-Object { ($_ -split '\|')[0] })
+        if ($env:OPT_RUN -notin $runs) { throw 'Requested run is not present in the journal.' }
+      }
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); exit 1 }
+    break
+  }
+
+  'Diagnose' {
+    $ErrorActionPreference = 'Stop'
+    $errors = New-Object 'System.Collections.Generic.List[string]'
+    function Read-Diagnostic($label, [scriptblock]$query) {
+      try { & $query } catch { $errors.Add($label + ': ' + $_.Exception.Message) }
+    }
+    $os = Read-Diagnostic 'OS' { Get-CimInstance Win32_OperatingSystem }
+    $disks = @(Read-Diagnostic 'Disks' { Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Select-Object DeviceID,Size,FreeSpace })
+    $cpu = @(Read-Diagnostic 'CPU' { Get-CimInstance Win32_Processor | Select-Object Name,LoadPercentage })
+    $processes = @(Read-Diagnostic 'Processes' { Get-Process | Sort-Object WorkingSet64 -Descending | Select-Object -First 10 ProcessName,Id,@{n='workingSetMB';e={[math]::Round($_.WorkingSet64/1MB,1)}} })
+    $startup = @(Read-Diagnostic 'Startup' { Get-CimInstance Win32_StartupCommand | Select-Object Name,Location })
+    $advice = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($disk in $disks) {
+      if ($disk.Size -gt 0 -and $disk.FreeSpace/$disk.Size -lt 0.1) { $advice.Add($disk.DeviceID + ' has less than 10% free space. Review Settings > System > Storage before deleting files.') }
+    }
+    if ($os -and $os.TotalVisibleMemorySize -gt 0 -and $os.FreePhysicalMemory/$os.TotalVisibleMemorySize -lt 0.15) { $advice.Add('Less than 15% memory is currently free. Inspect Task Manager while the slowdown occurs.') }
+    $advice.Add('Review startup apps in Task Manager; the list below does not imply every entry is enabled or unnecessary.')
+    $advice.Add('Compare the same workload before and after one change. Privacy and appearance settings do not establish a performance gain.')
+    $report = [ordered]@{
+      schema='wintweaks/diagnostic/1'; written=(Get-Date).ToUniversalTime().ToString('o')
+      note='Read-only point-in-time observations, not a benchmark. No commands, usernames or machine name are collected. Process and startup names may reveal installed software.'
+      os=if ($os) { [ordered]@{caption=$os.Caption; build=$os.BuildNumber; lastBoot=$os.LastBootUpTime; totalMemoryMB=[math]::Round($os.TotalVisibleMemorySize/1024); freeMemoryMB=[math]::Round($os.FreePhysicalMemory/1024)} } else { $null }
+      cpu=$cpu; disks=$disks; topMemoryProcesses=$processes; startupEntries=$startup; suggestions=@($advice.ToArray()); errors=@($errors.ToArray())
+    }
+    try {
+      $directory = Join-Path $Root 'reports'
+      $null = New-Item -ItemType Directory -Path $directory -Force
+      $path = Join-Path $directory ('diagnostic_' + (Get-Date -Format 'yyyyMMdd_HHmmss_fff') + '_' + [guid]::NewGuid().ToString('N').Substring(0,8) + '.json')
+      [IO.File]::WriteAllText($path,($report | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
+      Write-Output ('Report: ' + $path)
+      foreach ($item in $advice) { Write-Output ('  ' + $item) }
+      foreach ($item in $errors) { Write-Output ('UNAVAILABLE: ' + $item) }
+      if ($errors.Count) { exit 4 }
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); exit 4 }
+    break
+  }
 
   'GetRegistry' {
     $ErrorActionPreference = 'Stop'

@@ -32,3 +32,39 @@ jobs:
       - name: Real Windows integration (disposable runner only)
         shell: powershell
         run: .\tests\integration.ps1
+      - name: Diagnostics and cleanup boundaries
+        shell: powershell
+        run: .\tests\maintenance.ps1
+
+  package:
+    needs: catalogue
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - name: Package tested source and verify archive
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = (Get-Content VERSION -Raw).Trim()
+          if ($version -notmatch '^\d+\.\d+\.\d+(-rc\.\d+)?$') { throw 'Invalid version' }
+          New-Item -ItemType Directory dist | Out-Null
+          $zip = "dist/wintools-$version.zip"
+          git archive --format=zip --output=$zip HEAD wintweaks.cmd menu.cmd lib data README.md CHANGELOG.md SECURITY.md VERSION
+          if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $PWD $zip))
+          try {
+            $entries = @($archive.Entries | ForEach-Object FullName)
+            foreach ($required in @('wintweaks.cmd','menu.cmd','lib/helpers.ps1','data/tweaks.def','VERSION')) {
+              if ($required -notin $entries) { throw "Missing $required" }
+            }
+            if ($entries -match '^(state|backups|logs|reports|tests|\.git)/|promt\.md$') { throw 'Unexpected release contents' }
+          } finally { $archive.Dispose() }
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText((Join-Path $PWD ($zip + '.sha256')), "$hash  wintools-$version.zip`n", [Text.Encoding]::ASCII)
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-package
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 30
