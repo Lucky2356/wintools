@@ -24,18 +24,10 @@ if /i "%SVC_STARTMODE%"=="!_WANTMODE!" (
     call "%LIBDIR%\core.cmd" :log INFO "SKIPPED-SAME %T_ID% (%T_TARGET% start type is already %SVC_STARTMODE%)"
     exit /b 0
 )
-set "_HAVE=0"
-for /f "usebackq tokens=2,10 delims=|" %%a in ("%JOURNAL%") do (
-    if /i "%%a"=="%T_ID%" if /i "%%b"=="OK" set "_HAVE=1"
-)
-if "!_HAVE!"=="1" (
-    call "%LIBDIR%\core.cmd" :log INFO "REAPPLY %T_ID% (original already captured in an earlier run)"
-) else (
-    if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
-    if "%OPT_DRY%"=="0" reg export "HKLM\SYSTEM\CurrentControlSet\Services\%T_TARGET%" "%BACKUPDIR%\svc_%T_TARGET%.reg" /y >nul 2>&1
-    call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" SVC "%T_TARGET%" "-" "PRESENT" "%SVC_STARTMODE%" "%SVC_STATE%" "%SVC_DELAYED%"
-    if errorlevel 1 exit /b 4
-)
+if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
+if "%OPT_DRY%"=="0" reg export "HKLM\SYSTEM\CurrentControlSet\Services\%T_TARGET%" "%BACKUPDIR%\svc_%T_TARGET%.reg" /y >nul 2>&1
+call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" SVC "%T_TARGET%" "-" "PRESENT" "%SVC_STARTMODE%" "%SVC_STATE%" "%SVC_DELAYED%"
+if errorlevel 1 exit /b 4
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY %T_ID%: sc config %T_TARGET% start= %T_VALUE%   [was %SVC_STARTMODE%/%SVC_STATE%]"
     exit /b 0
@@ -74,7 +66,14 @@ if errorlevel 1 (
 )
 if /i "%R_PDATA%"=="Running" (
     sc start "%R_TARGET%" >nul 2>&1
-    if errorlevel 1 call "%LIBDIR%\core.cmd" :log WARN "REVERT %R_ID%: %R_TARGET% restored to !_START! but did not start now - it will start after reboot"
+    if errorlevel 1 (
+        set "RESTORE_STATE=?"
+        for /f "usebackq tokens=1,2 delims==" %%A in (`%PSH% -Action GetService -Name "%R_TARGET%" 2^>nul`) do if "%%A"=="STATE" set "RESTORE_STATE=%%B"
+        if not "!RESTORE_STATE!"=="Running" (
+            call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID%: start mode restored but service did not start; retry after resolving the error."
+            exit /b 1
+        )
+    )
 )
 call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: service %R_TARGET% start= !_START! (was %R_PTYPE%/%R_PDATA% originally)"
 call "%LIBDIR%\core.cmd" :journal_setresult "%R_RUN%" "%R_ID%" REVERTED

@@ -21,3 +21,6 @@ jobs:
       - name: Runtime regression checks (no system changes)
         shell: powershell
         run: .\tests\runtime.ps1
+      - name: Critical failure paths (stubbed system commands)
+        shell: powershell
+        run: .\tests\failures.ps1

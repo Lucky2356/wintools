@@ -58,6 +58,19 @@ try {
     $null = Invoke-Helper @{Action='JournalSetResult'; Full=$journal; Token='run1'; Name='UI-FILEEXT'; Description='REVERTED'} 4
   } finally { $handle.Dispose() }
   Assert ([IO.File]::ReadAllText($journal,$encoding) -ceq $before) 'Failed replacement damaged journal'
+  $env:OPT_RUN='run1'; $env:OPT_IDS=''
+  $null = Invoke-Helper @{Action='ValidateRevertOrder'; Full=$journal} 4
+  $env:OPT_RUN='run2'
+  $null = Invoke-Helper @{Action='ValidateRevertOrder'; Full=$journal} 0
+  $env:OPT_RUN=''
+  $null = Invoke-Helper @{Action='ValidateRevertOrder'; Full=$journal} 0
+  $null = Invoke-Helper @{Action='JournalSetResult'; Full=$journal; Token='missing-run'; Name='UI-FILEEXT'; Description='OK'} 4
+  Write-Journal ($row.Replace('HKCU\Software','HKU\S-1-5-21-111\Software') + "`r`n" + $other.Replace('HKCU\Software','HKU\S-1-5-21-222\Software') + "`r`n")
+  $env:OPT_RUN='run1'
+  $null = Invoke-Helper @{Action='ValidateRevertOrder'; Full=$journal} 0
+  Write-Journal ($row.Replace('|0|PENDING|','|HKCU\Software\Test|PENDING|').Replace('|PRESENT|','|ABSENT|') + "`r`n" + $other.Replace('HKCU\Software\Test|HideFileExt','HKCU\Software\Test\Child|OtherValue') + "`r`n")
+  $null = Invoke-Helper @{Action='ValidateRevertOrder'; Full=$journal} 4
+  $env:OPT_RUN=''
   Assert (@(Get-ChildItem (Join-Path $fixture 'state') -Filter '*.tmp').Count -eq 0) 'Temporary journal leaked'
   Write-Journal 'broken|row'
   $null = Invoke-Helper @{Action='ValidateJournal'; Full=$journal} 4
@@ -70,6 +83,7 @@ try {
   function Get-Item {
     $key = New-Object psobject
     $key | Add-Member ScriptMethod GetValueKind { $global:wtTestkind }
+    $key | Add-Member ScriptMethod GetValueNames { @('Value') }
     $key | Add-Member ScriptMethod GetValue { $global:wtTestvalue }
     $key | Add-Member ScriptMethod Close { }
     return $key
@@ -88,13 +102,13 @@ try {
   Write-Journal (($rows -join "`r`n") + "`r`n")
   $global:wtTestkind='DWord'; $global:wtTestvalue=-1; $global:wtTestmode='Disabled'; $global:wtTesttaskState='Disabled'; $global:wtTesttaskError=$false
   $output = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 0
-  Assert ($output[-1] -like '*matched=3 drift=0 unsupported=0*') 'Matching state not recognized'
+  Assert ($output[-1] -like '*matched=3 drift=0 unchecked=0*') 'Matching state not recognized'
   $global:wtTestvalue=0; $global:wtTestmode='Auto'; $global:wtTesttaskState='Ready'
   $output = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 4
-  Assert ($output[-1] -like '*matched=0 drift=3 unsupported=0*') 'Drift not detected'
+  Assert ($output[-1] -like '*matched=0 drift=3 unchecked=0*') 'Drift not detected'
   $global:wtTesttaskError=$true; $env:OPT_RUN='run2'
   $output = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 4
-  Assert ($output[-1] -like '*matched=0 drift=0 unsupported=1*') 'Read error or run filter mishandled'
+  Assert ($output[-1] -like '*matched=0 drift=0 unchecked=1*') 'Read error or run filter mishandled'
   $env:OPT_RUN=''; $env:OPT_IDS=' TEST-REG '
   $global:wtTestvalue=-1; $global:wtTestkind='String'
   $null = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 4
@@ -117,6 +131,42 @@ try {
   $null = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 0
   Write-Journal ''
   $null = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 0
+
+  function Get-AppxPackage { if ($global:wtAppError) { throw 'query denied' }; if ($global:wtAppPresent) { [pscustomobject]@{Name='Test.App'} } }
+  function Get-NetTCPSetting { [pscustomobject]@{AutoTuningLevelLocal=$global:wtTcp} }
+  function fsutil { $global:LASTEXITCODE=0; '= ' + $global:wtLastAccess }
+  function Get-ItemProperty { [pscustomobject]@{HibernateEnabled=$global:wtHibernate} }
+  [IO.File]::AppendAllText($defs,"`r`nTEST-APP|manual|low|any|APPX|Test.App|-|appx|remove`r`n")
+  $extraRows = @(
+    'run1|TEST-APP|APPX|Test.App|Test.App_family|PRESENT|Test.App_full|C:\payload|0|OK|time',
+    'run1|SYS-HIBERNATE-OFF|PWR|HIBERNATE|-|PRESENT|REG_DWORD|0x1|0|OK|time',
+    'run1|SYS-TCP-AUTOTUNING|NET|autotuninglevel|-|PRESENT|NETSH|Disabled|0|OK|time',
+    'run1|SYS-LASTACCESS|FS|disablelastaccess|-|PRESENT|FSUTIL|0|0|OK|time'
+  )
+  Write-Journal (($extraRows -join "`r`n") + "`r`n")
+  $global:wtAppPresent=$false; $global:wtAppError=$false; $global:wtTcp='Normal'; $global:wtLastAccess=1; $global:wtHibernate=0
+  $output = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 0
+  Assert ($output[-1] -like '*matched=4 drift=0 unchecked=0*') 'System or AppX verification failed'
+  $global:wtAppPresent=$true; $global:wtTcp='Disabled'; $global:wtLastAccess=0; $global:wtHibernate=1
+  $output = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 4
+  Assert ($output[-1] -like '*matched=0 drift=4 unchecked=0*') 'System or AppX drift missed'
+  $global:wtAppError=$true; $env:OPT_IDS=' TEST-APP '
+  $output = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 4
+  Assert ($output[0] -like '* ERROR:*') 'Query failure was treated as absence'
+  $env:OPT_IDS=''
+  $global:wtPowerGuid='381b4222-f694-41f0-9685-ff5bb260df2e'
+  $global:wtMonitor=1200
+  function Get-ItemProperty { [pscustomobject]@{ActivePowerScheme=$global:wtPowerGuid} }
+  function Get-CimInstance {
+    foreach ($setting in @('3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e','29f6c1db-86da-48c5-9fdb-f2b67b1f44da','6738e2c4-e8a5-4a42-b16a-e040e769756e')) {
+      [pscustomobject]@{InstanceID=('Microsoft:PowerSettingDataIndex\{' + $global:wtPowerGuid + '}\AC\{' + $setting + '}'); SettingIndexValue=$(if ($setting.StartsWith('3c0')) { $global:wtMonitor } else { 0 })}
+    }
+  }
+  Write-Journal "run1|SYS-POWER-SCHEME|PWR|$global:wtPowerGuid|SCHEME|PRESENT|SCHEME|C:\scheme.pow|0|OK|time"
+  $null = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 0
+  $global:wtMonitor=60
+  $null = Invoke-Helper @{Action='VerifyJournal'; Root=$fixture; Full=$journal} 4
+  Write-Journal ''
 
   $batch = Join-Path $fixture 'journal-test.cmd'
   $core = Join-Path $root 'lib\core.cmd'

@@ -21,18 +21,10 @@ if /i "%TSK_STATE%"=="Disabled" (
     call "%LIBDIR%\core.cmd" :log INFO "SKIPPED-SAME %T_ID% (task is already disabled)"
     exit /b 0
 )
-set "_HAVE=0"
-for /f "usebackq tokens=2,10 delims=|" %%a in ("%JOURNAL%") do (
-    if /i "%%a"=="%T_ID%" if /i "%%b"=="OK" set "_HAVE=1"
-)
-if "!_HAVE!"=="1" (
-    call "%LIBDIR%\core.cmd" :log INFO "REAPPLY %T_ID% (original already captured in an earlier run)"
-) else (
-    if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
-    if "%OPT_DRY%"=="0" schtasks /Query /TN "%T_TARGET%" /XML > "%BACKUPDIR%\task_%T_ID%.xml" 2>nul
-    call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" TASK "%T_TARGET%" "-" "PRESENT" "%TSK_STATE%" "-" "0"
-    if errorlevel 1 exit /b 4
-)
+if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
+if "%OPT_DRY%"=="0" schtasks /Query /TN "%T_TARGET%" /XML > "%BACKUPDIR%\task_%T_ID%.xml" 2>nul
+call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" TASK "%T_TARGET%" "-" "PRESENT" "%TSK_STATE%" "-" "0"
+if errorlevel 1 exit /b 4
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY %T_ID%: schtasks /Change /TN %T_TARGET% /DISABLE   [was %TSK_STATE%]"
     exit /b 0

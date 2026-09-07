@@ -234,7 +234,7 @@ switch ($Action) {
 
   'GetLastAccess' {
     $out = (fsutil behavior query disablelastaccess) -join ' '
-    if ($out -match '=\s*(\d+)') { Out-KV 'LASTACCESS' $Matches[1] } else { Out-KV 'LASTACCESS' 'unknown' }
+    if ($LASTEXITCODE -eq 0 -and $out -match '=\s*([0-3])\b') { Out-KV 'LASTACCESS' $Matches[1] } else { Out-KV 'LASTACCESS' 'unknown' }
     break
   }
 
@@ -349,6 +349,49 @@ switch ($Action) {
     break
   }
 
+  'CheckRegistryAbsent' {
+    $ErrorActionPreference = 'Stop'
+    try {
+      $keyPath = $Full -replace '^HKCU\\','HKEY_CURRENT_USER\' -replace '^HKLM\\','HKEY_LOCAL_MACHINE\' -replace '^HKU\\','HKEY_USERS\'
+      $key = Get-Item -LiteralPath ('Registry::' + $keyPath)
+      try {
+        if (-not $Name) { exit 4 }
+        if ($Name -eq '@DEFAULT@') { $Name = '' }
+        if ($Name -in $key.GetValueNames()) { exit 4 }
+      } finally { $key.Close() }
+    } catch [System.Management.Automation.ItemNotFoundException] { exit 0 }
+      catch { exit 4 }
+    break
+  }
+
+  'ValidateRevertOrder' {
+    try {
+      $lines = Read-Journal $Full
+      $blocked = @{}
+      for ($i = $lines.Count - 1; $i -ge 0; $i--) {
+        $r = $lines[$i] -split '\|'
+        if ($r[9] -in @('REVERTED','MANUAL')) { continue }
+        $type = $r[2] -replace '^APPXDEEP$', 'APPX'
+        $object = "$type|$($r[3])|$($r[4])"
+        $selected = (-not $env:OPT_RUN -or $r[0] -eq $env:OPT_RUN) -and
+                    (-not $env:OPT_IDS -or $r[1] -in ($env:OPT_IDS -split '\s+'))
+        if ($selected -and $blocked.ContainsKey($object)) {
+          throw "Revert newer run $($blocked[$object]) for $($r[1]) first."
+        }
+        if ($selected -and $type -eq 'REG' -and $r[5] -eq 'ABSENT' -and $r[8] -ne '0') {
+          foreach ($later in $blocked.Keys) {
+            $parts = $later -split '\|'
+            if ($parts[0] -eq 'REG' -and ($parts[1] -eq $r[8] -or $parts[1].StartsWith($r[8] + '\',[StringComparison]::OrdinalIgnoreCase))) {
+              throw "Revert newer run $($blocked[$later]) before removing its parent key."
+            }
+          }
+        }
+        if (-not $selected) { $blocked[$object] = $r[0] }
+      }
+    } catch { Write-Output "ERROR=$($_.Exception.Message)"; exit 4 }
+    break
+  }
+
   'VerifyJournal' {
     $ErrorActionPreference = 'Stop'
     function Write-Verification($message) {
@@ -377,7 +420,19 @@ switch ($Action) {
           $detail = 'journal status ' + $r[9]
         } else {
           $def = $catalogue[$r[1]]
-          if ($def -and $def[4] -eq $r[2]) {
+          # System-change entries are built into the CMD engine, not tweaks.def.
+          $system = @{
+            'SYS-FASTSTARTUP-OFF'='REG|HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power|HiberbootEnabled|REG_DWORD|0'
+            'SYS-LONGPATHS'='REG|HKLM\SYSTEM\CurrentControlSet\Control\FileSystem|LongPathsEnabled|REG_DWORD|1'
+            'SYS-HIBERNATE-OFF'='PWR|HIBERNATE|-|REG_DWORD|0'
+            'SYS-TCP-AUTOTUNING'='NET|autotuninglevel|-|NETSH|Normal'
+            'SYS-LASTACCESS'='FS|disablelastaccess|-|FSUTIL|1'
+          }
+          if ($system.ContainsKey($r[1])) { $def = ("$($r[1])|manual|low|any|" + $system[$r[1]]) -split '\|' }
+          if ($r[1] -eq 'SYS-POWER-SCHEME' -and $r[3] -match '^[0-9a-f-]{36}$') {
+            $def = @($r[1],'manual','low','any','PWR',$r[3],'SCHEME','SCHEME','-')
+          }
+          if ($def -and ($def[4] -eq $r[2] -or ($def[4] -eq 'APPX' -and $r[2] -eq 'APPXDEEP'))) {
             # A renamed target must not silently verify a different object.
             $target = $def[5]
             if ($target.StartsWith('@HKCU@')) {
@@ -386,9 +441,10 @@ switch ($Action) {
                 $target = $r[3]
               }
             }
-            if ($target -eq $r[3] -and $def[6] -eq $r[4]) {
+            if ($target -eq $r[3] -and ($def[6] -eq $r[4] -or $def[4] -eq 'APPX')) {
               try {
                 $same = $false
+                $detail = 'compared with current catalogue'
                 switch ($r[2]) {
                   'REG' {
                     $keyPath = $r[3] -replace '^HKCU\\','HKEY_CURRENT_USER\' -replace '^HKLM\\','HKEY_LOCAL_MACHINE\' -replace '^HKU\\','HKEY_USERS\'
@@ -396,6 +452,7 @@ switch ($Action) {
                     try {
                       $valueName = $r[4]
                       if ($valueName -eq '@DEFAULT@') { $valueName = '' }
+                      if ($valueName -notin $key.GetValueNames()) { $detail = 'registry value absent'; break }
                       $kind = $key.GetValueKind($valueName).ToString()
                       $value = $key.GetValue($valueName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
                       if ($def[7] -eq 'REG_DWORD' -and $kind -eq 'DWord') {
@@ -413,18 +470,64 @@ switch ($Action) {
                     $modes = @{disabled='Disabled'; auto='Auto'; demand='Manual'; boot='Boot'; system='System'}
                     if (-not $modes.ContainsKey($def[8])) { throw 'Unsupported service start mode' }
                     $same = $service -and $service.StartMode -eq $modes[$def[8]]
+                    if (-not $service) { $detail = 'service absent' }
                   }
                   'TASK' {
                     $split = $r[3].LastIndexOf('\')
                     $task = Get-ScheduledTask -TaskPath $r[3].Substring(0,$split+1) -TaskName $r[3].Substring($split+1)
                     $same = $task -and $task.State -eq 'Disabled'
+                    if (-not $task) { $detail = 'task absent' }
                   }
-                  default { throw 'Unsupported entry type' }
+                  { $_ -in @('APPX','APPXDEEP') } {
+                    $same = @(Get-AppxPackage -Name $r[3] -ErrorAction Stop).Count -eq 0
+                    if ($r[2] -eq 'APPXDEEP') {
+                      $provisioned = @(Get-AppxProvisionedPackage -Online -ErrorAction Stop | Where-Object { $_.DisplayName -eq $r[3] })
+                      $dataPath = Join-Path $env:LOCALAPPDATA ('Packages\' + $r[4])
+                      $activation = 'Registry::HKEY_CURRENT_USER\Software\Classes\ActivatableClasses\Package\' + $r[6]
+                      $same = $same -and $provisioned.Count -eq 0 -and -not (Test-Path -LiteralPath $dataPath) -and -not (Test-Path -LiteralPath $activation)
+                    }
+                  }
+                  'NET' {
+                    $tcp = Get-NetTCPSetting -SettingName InternetCustom -ErrorAction Stop
+                    if (-not $tcp.AutoTuningLevelLocal) { $tcp = Get-NetTCPSetting -SettingName Internet -ErrorAction Stop }
+                    if (-not $tcp.AutoTuningLevelLocal) { throw 'TCP state unavailable' }
+                    $same = $tcp.AutoTuningLevelLocal -eq 'Normal'
+                  }
+                  'FS' {
+                    $output = (fsutil behavior query disablelastaccess) -join ' '
+                    if ($LASTEXITCODE -ne 0 -or $output -notmatch '=\s*([0-3])\b') { throw 'NTFS state unavailable' }
+                    $same = $Matches[1] -eq '1'
+                  }
+                  'PWR' {
+                    if ($r[3] -eq 'HIBERNATE') {
+                      $power = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Power' -Name HibernateEnabled
+                      $same = $power.HibernateEnabled -eq 0
+                    } else {
+                      $active = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\Power\User\PowerSchemes' -Name ActivePowerScheme
+                      $indexes = @(Get-CimInstance -Namespace root\cimv2\power -ClassName Win32_PowerSettingDataIndex)
+                      $wanted = @{
+                        '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e'=1200 # monitor, seconds
+                        '29f6c1db-86da-48c5-9fdb-f2b67b1f44da'=0    # standby
+                        '6738e2c4-e8a5-4a42-b16a-e040e769756e'=0    # disk
+                      }
+                      $same = $active.ActivePowerScheme -eq $r[3]
+                      foreach ($setting in $wanted.Keys) {
+                        $instance = 'Microsoft:PowerSettingDataIndex\{' + $r[3] + '}\AC\{' + $setting + '}'
+                        $index = @($indexes | Where-Object { $_.InstanceID -eq $instance })
+                        if ($index.Count -ne 1) { throw 'Power setting unavailable' }
+                        $same = $same -and $index[0].SettingIndexValue -eq $wanted[$setting]
+                      }
+                    }
+                  }
+                  default { throw [NotSupportedException]::new('Unsupported entry type') }
                 }
                 $result = if ($same) { 'MATCH' } else { 'DRIFT' }
-                $detail = 'compared with current catalogue'
+              } catch [System.Management.Automation.ItemNotFoundException] {
+                $result = 'DRIFT'; $detail = 'object absent'
+              } catch [NotSupportedException] {
+                $result = 'UNSUPPORTED'; $detail = $_.Exception.Message
               } catch {
-                $result = 'UNSUPPORTED'
+                $result = 'ERROR'
                 $detail = 'state could not be checked: ' + $_.Exception.Message
               }
             } else { $detail = 'catalogue target or name changed' }
@@ -433,7 +536,7 @@ switch ($Action) {
         switch ($result) { 'MATCH' { $matched++ }; 'DRIFT' { $drift++ }; default { $unknown++ } }
         Write-Verification ("VERIFY {0} {1}: {2}" -f $r[1], $result, $detail)
       }
-      Write-Verification "Verify done: matched=$matched drift=$drift unsupported=$unknown. System settings were not modified."
+      Write-Verification "Verify done: matched=$matched drift=$drift unchecked=$unknown. System settings were not modified."
       if ($drift -gt 0 -or $unknown -gt 0) { exit 4 }
     } catch { Write-Output "ERROR=$($_.Exception.Message)"; exit 4 }
     break
@@ -454,13 +557,7 @@ switch ($Action) {
           $matched++
         }
       }
-      # Reapply keeps an earlier run's original; it has no new row to mark.
-      if ($matched -eq 0) {
-        if ($Description -in @('OK','FAILED') -and @($lines | Where-Object {
-          $p = $_ -split '\|'; $p[1] -eq $Name -and $p[9] -eq 'OK'
-        }).Count -gt 0) { exit 0 }
-        throw 'Journal entry not found.'
-      }
+      if ($matched -eq 0) { throw 'Journal entry not found.' }
       $temporary = $Full + '.' + [guid]::NewGuid().ToString('N') + '.tmp'
       [System.IO.File]::WriteAllLines($temporary, $lines, [System.Text.Encoding]::GetEncoding(28591))
       # Same-directory atomic replacement: failure leaves the original intact.

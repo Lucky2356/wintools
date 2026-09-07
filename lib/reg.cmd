@@ -44,7 +44,7 @@ call :capture "!KEY!" "%T_NAME%"
 
 rem ---- idempotency: already at the wanted value? -----------------------------
 set "_SAME=0"
-if /i "%RC_STATE%"=="PRESENT" (
+if /i "%RC_STATE%"=="PRESENT" if /i "%RC_TYPE%"=="%T_VTYPE%" (
     if /i "%T_VTYPE%"=="REG_DWORD" (
         set "_C=#" & set "_W=##"
         set /a _C=%RC_DATA% >nul 2>&1
@@ -59,26 +59,18 @@ if "!_SAME!"=="1" (
     exit /b 0
 )
 
-rem ---- backup + journal, but never overwrite an original we already hold -----
-set "_HAVE=0"
-for /f "usebackq tokens=2,10 delims=|" %%a in ("%JOURNAL%") do (
-    if /i "%%a"=="%T_ID%" if /i "%%b"=="OK" set "_HAVE=1"
-)
-if "!_HAVE!"=="1" (
-    call "%LIBDIR%\core.cmd" :log INFO "REAPPLY %T_ID% (original already captured in an earlier run)"
+rem ---- capture this change; reverse replay preserves earlier originals ------
+set "_DELKEY=0"
+if "%RC_KEYEXISTS%"=="0" (
+    call "%LIBDIR%\core.cmd" :topmost_missing "!KEY!"
+    set "_DELKEY=!RC_DELKEY!"
 ) else (
-    set "_DELKEY=0"
-    if "%RC_KEYEXISTS%"=="0" (
-        call "%LIBDIR%\core.cmd" :topmost_missing "!KEY!"
-        set "_DELKEY=!RC_DELKEY!"
-    ) else (
-        call :safename "!KEY!" _SAFE
-        if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
-        if "%OPT_DRY%"=="0" reg export "!KEY!" "%BACKUPDIR%\!_SAFE!.reg" /y >nul 2>&1
-    )
-    call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" REG "!KEY!" "%T_NAME%" "%RC_STATE%" "%RC_TYPE%" "%RC_DATA%" "!_DELKEY!"
-    if errorlevel 1 exit /b 4
+    call :safename "!KEY!" _SAFE
+    if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
+    if "%OPT_DRY%"=="0" reg export "!KEY!" "%BACKUPDIR%\!_SAFE!.reg" /y >nul 2>&1
 )
+call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" REG "!KEY!" "%T_NAME%" "%RC_STATE%" "%RC_TYPE%" "%RC_DATA%" "!_DELKEY!"
+if errorlevel 1 exit /b 4
 
 rem ---- mutate ---------------------------------------------------------------
 set "_VOPT=/v "%T_NAME%""
@@ -112,9 +104,13 @@ if /i "%R_PSTATE%"=="ABSENT" (
     if not "%R_KEYNEW%"=="0" (
         reg query "%R_KEYNEW%" >nul 2>&1
         if not errorlevel 1 reg delete "%R_KEYNEW%" /f >nul 2>&1
+        %PSH% -Action CheckRegistryAbsent -Full "%R_KEYNEW%"
+        if errorlevel 1 goto revert_failed
         call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: removed key %R_KEYNEW% (it did not exist before)"
     ) else (
         reg delete "%R_TARGET%" %_VOPT% /f >nul 2>&1
+        %PSH% -Action CheckRegistryAbsent -Full "%R_TARGET%" -Name "%R_NAME%"
+        if errorlevel 1 goto revert_failed
         call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: removed value %R_TARGET%\%R_NAME%"
     )
 ) else (
@@ -128,7 +124,10 @@ if /i "%R_PSTATE%"=="ABSENT" (
     call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: %R_TARGET%\%R_NAME% = %R_PDATA% (%R_PTYPE%)"
 )
 call "%LIBDIR%\core.cmd" :journal_setresult "%R_RUN%" "%R_ID%" REVERTED
-exit /b 0
+exit /b %ERRORLEVEL%
+:revert_failed
+call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID%: registry deletion could not be confirmed."
+exit /b 1
 
 rem ============================================================ :safename ====
 :safename

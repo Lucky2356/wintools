@@ -49,9 +49,13 @@ if errorlevel 1 (
 )
 call "%LIBDIR%\core.cmd" :journal_add "SYS-POWER-SCHEME" PWR "%PWR_GUID%" "SCHEME" "PRESENT" "SCHEME" "%_POW%" "0"
 if errorlevel 1 exit /b 4
+set "_SYSID=SYS-POWER-SCHEME"
 powercfg /change monitor-timeout-ac 20 >nul 2>&1
+if errorlevel 1 goto sc_failed
 powercfg /change standby-timeout-ac 0  >nul 2>&1
+if errorlevel 1 goto sc_failed
 powercfg /change disk-timeout-ac 0     >nul 2>&1
+if errorlevel 1 goto sc_failed
 call "%LIBDIR%\core.cmd" :log INFO "OK SYS-POWER-SCHEME: timeouts adjusted, exact scheme backup at %_POW%"
 call "%LIBDIR%\core.cmd" :journal_mark "SYS-POWER-SCHEME" OK
 
@@ -64,6 +68,10 @@ if "%ENV_ISLAPTOP%"=="1" (
     goto sc_reg
 )
 call "%LIBDIR%\reg.cmd" :capture "HKLM\SYSTEM\CurrentControlSet\Control\Power" "HibernateEnabled"
+if not "%RC_STATE%:%RC_TYPE%"=="PRESENT:REG_DWORD" (
+    call "%LIBDIR%\core.cmd" :log ERROR "Cannot read hibernation state; change aborted."
+    exit /b 4
+)
 if /i "%RC_DATA%"=="0x0" (
     call "%LIBDIR%\core.cmd" :log INFO "SKIPPED-SAME SYS-HIBERNATE-OFF (hibernation is already off)"
     goto sc_reg
@@ -124,7 +132,9 @@ if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY SYS-TCP-AUTOTUNING: netsh int tcp set global autotuninglevel=normal   [was %TCP_AUTOTUNING%]"
     goto sc_lastaccess
 )
+set "_SYSID=SYS-TCP-AUTOTUNING"
 netsh int tcp set global autotuninglevel=normal >nul 2>&1
+if errorlevel 1 goto sc_failed
 call "%LIBDIR%\core.cmd" :log INFO "OK SYS-TCP-AUTOTUNING: normal   [was %TCP_AUTOTUNING%]"
 call "%LIBDIR%\core.cmd" :journal_mark "SYS-TCP-AUTOTUNING" OK
 
@@ -149,7 +159,9 @@ if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY SYS-LASTACCESS: fsutil behavior set disablelastaccess 1   [was %LASTACCESS%]"
     goto sc_end
 )
+set "_SYSID=SYS-LASTACCESS"
 fsutil behavior set disablelastaccess 1 >nul 2>&1
+if errorlevel 1 goto sc_failed
 call "%LIBDIR%\core.cmd" :log INFO "OK SYS-LASTACCESS: 1   [was %LASTACCESS%]"
 call "%LIBDIR%\core.cmd" :journal_mark "SYS-LASTACCESS" OK
 
@@ -157,6 +169,11 @@ call "%LIBDIR%\core.cmd" :journal_mark "SYS-LASTACCESS" OK
 call "%LIBDIR%\core.cmd" :log INFO "system-change finished with %_SCFAIL% failure(s). Reboot for hibernate/fast-startup to settle."
 if %_SCFAIL% GTR 0 exit /b 4
 exit /b 0
+
+:sc_failed
+call "%LIBDIR%\core.cmd" :log ERROR "FAILED %_SYSID%: system command failed; use revert to restore this run."
+call "%LIBDIR%\core.cmd" :journal_mark "%_SYSID%" FAILED
+exit /b 4
 
 rem ========================================================== :revert_one ====
 :revert_one
@@ -166,6 +183,7 @@ if "%OPT_DRY%"=="1" (
 )
 if /i "%R_TARGET%"=="HIBERNATE" (
     if /i "%R_PDATA%"=="0x0" (powercfg /h off >nul 2>&1) else (powercfg /h on >nul 2>&1)
+    if errorlevel 1 goto rv_failed
     call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: hibernation restored to %R_PDATA%"
     goto rv_done
 )
@@ -180,20 +198,27 @@ if /i "%R_PTYPE%"=="SCHEME" (
         exit /b 1
     )
     powercfg /setactive %R_TARGET% >nul 2>&1
+    if errorlevel 1 goto rv_failed
     call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: power scheme %R_TARGET% restored from its .pow backup"
     goto rv_done
 )
 if /i "%R_PTYPE%"=="NETSH" (
     netsh int tcp set global autotuninglevel=%R_PDATA% >nul 2>&1
+    if errorlevel 1 goto rv_failed
     call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: autotuninglevel restored to %R_PDATA%"
     goto rv_done
 )
 if /i "%R_PTYPE%"=="FSUTIL" (
     fsutil behavior set disablelastaccess %R_PDATA% >nul 2>&1
+    if errorlevel 1 goto rv_failed
     call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: disablelastaccess restored to %R_PDATA%"
     goto rv_done
 )
 call "%LIBDIR%\core.cmd" :log WARN "REVERT %R_ID%: unknown entry shape, nothing done"
+exit /b 1
 :rv_done
 call "%LIBDIR%\core.cmd" :journal_setresult "%R_RUN%" "%R_ID%" REVERTED
-exit /b 0
+exit /b %ERRORLEVEL%
+:rv_failed
+call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID%: system command failed; journal retained for retry."
+exit /b 1

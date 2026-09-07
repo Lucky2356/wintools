@@ -306,6 +306,8 @@ exit /b 0
 
 rem ====================================================== :revert_journal ====
 :revert_journal
+%PSH% -Action ValidateRevertOrder -Full "%JOURNAL%"
+if errorlevel 1 exit /b 4
 set /a _N=0
 for /f "usebackq delims=" %%L in ("%JOURNAL%") do (
     set /a _N+=1
@@ -315,7 +317,7 @@ if %_N%==0 (
     call :log INFO "Journal is empty - nothing to revert."
     exit /b 0
 )
-set /a _FAILS=0, _DONE=0, _SKIP=0
+set /a _DONE=0, _SKIP=0
 for /l %%i in (%_N%,-1,1) do (
     for /f "tokens=1-11 delims=|" %%a in ("!_J%%i!") do (
         set "R_RUN=%%a"    & set "R_ID=%%b"    & set "R_TYPE=%%c"
@@ -324,6 +326,7 @@ for /l %%i in (%_N%,-1,1) do (
         set "R_RESULT=%%j"
         set "_DOIT=1"
         if /i "!R_RESULT!"=="REVERTED" set "_DOIT=0"
+        if /i "!R_RESULT!"=="MANUAL" set "_DOIT=0"
         if defined OPT_RUN if /i not "!R_RUN!"=="%OPT_RUN%" set "_DOIT=0"
         if defined OPT_IDS (
             echo %OPT_IDS% | findstr /i /c:" !R_ID! " >nul
@@ -340,16 +343,16 @@ for /l %%i in (%_N%,-1,1) do (
             if /i "!R_TYPE!"=="APPX" call "%LIBDIR%\appx.cmd"      :revert_one
             if /i "!R_TYPE!"=="APPXDEEP" call "%LIBDIR%\appx.cmd"  :revert_one
             if /i "!R_TYPE!"=="EDGE" call "%LIBDIR%\appx.cmd"      :revert_one
-            if errorlevel 1 set /a _FAILS+=1
+            rem Do not restore older snapshots after a newer restore failed.
+            if errorlevel 1 exit /b 4
             if "!JOURNAL_FAILED!"=="1" exit /b 4
         ) else (
             set /a _SKIP+=1
         )
     )
 )
-call :log INFO "Revert finished: %_DONE% processed, %_SKIP% skipped, %_FAILS% failure(s)."
+call :log INFO "Revert finished: %_DONE% processed, %_SKIP% skipped."
 if "%OPT_DRY%"=="0" if %_DONE% GTR 0 call :log INFO "UI and service changes fully take effect after sign-out or reboot."
-if %_FAILS% GTR 0 exit /b 4
 exit /b 0
 
 rem ============================================================== :status ====

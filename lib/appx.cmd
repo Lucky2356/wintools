@@ -74,11 +74,12 @@ if "%OPT_DRY%"=="1" (
 )
 
 call "%LIBDIR%\core.cmd" :ensure_backupdir
+if errorlevel 1 exit /b 4
 if not exist "%_BK%" md "%_BK%" >nul 2>&1
-> "%_BK%\meta.txt" echo ORIGLOC=%AX_INSTALLLOC%
->>"%_BK%\meta.txt" echo FULLNAME=%AX_FULLNAME%
->>"%_BK%\meta.txt" echo FAMILY=%AX_FAMILYNAME%
->>"%_BK%\meta.txt" echo PROVISIONED=%PV_PACKAGENAME%
+> "%_BK%\meta.txt" echo ORIGLOC=%AX_INSTALLLOC%|| goto deep_backup_failed
+>>"%_BK%\meta.txt" echo FULLNAME=%AX_FULLNAME%|| goto deep_backup_failed
+>>"%_BK%\meta.txt" echo FAMILY=%AX_FAMILYNAME%|| goto deep_backup_failed
+>>"%_BK%\meta.txt" echo PROVISIONED=%PV_PACKAGENAME%|| goto deep_backup_failed
 
 call "%LIBDIR%\core.cmd" :log INFO "%T_ID% [DEEP]: backing up payload to %_BK%\payload ..."
 robocopy "%AX_INSTALLLOC%" "%_BK%\payload" /E /B /R:0 /W:0 /NFL /NDL /NJH /NJS /NP >nul 2>&1
@@ -86,7 +87,9 @@ if errorlevel 8 (
     call "%LIBDIR%\core.cmd" :log ERROR "ABORTED %T_ID% [DEEP]: could not copy the payload - refusing to delete what we cannot restore"
     exit /b 1
 )
+set "_HADLD=0"
 if exist "%_LD%" (
+    set "_HADLD=1"
     robocopy "%_LD%" "%_BK%\localdata" /E /R:0 /W:0 /NFL /NDL /NJH /NJS /NP >nul 2>&1
     if errorlevel 8 (
         call "%LIBDIR%\core.cmd" :log ERROR "ABORTED %T_ID% [DEEP]: could not copy %_LD%"
@@ -94,7 +97,17 @@ if exist "%_LD%" (
     )
 )
 reg query "%_RK%" >nul 2>&1
-if not errorlevel 1 reg export "%_RK%" "%_BK%\activatable.reg" /y >nul 2>&1
+set "_HADRK=0"
+if not errorlevel 1 (
+    reg export "%_RK%" "%_BK%\activatable.reg" /y >nul 2>&1
+    if errorlevel 1 goto deep_backup_failed
+    set "_HADRK=1"
+) else (
+    %PSH% -Action CheckRegistryAbsent -Full "%_RK%"
+    if errorlevel 1 goto deep_backup_failed
+)
+>>"%_BK%\meta.txt" echo LOCALDATA=%_HADLD%|| goto deep_backup_failed
+>>"%_BK%\meta.txt" echo ACTIVATABLE=%_HADRK%|| goto deep_backup_failed
 
 call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" APPXDEEP "%T_TARGET%" "%AX_FAMILYNAME%" "PRESENT" "%AX_FULLNAME%" "%_BK%" "%PV_EXISTS%"
 if errorlevel 1 exit /b 4
@@ -105,20 +118,34 @@ if errorlevel 1 (
     call "%LIBDIR%\core.cmd" :journal_mark "%T_ID%" FAILED
     exit /b 1
 )
+set "_DEEPFAIL=0"
 if "%PV_EXISTS%"=="1" (
     %PSH% -Action RemoveProvisioned -Full "%PV_PACKAGENAME%" >nul 2>&1
     if errorlevel 1 (
+        set "_DEEPFAIL=1"
         call "%LIBDIR%\core.cmd" :log WARN "%T_ID% [DEEP]: provisioned entry %PV_PACKAGENAME% was not removed - the app may return for new user accounts"
     ) else (
         call "%LIBDIR%\core.cmd" :log INFO "%T_ID% [DEEP]: provisioned entry removed - the app will not be handed to new accounts"
     )
 )
 if exist "%_LD%" rd /s /q "%_LD%" >nul 2>&1
+if exist "%_LD%" set "_DEEPFAIL=1"
 reg query "%_RK%" >nul 2>&1
 if not errorlevel 1 reg delete "%_RK%" /f >nul 2>&1
+%PSH% -Action CheckRegistryAbsent -Full "%_RK%"
+if errorlevel 1 set "_DEEPFAIL=1"
+if "%_DEEPFAIL%"=="1" (
+    call "%LIBDIR%\core.cmd" :log ERROR "FAILED %T_ID% [DEEP]: removal was incomplete; backup retained for revert."
+    call "%LIBDIR%\core.cmd" :journal_mark "%T_ID%" FAILED
+    exit /b 1
+)
 call "%LIBDIR%\core.cmd" :log INFO "OK %T_ID% [DEEP]: package, user data and activation key removed. Full backup in %_BK%"
 call "%LIBDIR%\core.cmd" :journal_mark "%T_ID%" OK
 exit /b 0
+
+:deep_backup_failed
+call "%LIBDIR%\core.cmd" :log ERROR "ABORTED %T_ID% [DEEP]: backup or metadata write failed; nothing was removed."
+exit /b 1
 
 rem ------------------------------------------------------------ Edge apply ---
 :edge_apply
@@ -178,13 +205,29 @@ if not exist "%R_PDATA%" (
     call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID%: backup folder is gone: %R_PDATA%"
     exit /b 1
 )
+if not exist "%R_PDATA%\meta.txt" (
+    call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID%: backup metadata missing."
+    exit /b 1
+)
+set "_PARTIAL=0"
+set "_HADLD=0" & set "_HADRK=0"
 set "_ORIG="
-for /f "usebackq tokens=1,* delims==" %%A in ("%R_PDATA%\meta.txt") do if /i "%%A"=="ORIGLOC" set "_ORIG=%%B"
+for /f "usebackq tokens=1,* delims==" %%A in ("%R_PDATA%\meta.txt") do (
+    if /i "%%A"=="ORIGLOC" set "_ORIG=%%B"
+    if /i "%%A"=="LOCALDATA" set "_HADLD=%%B"
+    if /i "%%A"=="ACTIVATABLE" set "_HADRK=%%B"
+)
+if not defined _ORIG set "_PARTIAL=1"
+if "%_HADLD%"=="1" if not exist "%R_PDATA%\localdata" set "_PARTIAL=1"
+if "%_HADRK%"=="1" if not exist "%R_PDATA%\activatable.reg" set "_PARTIAL=1"
 if exist "%R_PDATA%\localdata" (
     robocopy "%R_PDATA%\localdata" "%LOCALAPPDATA%\Packages\%R_NAME%" /E /R:0 /W:0 /NFL /NDL /NJH /NJS /NP >nul 2>&1
-    if errorlevel 8 call "%LIBDIR%\core.cmd" :log WARN "REVERT %R_ID%: user data not fully restored"
+    if errorlevel 8 set "_PARTIAL=1"
 )
-if exist "%R_PDATA%\activatable.reg" reg import "%R_PDATA%\activatable.reg" >nul 2>&1
+if exist "%R_PDATA%\activatable.reg" (
+    reg import "%R_PDATA%\activatable.reg" >nul 2>&1
+    if errorlevel 1 set "_PARTIAL=1"
+)
 
 rem  Try the original location first, then the family name, then our own copy.
 set "_OK=0"
@@ -198,7 +241,11 @@ if "!_OK!"=="0" (
 )
 if "!_OK!"=="0" (
     call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID% [DEEP]: Windows refused to register the package again."
-    call "%LIBDIR%\core.cmd" :log ERROR "  Data and registry were restored. Reinstall the app from the Store; your files are in %R_PDATA%"
+    call "%LIBDIR%\core.cmd" :log ERROR "  Restore is incomplete. Reinstall the app from the Store; backups are in %R_PDATA%"
+    exit /b 1
+)
+if "%_PARTIAL%"=="1" (
+    call "%LIBDIR%\core.cmd" :log ERROR "REVERT FAILED %R_ID% [DEEP]: package registered, but data or registry restore was incomplete; retry with the backup intact."
     exit /b 1
 )
 call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID% [DEEP]: %R_TARGET% is back, user data and activation key restored"
