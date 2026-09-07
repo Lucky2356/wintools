@@ -11,7 +11,7 @@ goto %_ENTRY%
 
 rem ================================================================ :init ====
 :init
-for %%D in ("%STATEDIR%" "%BACKUPROOT%" "%LOGDIR%") do if not exist %%~D md %%~D >nul 2>&1
+for %%D in ("%STATEDIR%" "%BACKUPROOT%" "%LOGDIR%") do if not exist "%%~D" md "%%~D" >nul 2>&1
 set "QUIET=0"
 set "RUNID="
 for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "'{0}_{1}' -f (Get-Date).ToString('yyyyMMdd_HHmmss_fff'), ([guid]::NewGuid().ToString('N').Substring(0,8))" 2^>nul`) do set "RUNID=%%T"
@@ -41,7 +41,10 @@ if errorlevel 1 (
     call :shutdown
     exit /b 1
 )
+set "JOURNAL_FAILED=0"
 if not exist "%JOURNAL%" type nul > "%JOURNAL%"
+%PSH% -Action ValidateJournal -Full "%JOURNAL%"
+if errorlevel 1 exit /b 4
 call :log INFO "=== wintweaks run %RUNID% cmd=%CMDNAME% profile=%OPT_PROFILE% dry=%OPT_DRY% risky=%OPT_RISKY% strict=%OPT_STRICT% ==="
 call :log INFO "backups=%BACKUPDIR%"
 exit /b 0
@@ -257,9 +260,15 @@ rem ========================================================= :journal_add ====
 rem  args: ID TYPE TARGET NAME PREVSTATE PREVTYPE PREVDATA KEYCREATED
 :journal_add
 if "%OPT_DRY%"=="1" exit /b 0
+if "%JOURNAL_FAILED%"=="1" exit /b 4
 call :ensure_backupdir
->>"%JOURNAL%" echo %RUNID%^|%~1^|%~2^|%~3^|%~4^|%~5^|%~6^|%~7^|%~8^|PENDING^|%LOGDATE% %TIME%
+if errorlevel 1 exit /b 4
+>>"%JOURNAL%" echo %RUNID%^|%~1^|%~2^|%~3^|%~4^|%~5^|%~6^|%~7^|%~8^|PENDING^|%LOGDATE% %TIME%|| goto journal_add_failed
 exit /b 0
+:journal_add_failed
+set "JOURNAL_FAILED=1"
+call :log ERROR "Cannot append journal entry; change aborted."
+exit /b 4
 
 rem =========================================================== :want_step ====
 rem  exit 0 = run this step. With /id: only the named steps run.
@@ -272,25 +281,27 @@ exit /b 0
 rem ==================================================== :ensure_backupdir ====
 :ensure_backupdir
 if not exist "%BACKUPDIR%" md "%BACKUPDIR%" >nul 2>&1
+if not exist "%BACKUPDIR%\" (
+    set "JOURNAL_FAILED=1"
+    call :log ERROR "Cannot create backup directory."
+    exit /b 4
+)
 exit /b 0
 
 rem ======================================================== :journal_mark ====
 :journal_mark
 call :journal_setresult "%RUNID%" "%~1" "%~2"
-exit /b 0
+exit /b %ERRORLEVEL%
 
 rem =================================================== :journal_setresult ====
 :journal_setresult
 if "%OPT_DRY%"=="1" exit /b 0
-set "_TMPJ=%STATEDIR%\applied.tmp"
-> "%_TMPJ%" (
-    for /f "usebackq tokens=1-11 delims=|" %%a in ("%JOURNAL%") do (
-        set "_OUT=%%a|%%b|%%c|%%d|%%e|%%f|%%g|%%h|%%i|%%j|%%k"
-        if /i "%%a"=="%~1" if /i "%%b"=="%~2" set "_OUT=%%a|%%b|%%c|%%d|%%e|%%f|%%g|%%h|%%i|%~3|%%k"
-        echo(!_OUT!
-    )
+%PSH% -Action JournalSetResult -Full "%JOURNAL%" -Token "%~1" -Name "%~2" -Description "%~3"
+if errorlevel 1 (
+    set "JOURNAL_FAILED=1"
+    call :log ERROR "Journal update failed; original journal retained."
+    exit /b 4
 )
-move /y "%_TMPJ%" "%JOURNAL%" >nul
 exit /b 0
 
 rem ====================================================== :revert_journal ====
@@ -330,6 +341,7 @@ for /l %%i in (%_N%,-1,1) do (
             if /i "!R_TYPE!"=="APPXDEEP" call "%LIBDIR%\appx.cmd"  :revert_one
             if /i "!R_TYPE!"=="EDGE" call "%LIBDIR%\appx.cmd"      :revert_one
             if errorlevel 1 set /a _FAILS+=1
+            if "!JOURNAL_FAILED!"=="1" exit /b 4
         ) else (
             set /a _SKIP+=1
         )
@@ -367,30 +379,8 @@ exit /b 0
 
 rem ====================================================== :verify_journal ====
 :verify_journal
-set /a _OKC=0
-for /f "usebackq tokens=1-11 delims=|" %%a in ("%JOURNAL%") do (
-    if /i "%%j"=="OK" (
-        if /i "%%c"=="REG" (
-            call "%LIBDIR%\reg.cmd" :capture "%%d" "%%e"
-            call :log INFO "VERIFY %%b live=!RC_STATE!:!RC_TYPE!:!RC_DATA! recorded_original=%%f:%%g:%%h"
-            set /a _OKC+=1
-        )
-        if /i "%%c"=="SVC" (
-            set "V_STARTMODE=?" & set "V_STATE=?"
-            for /f "usebackq tokens=1,2 delims==" %%X in (`%PSH% -Action GetService -Name "%%d" 2^>nul`) do set "V_%%X=%%Y"
-            call :log INFO "VERIFY %%b service %%d live=!V_STARTMODE!/!V_STATE! recorded_original=%%g/%%h"
-            set /a _OKC+=1
-        )
-        if /i "%%c"=="TASK" (
-            set "V_STATE=?"
-            for /f "usebackq tokens=1,2 delims==" %%X in (`%PSH% -Action GetTask -Full "%%d" 2^>nul`) do set "V_%%X=%%Y"
-            call :log INFO "VERIFY %%b task live=!V_STATE! recorded_original=%%g"
-            set /a _OKC+=1
-        )
-    )
-)
-call :log INFO "Verify done: %_OKC% applied entries inspected. Nothing was modified."
-exit /b 0
+%PSH% -Action VerifyJournal -Root "%APPROOT%" -Full "%JOURNAL%"
+exit /b %ERRORLEVEL%
 
 rem =========================================================== :parentkey ====
 :parentkey

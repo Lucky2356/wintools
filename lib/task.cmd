@@ -31,6 +31,7 @@ if "!_HAVE!"=="1" (
     if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
     if "%OPT_DRY%"=="0" schtasks /Query /TN "%T_TARGET%" /XML > "%BACKUPDIR%\task_%T_ID%.xml" 2>nul
     call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" TASK "%T_TARGET%" "-" "PRESENT" "%TSK_STATE%" "-" "0"
+    if errorlevel 1 exit /b 4
 )
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY %T_ID%: schtasks /Change /TN %T_TARGET% /DISABLE   [was %TSK_STATE%]"

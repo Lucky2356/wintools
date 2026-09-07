@@ -18,3 +18,6 @@ jobs:
       - name: Parse PowerShell helper
         shell: powershell
         run: $null = [scriptblock]::Create((Get-Content .\lib\helpers.ps1 -Raw))
+      - name: Runtime regression checks (no system changes)
+        shell: powershell
+        run: .\tests\runtime.ps1

@@ -137,6 +137,7 @@ if not exist "%TWEAKDEF%" (
 for /f "usebackq eol=# tokens=1-9 delims=|" %%A in ("%TWEAKDEF%") do (
     call :do_tweak "%%A" "%%B" "%%C" "%%D" "%%E" "%%F" "%%G" "%%H" "%%I"
     if errorlevel 6 exit /b 6
+    if "!JOURNAL_FAILED!"=="1" exit /b 4
     if "%OPT_STRICT%"=="1" if !FAILS! GTR 0 (
         call "%LIBDIR%\core.cmd" :log ERROR "Strict mode: rolling back run %RUNID%"
         set "OPT_RUN=%RUNID%"
@@ -176,6 +177,7 @@ exit /b 0
 rem ----------------------------------------------------------------- finish
 :finish
 set "RC=%ERRORLEVEL%"
+if "%JOURNAL_FAILED%"=="1" set "RC=4"
 %PSH% -Action WriteManifest -Root "%APPROOT%" >nul 2>&1
 call "%LIBDIR%\core.cmd" :log INFO "Finished: exit=%RC%  log=%LOGFILE%"
 call "%LIBDIR%\core.cmd" :shutdown

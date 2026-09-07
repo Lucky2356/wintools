@@ -41,6 +41,7 @@ if "%OPT_DEEP%"=="1" goto appx_deep
 
 rem ---------------- normal removal: unregister for this user only ------------
 call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" APPX "%T_TARGET%" "%AX_FAMILYNAME%" "PRESENT" "%AX_FULLNAME%" "%AX_INSTALLLOC%" "0"
+if errorlevel 1 exit /b 4
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY %T_ID%: would unregister %AX_FULLNAME% for the current user, payload kept at %AX_INSTALLLOC%"
     exit /b 0
@@ -96,6 +97,7 @@ reg query "%_RK%" >nul 2>&1
 if not errorlevel 1 reg export "%_RK%" "%_BK%\activatable.reg" /y >nul 2>&1
 
 call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" APPXDEEP "%T_TARGET%" "%AX_FAMILYNAME%" "PRESENT" "%AX_FULLNAME%" "%_BK%" "%PV_EXISTS%"
+if errorlevel 1 exit /b 4
 
 %PSH% -Action RemoveAppx -Full "%AX_FULLNAME%" >nul 2>&1
 if errorlevel 1 (
@@ -137,6 +139,7 @@ if errorlevel 1 (
     exit /b 0
 )
 call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" EDGE "MicrosoftEdge" "-" "PRESENT" "%ED_VERSION%" "%ED_SETUP%" "0"
+if errorlevel 1 exit /b 4
 "%ED_SETUP%" --uninstall --system-level --verbose-logging --force-uninstall
 set "_RC=%ERRORLEVEL%"
 if not "%_RC%"=="0" (

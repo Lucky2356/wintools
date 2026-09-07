@@ -48,6 +48,7 @@ if errorlevel 1 (
     goto sc_hib
 )
 call "%LIBDIR%\core.cmd" :journal_add "SYS-POWER-SCHEME" PWR "%PWR_GUID%" "SCHEME" "PRESENT" "SCHEME" "%_POW%" "0"
+if errorlevel 1 exit /b 4
 powercfg /change monitor-timeout-ac 20 >nul 2>&1
 powercfg /change standby-timeout-ac 0  >nul 2>&1
 powercfg /change disk-timeout-ac 0     >nul 2>&1
@@ -68,6 +69,7 @@ if /i "%RC_DATA%"=="0x0" (
     goto sc_reg
 )
 call "%LIBDIR%\core.cmd" :journal_add "SYS-HIBERNATE-OFF" PWR "HIBERNATE" "-" "%RC_STATE%" "%RC_TYPE%" "%RC_DATA%" "0"
+if errorlevel 1 exit /b 4
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY SYS-HIBERNATE-OFF: powercfg /h off   [was %RC_DATA%]"
     goto sc_reg
@@ -117,6 +119,7 @@ if /i "%TCP_AUTOTUNING%"=="Normal" (
     goto sc_lastaccess
 )
 call "%LIBDIR%\core.cmd" :journal_add "SYS-TCP-AUTOTUNING" NET "autotuninglevel" "-" "PRESENT" "NETSH" "%TCP_AUTOTUNING%" "0"
+if errorlevel 1 exit /b 4
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY SYS-TCP-AUTOTUNING: netsh int tcp set global autotuninglevel=normal   [was %TCP_AUTOTUNING%]"
     goto sc_lastaccess
@@ -141,6 +144,7 @@ if "%LASTACCESS%"=="1" (
     goto sc_end
 )
 call "%LIBDIR%\core.cmd" :journal_add "SYS-LASTACCESS" FS "disablelastaccess" "-" "PRESENT" "FSUTIL" "%LASTACCESS%" "0"
+if errorlevel 1 exit /b 4
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY SYS-LASTACCESS: fsutil behavior set disablelastaccess 1   [was %LASTACCESS%]"
     goto sc_end

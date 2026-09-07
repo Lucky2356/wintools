@@ -77,6 +77,7 @@ if "!_HAVE!"=="1" (
         if "%OPT_DRY%"=="0" reg export "!KEY!" "%BACKUPDIR%\!_SAFE!.reg" /y >nul 2>&1
     )
     call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" REG "!KEY!" "%T_NAME%" "%RC_STATE%" "%RC_TYPE%" "%RC_DATA%" "!_DELKEY!"
+    if errorlevel 1 exit /b 4
 )
 
 rem ---- mutate ---------------------------------------------------------------

@@ -34,6 +34,7 @@ if "!_HAVE!"=="1" (
     if "%OPT_DRY%"=="0" call "%LIBDIR%\core.cmd" :ensure_backupdir
     if "%OPT_DRY%"=="0" reg export "HKLM\SYSTEM\CurrentControlSet\Services\%T_TARGET%" "%BACKUPDIR%\svc_%T_TARGET%.reg" /y >nul 2>&1
     call "%LIBDIR%\core.cmd" :journal_add "%T_ID%" SVC "%T_TARGET%" "-" "PRESENT" "%SVC_STARTMODE%" "%SVC_STATE%" "%SVC_DELAYED%"
+    if errorlevel 1 exit /b 4
 )
 if "%OPT_DRY%"=="1" (
     call "%LIBDIR%\core.cmd" :log INFO "DRY %T_ID%: sc config %T_TARGET% start= %T_VALUE%   [was %SVC_STARTMODE%/%SVC_STATE%]"

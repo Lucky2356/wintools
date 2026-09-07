@@ -21,6 +21,22 @@ $ProgressPreference    = 'SilentlyContinue'
 
 function Out-KV($k, $v) { Write-Output ("{0}={1}" -f $k, $v) }
 
+function Read-Journal($path) {
+  $ErrorActionPreference = 'Stop'
+  # A one-byte encoding preserves existing OEM bytes during status updates.
+  $encoding = [System.Text.Encoding]::GetEncoding(28591)
+  $lines = [System.IO.File]::ReadAllLines($path, $encoding)
+  foreach ($line in $lines) {
+    $p = $line -split '\|'
+    if ($p.Count -ne 11 -or @($p | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0 -or
+        $p[2] -notin @('REG','SVC','TASK','APPX','APPXDEEP','EDGE','PWR','NET','FS') -or
+        $p[9] -notin @('PENDING','OK','FAILED','REVERTED','MANUAL')) {
+      throw 'Malformed journal entry; journal was not changed.'
+    }
+  }
+  return ,$lines
+}
+
 switch ($Action) {
 
   'GetEnvironment' {
@@ -253,6 +269,7 @@ switch ($Action) {
   }
 
   'ValidateData' {
+    $ErrorActionPreference = 'Stop'
     $errors = New-Object System.Collections.Generic.List[string]
     $defs = Join-Path $Root 'data\tweaks.def'
     $protected = Join-Path $Root 'data\protected.def'
@@ -270,6 +287,9 @@ switch ($Action) {
         if (-not $line -or $line.StartsWith('#')) { continue }
         $p = $line -split '\|'
         if ($p.Count -ne 9) { $errors.Add("tweaks.def:${lineNo}: expected 9 fields"); continue }
+        if (@($p | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+          $errors.Add("tweaks.def:${lineNo}: empty field (use a placeholder)")
+        }
         $id, $profile, $risk, $os, $type = $p[0..4]
         if ($id -notmatch '^[A-Z][A-Z0-9-]{1,63}$') { $errors.Add("tweaks.def:${lineNo}: invalid id '$id'") }
         elseif ($ids.ContainsKey($id)) { $errors.Add("tweaks.def:${lineNo}: duplicate id '$id'") }
@@ -278,13 +298,13 @@ switch ($Action) {
         if ($risk -notin @('low','med','high')) { $errors.Add("tweaks.def:${lineNo}: invalid risk '$risk'") }
         if ($os -notin @('any','win10','win11')) { $errors.Add("tweaks.def:${lineNo}: invalid os '$os'") }
         if ($type -notin @('REG','SVC','TASK','APPX','EDGE')) { $errors.Add("tweaks.def:${lineNo}: invalid type '$type'") }
-        if ($line -match '[!&]') { $errors.Add("tweaks.def:${lineNo}: unsafe CMD metacharacter") }
+        if ($line -match '[!&"%<>^\x00-\x1f]') { $errors.Add("tweaks.def:${lineNo}: unsafe CMD metacharacter") }
       }
       $lineNo = 0
       foreach ($line in (Get-Content -LiteralPath $protected)) {
         $lineNo++
         if (-not $line -or $line.StartsWith('#')) { continue }
-        if ($line -notmatch '^(SVC|APPX|KEY):[^|!&]+$') { $errors.Add("protected.def:${lineNo}: invalid entry") }
+        if ($line -notmatch '^(SVC|APPX|KEY):[^|!&"%<>^\x00-\x1f]+$') { $errors.Add("protected.def:${lineNo}: invalid entry") }
       }
       $cp866 = [System.Text.Encoding]::GetEncoding(866)
       $descIds = @{}
@@ -294,6 +314,9 @@ switch ($Action) {
         if (-not $line -or $line.StartsWith('#')) { continue }
         $p = $line -split '\|'
         if ($p.Count -ne 6) { $errors.Add("descr.ru:${lineNo}: expected 6 fields"); continue }
+        if (@($p | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+          $errors.Add("descr.ru:${lineNo}: empty field (use -)")
+        }
         if ($descIds.ContainsKey($p[0])) { $errors.Add("descr.ru:${lineNo}: duplicate id '$($p[0])'") }
         else { $descIds[$p[0]] = $true }
       }
@@ -305,6 +328,7 @@ switch ($Action) {
   }
 
   'AcquireLock' {
+    $ErrorActionPreference = 'Stop'
     $path = Join-Path $Root 'state\run.lock'
     $record = "{0}|{1}" -f (Get-Date).ToString('s'), $Token
     try {
@@ -312,11 +336,142 @@ switch ($Action) {
         [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
       $bytes = [System.Text.Encoding]::ASCII.GetBytes($record)
       $stream.Write($bytes, 0, $bytes.Length)
-      $stream.Dispose()
       exit 0
-    } catch [System.IO.IOException] {
+    } catch {
       exit 1
+    } finally {
+      if ($stream) { $stream.Dispose() }
     }
+  }
+
+  'ValidateJournal' {
+    try { $null = Read-Journal $Full } catch { Write-Output "ERROR=$($_.Exception.Message)"; exit 4 }
+    break
+  }
+
+  'VerifyJournal' {
+    $ErrorActionPreference = 'Stop'
+    function Write-Verification($message) {
+      Write-Output $message
+      if ($env:LOGFILE) {
+        [IO.File]::AppendAllText($env:LOGFILE, $message + [Environment]::NewLine, [Console]::OutputEncoding)
+      }
+    }
+    try {
+      $lines = Read-Journal $Full
+      $catalogue = @{}
+      foreach ($line in Get-Content -LiteralPath (Join-Path $Root 'data\tweaks.def')) {
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        $p = $line -split '\|'
+        $catalogue[$p[0]] = $p
+      }
+      $matched = 0; $drift = 0; $unknown = 0
+      foreach ($line in $lines) {
+        $r = $line -split '\|'
+        if ($env:OPT_RUN -and $r[0] -ne $env:OPT_RUN) { continue }
+        if ($env:OPT_IDS -and $r[1] -notin ($env:OPT_IDS -split '\s+')) { continue }
+        if ($r[9] -eq 'REVERTED') { continue }
+        $result = 'UNSUPPORTED'
+        $detail = 'no verifier for this entry'
+        if ($r[9] -ne 'OK') {
+          $detail = 'journal status ' + $r[9]
+        } else {
+          $def = $catalogue[$r[1]]
+          if ($def -and $def[4] -eq $r[2]) {
+            # A renamed target must not silently verify a different object.
+            $target = $def[5]
+            if ($target.StartsWith('@HKCU@')) {
+              $suffix = $target.Substring(6)
+              if ($r[3] -eq ('HKCU' + $suffix) -or $r[3] -match ('^HKU\\S-1-[0-9-]+' + [regex]::Escape($suffix) + '$')) {
+                $target = $r[3]
+              }
+            }
+            if ($target -eq $r[3] -and $def[6] -eq $r[4]) {
+              try {
+                $same = $false
+                switch ($r[2]) {
+                  'REG' {
+                    $keyPath = $r[3] -replace '^HKCU\\','HKEY_CURRENT_USER\' -replace '^HKLM\\','HKEY_LOCAL_MACHINE\' -replace '^HKU\\','HKEY_USERS\'
+                    $key = Get-Item -LiteralPath ('Registry::' + $keyPath)
+                    try {
+                      $valueName = $r[4]
+                      if ($valueName -eq '@DEFAULT@') { $valueName = '' }
+                      $kind = $key.GetValueKind($valueName).ToString()
+                      $value = $key.GetValue($valueName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+                      if ($def[7] -eq 'REG_DWORD' -and $kind -eq 'DWord') {
+                        $want = if ($def[8] -like '0x*') { [Convert]::ToInt64($def[8].Substring(2),16) } else { [int64]$def[8] }
+                        $same = (([int64]$value -band 4294967295) -eq $want)
+                      } elseif ($def[7] -eq 'REG_SZ' -and $kind -eq 'String') {
+                        $want = $def[8]
+                        if ($want -eq '@EMPTY@') { $want = '' }
+                        $same = ([string]$value -ceq $want)
+                      }
+                    } finally { if ($key) { $key.Close() } }
+                  }
+                  'SVC' {
+                    $service = Get-CimInstance Win32_Service -Filter ("Name='{0}'" -f $r[3])
+                    $modes = @{disabled='Disabled'; auto='Auto'; demand='Manual'; boot='Boot'; system='System'}
+                    if (-not $modes.ContainsKey($def[8])) { throw 'Unsupported service start mode' }
+                    $same = $service -and $service.StartMode -eq $modes[$def[8]]
+                  }
+                  'TASK' {
+                    $split = $r[3].LastIndexOf('\')
+                    $task = Get-ScheduledTask -TaskPath $r[3].Substring(0,$split+1) -TaskName $r[3].Substring($split+1)
+                    $same = $task -and $task.State -eq 'Disabled'
+                  }
+                  default { throw 'Unsupported entry type' }
+                }
+                $result = if ($same) { 'MATCH' } else { 'DRIFT' }
+                $detail = 'compared with current catalogue'
+              } catch {
+                $result = 'UNSUPPORTED'
+                $detail = 'state could not be checked: ' + $_.Exception.Message
+              }
+            } else { $detail = 'catalogue target or name changed' }
+          }
+        }
+        switch ($result) { 'MATCH' { $matched++ }; 'DRIFT' { $drift++ }; default { $unknown++ } }
+        Write-Verification ("VERIFY {0} {1}: {2}" -f $r[1], $result, $detail)
+      }
+      Write-Verification "Verify done: matched=$matched drift=$drift unsupported=$unknown. System settings were not modified."
+      if ($drift -gt 0 -or $unknown -gt 0) { exit 4 }
+    } catch { Write-Output "ERROR=$($_.Exception.Message)"; exit 4 }
+    break
+  }
+
+  'JournalSetResult' {
+    $ErrorActionPreference = 'Stop'
+    $temporary = $null
+    try {
+      if ($Description -notin @('OK','FAILED','REVERTED','MANUAL')) { throw 'Invalid journal result.' }
+      $lines = Read-Journal $Full
+      $matched = 0
+      for ($i = 0; $i -lt $lines.Count; $i++) {
+        $p = $lines[$i] -split '\|'
+        if ($p[0] -eq $Token -and $p[1] -eq $Name) {
+          $p[9] = $Description
+          $lines[$i] = $p -join '|'
+          $matched++
+        }
+      }
+      # Reapply keeps an earlier run's original; it has no new row to mark.
+      if ($matched -eq 0) {
+        if ($Description -in @('OK','FAILED') -and @($lines | Where-Object {
+          $p = $_ -split '\|'; $p[1] -eq $Name -and $p[9] -eq 'OK'
+        }).Count -gt 0) { exit 0 }
+        throw 'Journal entry not found.'
+      }
+      $temporary = $Full + '.' + [guid]::NewGuid().ToString('N') + '.tmp'
+      [System.IO.File]::WriteAllLines($temporary, $lines, [System.Text.Encoding]::GetEncoding(28591))
+      # Same-directory atomic replacement: failure leaves the original intact.
+      [System.IO.File]::Replace($temporary, $Full, [System.Management.Automation.Language.NullString]::Value)
+    } catch {
+      Write-Output "ERROR=$($_.Exception.Message)"
+      exit 4
+    } finally {
+      if ($temporary -and [System.IO.File]::Exists($temporary)) { [System.IO.File]::Delete($temporary) }
+    }
+    break
   }
 
   'ReleaseLock' {
