@@ -39,6 +39,68 @@ function Read-Journal($path) {
 
 switch ($Action) {
 
+  'GetRegistry' {
+    $ErrorActionPreference = 'Stop'
+    $key = $null
+    try {
+      $path = $Full -replace '^HKCU\\','HKEY_CURRENT_USER\' -replace '^HKLM\\','HKEY_LOCAL_MACHINE\' -replace '^HKU\\','HKEY_USERS\'
+      try { $key = Get-Item -LiteralPath ('Registry::' + $path) }
+      catch [System.Management.Automation.ItemNotFoundException] { }
+      $state = 'ABSENT'; $type = '-'; $data = '-'
+      $valueName = $Name
+      if ($valueName -eq '@DEFAULT@') { $valueName = '' }
+      if ($key -and $valueName -in $key.GetValueNames()) {
+        $state = 'PRESENT'
+        $value = $key.GetValue($valueName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        switch ($key.GetValueKind($valueName).ToString()) {
+          'DWord' { $type='REG_DWORD'; $data='0x' + ([int64]$value -band 4294967295).ToString('x') }
+          'String' { $type='REG_SZ'; $data=[string]$value }
+          'ExpandString' { $type='REG_EXPAND_SZ'; $data=[string]$value }
+          default { throw 'Registry type cannot be safely journalled.' }
+        }
+        if ($data -cmatch '[!&"%<>^|\x00-\x1f\x7f-\uffff]' -or $data.StartsWith('=') -or $data -eq '@EMPTY@') { throw 'Registry data cannot be safely journalled.' }
+        if ($data -eq '') { $data='@EMPTY@' }
+      }
+      Out-KV 'KEYEXISTS' ([int]($null -ne $key))
+      Out-KV 'STATE' $state; Out-KV 'TYPE' $type; Out-KV 'DATA' $data
+      Out-KV 'READABLE' 1
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); exit 4 }
+      finally { if ($key) { $key.Close() } }
+    break
+  }
+
+  'PruneRegistryKeys' {
+    $ErrorActionPreference = 'Stop'
+    try {
+      if ($Token -notmatch '^HK(CU|LM|U)\\.+' -or
+          ($Full -ne $Token -and -not $Full.StartsWith($Token + '\',[StringComparison]::OrdinalIgnoreCase))) {
+        throw 'Created key is not an ancestor of the target.'
+      }
+      $current = $Full
+      while ($true) {
+        $path = $current -replace '^HKCU\\','HKEY_CURRENT_USER\' -replace '^HKLM\\','HKEY_LOCAL_MACHINE\' -replace '^HKU\\','HKEY_USERS\'
+        $key = $null; $parent = $null
+        try {
+          try { $key = Get-Item -LiteralPath ('Registry::' + $path) }
+          catch [System.Management.Automation.ItemNotFoundException] { }
+          if ($key) {
+            # Preserve values/subkeys introduced outside this journal.
+            if ($key.ValueCount -gt 0 -or $key.SubKeyCount -gt 0) { break }
+            $split = $path.LastIndexOf('\')
+            $hive, $subkey = $path.Substring(0,$split) -split '\\',2
+            $hives = @{HKEY_CURRENT_USER='CurrentUser'; HKEY_LOCAL_MACHINE='LocalMachine'; HKEY_USERS='Users'}
+            $base = [Microsoft.Win32.RegistryKey]::OpenBaseKey($hives[$hive], [Microsoft.Win32.RegistryView]::Default)
+            try { $parent = $base.OpenSubKey($subkey,$true) } finally { $base.Close() }
+            $parent.DeleteSubKey($path.Substring($split+1),$false)
+          }
+        } finally { if ($key) { $key.Close() }; if ($parent) { $parent.Close() } }
+        if ($current -eq $Token) { break }
+        $current = $current.Substring(0,$current.LastIndexOf('\'))
+      }
+    } catch { Write-Output ('ERROR=' + $_.Exception.Message); exit 4 }
+    break
+  }
+
   'GetEnvironment' {
     $cs = Get-CimInstance Win32_ComputerSystem
     Out-KV 'PARTOFDOMAIN' ([int][bool]$cs.PartOfDomain)

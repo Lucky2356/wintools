@@ -3,15 +3,20 @@ name: validate
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   catalogue:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Validate catalogue and protected list
         shell: powershell
         run: .\lib\helpers.ps1 -Action ValidateData -Root $PWD
@@ -24,3 +29,6 @@ jobs:
       - name: Critical failure paths (stubbed system commands)
         shell: powershell
         run: .\tests\failures.ps1
+      - name: Real Windows integration (disposable runner only)
+        shell: powershell
+        run: .\tests\integration.ps1

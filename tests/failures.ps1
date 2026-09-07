@@ -34,6 +34,7 @@ public class NativeStub {
   $helperText = @'
 param($Action,$Full,$Name,$Root,$Token,$Description)
 switch ($Action) {
+  GetRegistry { 'KEYEXISTS=1'; 'STATE=PRESENT'; 'TYPE=REG_DWORD'; 'DATA=0x2'; 'READABLE=1'; exit 0 }
   GetTcpAutotuning { 'AUTOTUNING=Disabled'; exit 0 }
   GetLastAccess { 'LASTACCESS=0'; exit 0 }
   CheckRegistryAbsent { exit 4 }

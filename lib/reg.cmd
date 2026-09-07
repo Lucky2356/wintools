@@ -17,21 +17,10 @@ set "RC_KEYEXISTS=0"
 set "RC_STATE=ABSENT"
 set "RC_TYPE=-"
 set "RC_DATA=-"
-reg query "%~1" >nul 2>&1
-if not errorlevel 1 set "RC_KEYEXISTS=1"
-if "%RC_KEYEXISTS%"=="0" exit /b 0
-set "_QOPT=/v "%~2""
-if /i "%~2"=="@DEFAULT@" set "_QOPT=/ve"
-for /f "usebackq tokens=1,2,*" %%A in (`reg query "%~1" %_QOPT% 2^>nul`) do (
-    set "_TT=%%~B"
-    if /i "!_TT:~0,4!"=="REG_" (
-        set "RC_STATE=PRESENT"
-        set "RC_TYPE=%%~B"
-        if "%%~C"=="" (set "RC_DATA=@EMPTY@") else (set "RC_DATA=%%~C")
-    )
-)
+set "RC_READABLE=0"
+for /f "usebackq tokens=1,* delims==" %%A in (`%PSH% -Action GetRegistry -Full "%~1" -Name "%~2" 2^>nul`) do set "RC_%%A=%%B"
+if not "%RC_READABLE%"=="1" exit /b 4
 exit /b 0
-
 rem =========================================================== :apply_one ====
 rem  Reads T_ID T_TARGET T_NAME T_VTYPE T_VALUE from the caller.
 :apply_one
@@ -41,6 +30,10 @@ call "%LIBDIR%\core.cmd" :check_protected REG "!KEY!"
 if errorlevel 1 exit /b 6
 
 call :capture "!KEY!" "%T_NAME%"
+if errorlevel 1 (
+    call "%LIBDIR%\core.cmd" :log ERROR "Cannot safely capture %T_ID%; no registry change made."
+    exit /b 4
+)
 
 rem ---- idempotency: already at the wanted value? -----------------------------
 set "_SAME=0"
@@ -51,7 +44,7 @@ if /i "%RC_STATE%"=="PRESENT" if /i "%RC_TYPE%"=="%T_VTYPE%" (
         set /a _W=%T_VALUE% >nul 2>&1
         if "!_C!"=="!_W!" set "_SAME=1"
     ) else (
-        if /i "%RC_DATA%"=="%T_VALUE%" set "_SAME=1"
+        if "%RC_DATA%"=="%T_VALUE%" set "_SAME=1"
     )
 )
 if "!_SAME!"=="1" (
@@ -101,18 +94,14 @@ if "%OPT_DRY%"=="1" (
     exit /b 0
 )
 if /i "%R_PSTATE%"=="ABSENT" (
+    reg delete "%R_TARGET%" %_VOPT% /f >nul 2>&1
+    %PSH% -Action CheckRegistryAbsent -Full "%R_TARGET%" -Name "%R_NAME%"
+    if errorlevel 1 goto revert_failed
     if not "%R_KEYNEW%"=="0" (
-        reg query "%R_KEYNEW%" >nul 2>&1
-        if not errorlevel 1 reg delete "%R_KEYNEW%" /f >nul 2>&1
-        %PSH% -Action CheckRegistryAbsent -Full "%R_KEYNEW%"
+        %PSH% -Action PruneRegistryKeys -Full "%R_TARGET%" -Token "%R_KEYNEW%"
         if errorlevel 1 goto revert_failed
-        call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: removed key %R_KEYNEW% (it did not exist before)"
-    ) else (
-        reg delete "%R_TARGET%" %_VOPT% /f >nul 2>&1
-        %PSH% -Action CheckRegistryAbsent -Full "%R_TARGET%" -Name "%R_NAME%"
-        if errorlevel 1 goto revert_failed
-        call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: removed value %R_TARGET%\%R_NAME%"
     )
+    call "%LIBDIR%\core.cmd" :log INFO "REVERT %R_ID%: removed recorded value; unrelated registry data preserved"
 ) else (
     set "_PD=%R_PDATA%"
     if /i "!_PD!"=="@EMPTY@" set "_PD="
