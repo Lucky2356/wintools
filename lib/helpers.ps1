@@ -12,7 +12,8 @@ param(
   [string]$Name,
   [string]$Full,
   [string]$Description,
-  [string]$Root
+  [string]$Root,
+  [string]$Token
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -249,6 +250,84 @@ switch ($Action) {
     } catch {
       exit 1
     }
+  }
+
+  'ValidateData' {
+    $errors = New-Object System.Collections.Generic.List[string]
+    $defs = Join-Path $Root 'data\tweaks.def'
+    $protected = Join-Path $Root 'data\protected.def'
+    $descriptions = Join-Path $Root 'data\descr.ru'
+    foreach ($required in @($defs, $protected, $descriptions)) {
+      if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+        $errors.Add("missing required file: $required")
+      }
+    }
+    if ($errors.Count -eq 0) {
+      $ids = @{}
+      $lineNo = 0
+      foreach ($line in (Get-Content -LiteralPath $defs)) {
+        $lineNo++
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        $p = $line -split '\|'
+        if ($p.Count -ne 9) { $errors.Add("tweaks.def:${lineNo}: expected 9 fields"); continue }
+        $id, $profile, $risk, $os, $type = $p[0..4]
+        if ($id -notmatch '^[A-Z][A-Z0-9-]{1,63}$') { $errors.Add("tweaks.def:${lineNo}: invalid id '$id'") }
+        elseif ($ids.ContainsKey($id)) { $errors.Add("tweaks.def:${lineNo}: duplicate id '$id'") }
+        else { $ids[$id] = $true }
+        if ($profile -notin @('core','balanced','extended','manual')) { $errors.Add("tweaks.def:${lineNo}: invalid profile '$profile'") }
+        if ($risk -notin @('low','med','high')) { $errors.Add("tweaks.def:${lineNo}: invalid risk '$risk'") }
+        if ($os -notin @('any','win10','win11')) { $errors.Add("tweaks.def:${lineNo}: invalid os '$os'") }
+        if ($type -notin @('REG','SVC','TASK','APPX','EDGE')) { $errors.Add("tweaks.def:${lineNo}: invalid type '$type'") }
+        if ($line -match '[!&]') { $errors.Add("tweaks.def:${lineNo}: unsafe CMD metacharacter") }
+      }
+      $lineNo = 0
+      foreach ($line in (Get-Content -LiteralPath $protected)) {
+        $lineNo++
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        if ($line -notmatch '^(SVC|APPX|KEY):[^|!&]+$') { $errors.Add("protected.def:${lineNo}: invalid entry") }
+      }
+      $cp866 = [System.Text.Encoding]::GetEncoding(866)
+      $descIds = @{}
+      $lineNo = 0
+      foreach ($line in [System.IO.File]::ReadAllLines($descriptions, $cp866)) {
+        $lineNo++
+        if (-not $line -or $line.StartsWith('#')) { continue }
+        $p = $line -split '\|'
+        if ($p.Count -ne 6) { $errors.Add("descr.ru:${lineNo}: expected 6 fields"); continue }
+        if ($descIds.ContainsKey($p[0])) { $errors.Add("descr.ru:${lineNo}: duplicate id '$($p[0])'") }
+        else { $descIds[$p[0]] = $true }
+      }
+      foreach ($id in $ids.Keys) { if (-not $descIds.ContainsKey($id)) { $errors.Add("descr.ru: missing id '$id'") } }
+    }
+    foreach ($message in $errors) { Write-Output "ERROR=$message" }
+    if ($errors.Count -gt 0) { exit 1 }
+    break
+  }
+
+  'AcquireLock' {
+    $path = Join-Path $Root 'state\run.lock'
+    $record = "{0}|{1}" -f (Get-Date).ToString('s'), $Token
+    try {
+      $stream = [System.IO.File]::Open($path, [System.IO.FileMode]::CreateNew,
+        [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+      $bytes = [System.Text.Encoding]::ASCII.GetBytes($record)
+      $stream.Write($bytes, 0, $bytes.Length)
+      $stream.Dispose()
+      exit 0
+    } catch [System.IO.IOException] {
+      exit 1
+    }
+  }
+
+  'ReleaseLock' {
+    $path = Join-Path $Root 'state\run.lock'
+    if (Test-Path -LiteralPath $path) {
+      $owner = (Get-Content -LiteralPath $path -ErrorAction SilentlyContinue) -split '\|', 2
+      if ($owner.Count -eq 2 -and $owner[1] -eq $Token) {
+        Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+      }
+    }
+    break
   }
 
   'WriteManifest' {

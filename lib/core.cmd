@@ -14,7 +14,7 @@ rem ================================================================ :init ====
 for %%D in ("%STATEDIR%" "%BACKUPROOT%" "%LOGDIR%") do if not exist %%~D md %%~D >nul 2>&1
 set "QUIET=0"
 set "RUNID="
-for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "(Get-Date).ToString('yyyyMMdd_HHmmss')" 2^>nul`) do set "RUNID=%%T"
+for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "'{0}_{1}' -f (Get-Date).ToString('yyyyMMdd_HHmmss_fff'), ([guid]::NewGuid().ToString('N').Substring(0,8))" 2^>nul`) do set "RUNID=%%T"
 if not defined RUNID (
     set "RUNID=%DATE%_%TIME%"
     set "RUNID=!RUNID:/=-!"
@@ -27,9 +27,29 @@ for /f "usebackq delims=" %%T in (`powershell -NoProfile -Command "(Get-Date).To
 if not defined LOGDATE set "LOGDATE=%DATE%"
 set "BACKUPDIR=%BACKUPROOT%\%RUNID%"
 if defined OPT_LOGOVERRIDE (set "LOGFILE=%OPT_LOGOVERRIDE%") else (set "LOGFILE=%LOGDIR%\wintweaks_%RUNID%.log")
+set "LOCK_HELD=0"
+%PSH% -Action AcquireLock -Root "%APPROOT%" -Token "%RUNID%" >nul 2>&1
+if errorlevel 1 (
+    echo   [ERROR] Another wintweaks process is active, or state\run.lock is stale.
+    echo           If no process is running, remove state\run.lock and retry.
+    exit /b 4
+)
+set "LOCK_HELD=1"
+%PSH% -Action ValidateData -Root "%APPROOT%"
+if errorlevel 1 (
+    echo   [ERROR] Data validation failed. No system changes were made.
+    call :shutdown
+    exit /b 1
+)
 if not exist "%JOURNAL%" type nul > "%JOURNAL%"
 call :log INFO "=== wintweaks run %RUNID% cmd=%CMDNAME% profile=%OPT_PROFILE% dry=%OPT_DRY% risky=%OPT_RISKY% strict=%OPT_STRICT% ==="
 call :log INFO "backups=%BACKUPDIR%"
+exit /b 0
+
+rem ============================================================ :shutdown ====
+:shutdown
+if "%LOCK_HELD%"=="1" %PSH% -Action ReleaseLock -Root "%APPROOT%" -Token "%RUNID%" >nul 2>&1
+set "LOCK_HELD=0"
 exit /b 0
 
 rem ================================================================= :log ====
