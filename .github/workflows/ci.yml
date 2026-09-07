@@ -68,3 +68,39 @@ jobs:
           path: dist/*
           if-no-files-found: error
           retention-days: 30
+
+  portable:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-package
+          path: dist
+      - name: Build single portable executable
+        shell: powershell
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          .\ui\build.ps1 -EngineZip "$PWD\dist\wintools-$version.zip"
+      - name: Test portable UI, worker and updater
+        shell: powershell
+        run: .\tests\portable.ps1 -Executable "$PWD\dist\portable\WintoolsPortable.exe"
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: portable-ui-${{ matrix.os }}
+          path: dist/portable/portable-ui.png
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v7
+        if: matrix.os == 'windows-2022'
+        with:
+          name: portable-executable
+          path: |
+            dist/portable/WintoolsPortable.exe
+            dist/portable/WintoolsPortable.exe.sha256
+          if-no-files-found: error

@@ -1,0 +1,39 @@
+param([Parameter(Mandatory=$true)][string]$Executable)
+$ErrorActionPreference='Stop'
+if($env:GITHUB_ACTIONS -ne 'true' -or $env:RUNNER_ENVIRONMENT -ne 'github-hosted'){throw 'GitHub-hosted runner required'}
+$fixture=Join-Path $env:RUNNER_TEMP ('WintoolsPortable_'+[guid]::NewGuid().ToString('N'))
+$null=New-Item -ItemType Directory -Path $fixture
+$exe=Join-Path $fixture 'WintoolsPortable.exe'
+Copy-Item -LiteralPath $Executable -Destination $exe
+function Run-Portable($path,$arguments,$expected=0){
+  $process=Start-Process -FilePath $path -ArgumentList $arguments -PassThru -WindowStyle Hidden
+  if(-not $process.WaitForExit(90000)){throw 'Portable test timed out'}
+  if($process.ExitCode -ne $expected){
+    Get-ChildItem $fixture -Recurse -Filter '*error.txt' | ForEach-Object {Get-Content $_.FullName}
+    throw "Portable exit $($process.ExitCode), expected $expected"
+  }
+}
+Run-Portable $exe '--self-test'
+Run-Portable $exe '--ui-smoke'
+$screenshot=Join-Path $fixture 'portable-ui.png'
+if(-not(Test-Path $screenshot)){throw 'UI screenshot missing'}
+Copy-Item $screenshot (Join-Path (Split-Path $Executable -Parent) 'portable-ui.png')
+# Exercise the real updater in a disposable portable directory. Do not launch the result.
+$stage=Join-Path $fixture ('WintoolsData\updates\'+[guid]::NewGuid().ToString('N'))
+$null=New-Item -ItemType Directory -Path $stage
+$updater=Join-Path $stage 'updater.exe';$next=Join-Path $stage 'next.exe'
+Copy-Item $exe $updater;Copy-Item $exe $next
+$hash=(Get-FileHash $next -Algorithm SHA256).Hash
+$badHash='0'*64
+Run-Portable $updater "--replace WintoolsPortable.exe 2147483647 $badHash --ci-no-launch" 4
+if((Get-FileHash $exe -Algorithm SHA256).Hash -ne $hash -or -not(Test-Path $next)){throw 'Rejected update changed original executable'}
+$lock=Join-Path $fixture 'WintoolsData\state\run.lock'
+[IO.File]::WriteAllText($lock,'busy')
+Run-Portable $updater "--replace WintoolsPortable.exe 2147483647 $hash --ci-no-launch" 4
+Remove-Item -LiteralPath $lock
+Run-Portable $updater "--replace WintoolsPortable.exe 2147483647 $hash --ci-no-launch"
+if(-not(Test-Path ($exe+'.previous')) -or (Test-Path $next)){throw 'Atomic update or previous-version backup missing'}
+if((Get-FileHash ($exe+'.previous') -Algorithm SHA256).Hash -ne $hash){throw 'Previous version backup corrupted'}
+if(-not(Test-Path (Join-Path $fixture 'WintoolsData\preferences.json'))){throw 'Update lost preferences'}
+Write-Output 'Portable UI and atomic updater tests passed.'
+exit 0

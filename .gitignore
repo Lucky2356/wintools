@@ -11,3 +11,5 @@ backups/
 logs/
 reports/
 dist/
+WintoolsData/
+*.exe.previous
