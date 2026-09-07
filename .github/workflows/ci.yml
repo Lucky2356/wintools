@@ -1,0 +1,20 @@
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  catalogue:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate catalogue and protected list
+        shell: powershell
+        run: .\lib\helpers.ps1 -Action ValidateData -Root $PWD
+      - name: Parse PowerShell helper
+        shell: powershell
+        run: $null = [scriptblock]::Create((Get-Content .\lib\helpers.ps1 -Raw))

@@ -178,10 +178,12 @@ rem ----------------------------------------------------------------- finish
 set "RC=%ERRORLEVEL%"
 %PSH% -Action WriteManifest -Root "%APPROOT%" >nul 2>&1
 call "%LIBDIR%\core.cmd" :log INFO "Finished: exit=%RC%  log=%LOGFILE%"
+call "%LIBDIR%\core.cmd" :shutdown
 endlocal & exit /b %RC%
 
 :bail
 set "RC=%ERRORLEVEL%"
+if defined LIBDIR call "%LIBDIR%\core.cmd" :shutdown
 endlocal & exit /b %RC%
 
 :do_help
