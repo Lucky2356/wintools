@@ -14,7 +14,7 @@ namespace Wintools {
         private void InitializePlan() {
             planAction=(item,dry,progress)=>Engine.Run(item.Verb,item.Id,"-",dry,preferences.RestorePoint,progress);
             preferences.Plan=preferences.Plan.Where(id=>catalogue.Any(t=>t.Id==id&&CanPlan(t))).Distinct().Take(50).ToList();
-            Click("PlanAdd",()=>{var item=Selected();if(busy||!CanPlan(item)||preferences.Plan.Contains(item.Id))return;if(preferences.Plan.Count>=50){Text("Status","В плане уже 50 действий. Выполните или сократите его.");return;}preferences.Plan.Add(item.Id);SavePreferences();RefreshPlan();Text("Status","Добавлено в план: "+item.Title);});
+            Click("PlanAdd",()=>{var item=Selected();if(busy||!CanPlan(item)||preferences.Plan.Contains(item.Id))return;if(preferences.Plan.Count>=50){Text("Status","В плане уже 50 действий. Выполните или сократите его.");return;}preferences.Plan.Add(item.Id);bool saved=SavePreferences();if(!saved)preferences.Plan.Remove(item.Id);RefreshPlan();if(saved)Text("Status","Добавлено в план: "+item.Title);});
             Get<ListBox>("PlanItems").SelectionChanged+=(s,e)=>RefreshEnabled();
             Click("PlanRemove",()=>ChangePlan(0));Click("PlanUp",()=>ChangePlan(-1));Click("PlanDown",()=>ChangePlan(1));
             Click("PlanStop",()=>{stopPlan=true;Enabled("PlanStop",false);Text("PlanStatus","Остановимся после текущего действия. Уже выполненные изменения сохранятся в истории.");});
@@ -24,9 +24,10 @@ namespace Wintools {
         private Tweak[] PlanItems(){return preferences.Plan.Select(id=>catalogue.First(t=>t.Id==id)).ToArray();}
         private void ChangePlan(int direction) {
             if(busy)return;var list=Get<ListBox>("PlanItems");int index=list.SelectedIndex;if(index<0)return;
+            var previous=preferences.Plan.ToList();
             if(direction==0)preferences.Plan.RemoveAt(index);
             else {int target=index+direction;if(target<0||target>=preferences.Plan.Count)return;string id=preferences.Plan[index];preferences.Plan.RemoveAt(index);preferences.Plan.Insert(target,id);index=target;}
-            SavePreferences();RefreshPlan();list.SelectedIndex=Math.Min(index,preferences.Plan.Count-1);
+            if(!SavePreferences())preferences.Plan=previous;RefreshPlan();list.SelectedIndex=Math.Min(index,preferences.Plan.Count-1);
         }
         private void RefreshPlan() {
             var items=PlanItems();Get<ListBox>("PlanItems").ItemsSource=items.Select((t,i)=>new ActionRow{Item=t,DisplayTitle=(i+1)+". "+t.Title,Summary=Risk(t)+" · "+t.Description}).ToArray();

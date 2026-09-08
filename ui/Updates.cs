@@ -68,8 +68,8 @@ namespace Wintools {
             if(response.IsSuccessStatusCode)return;
             switch((int)response.StatusCode){
                 case 404:throw new IOException("GitHub не нашёл публичный репозиторий или файл (404). Повторите проверку позже или откройте страницу выпусков.");
-                case 401:throw new IOException("GitHub отклонил токен (401). Он недействителен или истёк. Обновите доступ в настройках.");
-                case 403:case 429:throw new IOException("GitHub ограничил запрос ("+(int)response.StatusCode+"). Проверьте права токена или повторите позже: возможно, достигнут лимит запросов.");
+                case 401:throw new IOException("GitHub отклонил запрос (401). Повторите позже или откройте страницу выпусков. Для публичного репозитория токен не требуется.");
+                case 403:case 429:throw new IOException("GitHub ограничил запрос ("+(int)response.StatusCode+"). Повторите позже: возможно, достигнут лимит запросов с вашего адреса.");
                 default:throw new IOException("GitHub временно недоступен: HTTP "+(int)response.StatusCode+". Повторите проверку позже.");
             }
         }

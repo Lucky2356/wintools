@@ -66,14 +66,14 @@ namespace Wintools {
             Get<CheckBox>("AutoCheck").IsChecked=preferences.AutoCheck;Get<CheckBox>("RestorePoint").IsChecked=preferences.RestorePoint;Get<CheckBox>("PreviewChannel").IsChecked=preferences.IncludePreview;
             Get<CheckBox>("AutoInstall").IsChecked=preferences.AutoInstall;
             Get<ComboBox>("Theme").SelectionChanged+=(s,e)=>{if(!ready)return;preferences.Theme=new[]{"system","light","dark"}[Get<ComboBox>("Theme").SelectedIndex];ApplyTheme();SavePreferences();};
-            Get<TextBox>("Search").TextChanged+=(s,e)=>{selectedGroup=null;Filter();};Get<ComboBox>("Category").SelectionChanged+=(s,e)=>{selectedGroup=null;showAll=false;Filter();};
+            Get<TextBox>("Search").TextChanged+=(s,e)=>{selectedGroup=null;Filter();};Get<ComboBox>("Category").SelectionChanged+=(s,e)=>{selectedGroup=null;showAll=false;collection=null;Visible("ClearCollection",false);Filter();};
             Get<ItemsControl>("BrowseGroups").AddHandler(Button.ClickEvent,new RoutedEventHandler((s,e)=>{var button=e.OriginalSource as Button;if(button==null||button.Tag==null)return;var key=(string)button.Tag;if(key.StartsWith("category:"))Get<ComboBox>("Category").SelectedValue=key.Substring(9);else{selectedGroup=key;Filter();}}));
             Click("BackToGroups",()=>{collection=null;selectedGroup=null;showAll=false;Get<CheckBox>("Favorites").IsChecked=false;Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;Visible("ClearCollection",false);Filter();});
             Click("ShowAll",()=>{showAll=true;Filter();});
             foreach(var name in new[]{"Favorites","Risky"})Get<CheckBox>(name).Click+=(s,e)=>Filter();
             Get<ListBox>("Items").SelectionChanged+=(s,e)=>SelectItem();Get<ListBox>("History").SelectionChanged+=(s,e)=>RefreshEnabled();
             Get<CheckBox>("AutoCheck").Click+=async(s,e)=>{preferences.AutoCheck=Checked("AutoCheck");SavePreferences();if(preferences.AutoCheck)await CheckUpdates(false);};
-            Get<CheckBox>("AutoInstall").Click+=async(s,e)=>{preferences.AutoInstall=Checked("AutoInstall");SavePreferences();if(preferences.AutoInstall)await PrepareAutomaticUpdate();else Text("UpdateStatus","Автоматическая установка выключена. Можно обновить вручную.");};
+            Get<CheckBox>("AutoInstall").Click+=async(s,e)=>{preferences.AutoInstall=Checked("AutoInstall");SavePreferences();if(preferences.AutoInstall){if(stagedDirectory!=null)Text("UpdateStatus","Обновление готово и установится при закрытии приложения.");else await PrepareAutomaticUpdate();}else Text("UpdateStatus","Автоматическая установка выключена. Можно обновить вручную.");};
             Get<CheckBox>("RestorePoint").Click+=(s,e)=>{preferences.RestorePoint=Checked("RestorePoint");SavePreferences();};
             Get<CheckBox>("PreviewChannel").Click+=async(s,e)=>{preferences.IncludePreview=Checked("PreviewChannel");available=null;DiscardStaged();RefreshEnabled();SavePreferences();await CheckUpdates(true);};
             for(int i=0;i<nav.Length;i++){int index=i;Click(nav[i],()=>ShowPage(index));}
@@ -98,7 +98,7 @@ namespace Wintools {
             Window.Closed+=(s,e)=>{closed=true;updateTimer.Stop();SystemEvents.UserPreferenceChanged-=SystemPreferenceChanged;};
             Window.SourceInitialized+=(s,e)=>NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle,PaletteDark());
             Window.SizeChanged+=(s,e)=>{Get<TextBox>("Output").Height=Window.ActualHeight<790?48:100;Window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>{if(!closed&&page==0){var list=Get<ListBox>("Items");list.UpdateLayout();if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}}));};
-            Window.Loaded+=async(s,e)=>{if(smoke){try{await Smoke();}catch(Exception ex){File.WriteAllText(Path.Combine(Program.Home,"portable-error.txt"),ex.ToString());Environment.ExitCode=4;}Window.Close();return;}if(preferences.AutoCheck)await CheckUpdates(false);};
+            Window.Loaded+=async(s,e)=>{if(smoke){try{await Smoke();}catch(Exception ex){File.WriteAllText(Path.Combine(Program.Home,"portable-error.txt"),ex.ToString());Environment.ExitCode=4;}finally{busy=false;downloading=false;DiscardStaged();Window.Close();}return;}if(preferences.AutoCheck)await CheckUpdates(false);};
             updateTimer.Tick+=async(s,e)=>{if(preferences.AutoCheck&&!closed)await CheckUpdates(false);};if(!smoke)updateTimer.Start();
             InitializePlan();ready=true;ApplyTheme();Filter();ReadHistory();RefreshPlan();ShowPage(0);SystemEvents.UserPreferenceChanged+=SystemPreferenceChanged;
         }
@@ -116,11 +116,13 @@ namespace Wintools {
             Text("PageHint",new[]{"Выберите раздел или найдите нужное действие.","Исходные состояния и откат сохранённых запусков.","Небольшие наборы для повседневных задач.","Автообновление, защита и данные приложения.","Соберите действия, проверьте и выполните по порядку."}[index]);
             if(index==0&&ready){Window.UpdateLayout();var list=Get<ListBox>("Items");if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}
         }
-        private void ChooseCollection(string[] ids){collection=new HashSet<string>(ids);selectedGroup=null;Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;Get<CheckBox>("Favorites").IsChecked=false;Get<CheckBox>("Risky").IsChecked=false;Visible("ClearCollection",true);Filter();ShowPage(0);}
+        private void ChooseCollection(string[] ids){selectedGroup=null;Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;collection=new HashSet<string>(ids);Get<CheckBox>("Favorites").IsChecked=false;Get<CheckBox>("Risky").IsChecked=false;Visible("ClearCollection",true);Filter();ShowPage(0);}
         private Tweak Selected(){var row=Get<ListBox>("Items").SelectedItem as ActionRow;return row==null?null:row.Item;}
         private static string Risk(Tweak item){return item.Risk=="high"?"Высокий риск":item.Risk=="med"?"Средний риск":"Низкий риск";}
         private void Filter() {
-            if(!ready)return;var prior=Selected();string id=prior==null?null:prior.Id;string group=(string)Get<ComboBox>("Category").SelectedValue??"ALL",query=Get<TextBox>("Search").Text.Trim();
+            if(!ready)return;var prior=Selected();string id=prior==null?null:prior.Id;
+            // SelectedValue can still contain the old key inside SelectionChanged.
+            var category=Get<ComboBox>("Category").SelectedItem;string group=category is KeyValuePair<string,string>?((KeyValuePair<string,string>)category).Key:"ALL",query=Get<TextBox>("Search").Text.Trim();
             var scope=catalogue.Where(t=>(collection==null||collection.Contains(t.Id))&&(group=="ALL"||t.Category==group)&&(!Checked("Favorites")||preferences.Favorites.Contains(t.Id))&&(Checked("Risky")||t.Risk!="high")&&(selectedGroup==null||Groups.For(t)==selectedGroup)&&(t.Title+" "+t.Description+" "+t.Caveat+" "+t.Id).IndexOf(query,StringComparison.OrdinalIgnoreCase)>=0).ToArray();
             var groups=scope.GroupBy(t=>group=="ALL"?t.Category:Groups.For(t)).Select(g=>new BrowseGroup{Key=group=="ALL"?"category:"+g.Key:g.Key,Title=group=="ALL"?Catalogue.Categories[g.Key]:g.Key,Detail=g.Count()+" действий · открыть →"}).ToArray();
             bool browsing=!showAll&&collection==null&&selectedGroup==null&&query.Length==0&&!Checked("Favorites")&&(group=="ALL"||groups.Length>1);
@@ -180,18 +182,22 @@ namespace Wintools {
             catch(Exception ex){Text("UpdateStatus",UpdateError(ex));Text("Status","Автообновление отложено. Повторная проверка будет позже.");}
             finally{downloading=false;Visible("DownloadProgress",false);RefreshEnabled();}
         }
-        private void SavePreferences(){try{preferences.Save();}catch(Exception ex){Text("Status","Настройки не сохранены: "+ex.Message);}}
+        private bool SavePreferences(){try{preferences.Save();return true;}catch(Exception ex){Text("Status","Настройки не сохранены: "+ex.Message);return false;}}
         private void OpenFolder(string relative){try{var path=relative.Length==0?Program.Data:Program.Under(Program.Data,relative);Program.SafeDirectory(path);Directory.CreateDirectory(path);Process.Start(new ProcessStartInfo("explorer.exe",Program.Quote(path)){UseShellExecute=true});}catch(Exception ex){Text("Status",ex.Message);}}
         private void OpenUrl(string url){try{Process.Start(new ProcessStartInfo(url){UseShellExecute=true});}catch(Exception ex){Text("Status",ex.Message);}}
         private async Task Smoke() {
             int downloads=0;download=(update,progress)=>{downloads++;return Task.FromResult("fixture-stage");};
-            available=new Update{Release=new Release{tag_name="v9.0.0"}};preferences.AutoInstall=true;busy=true;await PrepareAutomaticUpdate();Assert(downloads==0,"Auto update interrupted an operation");busy=false;await PrepareAutomaticUpdate();Assert(downloads==1&&stagedDirectory!=null,"Auto download did not stage");await PrepareAutomaticUpdate();Assert(downloads==1,"Staged update downloaded twice");DiscardStaged();preferences.AutoInstall=false;await PrepareAutomaticUpdate();Assert(downloads==1,"Disabled auto installation downloaded");available=null;preferences.AutoInstall=true;download=Updates.Download;
+            available=new Update{Release=new Release{tag_name="v9.0.0"}};preferences.AutoInstall=true;busy=true;await PrepareAutomaticUpdate();Assert(downloads==0,"Auto update interrupted an operation");busy=false;await PrepareAutomaticUpdate();Assert(downloads==1&&stagedDirectory!=null,"Auto download did not stage");await PrepareAutomaticUpdate();Assert(downloads==1,"Staged update downloaded twice");Get<CheckBox>("AutoInstall").IsChecked=false;Get<CheckBox>("AutoInstall").RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));Get<CheckBox>("AutoInstall").IsChecked=true;Get<CheckBox>("AutoInstall").RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));Assert(Get<TextBlock>("UpdateStatus").Text.Contains("установится при закрытии"),"Re-enabled automatic update still reported disabled");DiscardStaged();preferences.AutoInstall=false;await PrepareAutomaticUpdate();Assert(downloads==1,"Disabled auto installation downloaded");available=null;preferences.AutoInstall=true;download=Updates.Download;
             Text("UpdateStatus","Установлена версия "+Program.Version+". Автообновление включено.");Text("Status","Готово к работе");
             await Task.Delay(100);Assert(Get<ScrollViewer>("CatalogueGroups").Visibility==Visibility.Visible,"Catalogue did not start with sections");Capture("portable-ui-browse.png");
-            Get<ComboBox>("Category").SelectedValue="SVC";Assert(Get<ItemsControl>("BrowseGroups").Items.Count>4,"Service subgroups missing");selectedGroup="Bluetooth и камера";Filter();Assert(Get<ListBox>("Items").Items.Count==5,"Subgroup filter failed");
+            await InvokeGroup("category:SVC");Assert((string)Get<ComboBox>("Category").SelectedValue=="SVC","Category card click did not navigate");Assert(Get<ItemsControl>("BrowseGroups").Items.Count>4,"Service subgroups missing");await InvokeGroup("Bluetooth и камера");Assert(Get<ListBox>("Items").Items.Count==5,"Subgroup card click did not navigate");
             Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(Selected()==null,"Back to sections retained hidden selection");
-            Get<TextBox>("Search").Text="UI-FILEEXT";Assert(Get<ListBox>("Items").Items.Count==1,"Search from section browser failed");Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(preferences.Plan.Count==1&&Preferences.Load().Plan.Count==1,"Plan duplicate or persistence failure");
+            await NavigationSmoke();
+            Get<TextBox>("Search").Text="UI-FILEEXT";Assert(Get<ListBox>("Items").Items.Count==1,"Search from section browser failed");
+            var lockedPreferences=Path.Combine(Program.Data,"preferences.json.tmp");using(var locked=new FileStream(lockedPreferences,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(preferences.Plan.Count==0&&Get<TextBlock>("Status").Text.Contains("не сохранены"),"Failed plan save reported success");}File.Delete(lockedPreferences);
+            Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(preferences.Plan.Count==1&&Preferences.Load().Plan.Count==1,"Plan duplicate or persistence failure");
             Get<TextBox>("Search").Text="UI-LAUNCHTO";Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(preferences.Plan.Count==2,"Plan add failed");ShowPage(4);await Task.Delay(100);Capture("portable-ui-plan.png");
+            Get<ListBox>("PlanItems").SelectedIndex=0;using(var locked=new FileStream(lockedPreferences,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){ChangePlan(0);Assert(preferences.Plan.Count==2&&Preferences.Load().Plan.Count==2,"Failed plan removal diverged from saved plan");}File.Delete(lockedPreferences);
             var realPlanAction=planAction;int planCalls=0;planAction=(item,dry,progress)=>{planCalls++;return Task.FromResult(new EngineResult{Code=0,Output="fixture preview"});};await RunPlan(true);Assert(planCalls==2&&preferences.Plan.Count==2,"Preview changed the saved plan");
             planCalls=0;planAction=(item,dry,progress)=>Task.FromResult(new EngineResult{Code=++planCalls==1?0:4,Output="fixture result"});await RunPlan(false);Assert(planCalls==2&&preferences.Plan.Count==1&&Preferences.Load().Plan.Count==1,"Plan did not stop and retain failed item");
             preferences.Plan.Insert(0,"UI-FILEEXT");planCalls=0;planAction=(item,dry,progress)=>{planCalls++;stopPlan=true;return Task.FromResult(new EngineResult{Code=0,Output="fixture stopped"});};await RunPlan(false);Assert(planCalls==1&&preferences.Plan.Count==1,"Plan stop ignored");preferences.Plan.Clear();preferences.Save();RefreshPlan();planAction=realPlanAction;ExpandOutput(false);Get<TextBox>("Output").Text="Результаты предпросмотра и выполнения появятся здесь.";
@@ -208,6 +214,19 @@ namespace Wintools {
             ExpandOutput(false);Get<ComboBox>("Theme").SelectedIndex=0;
         }
         private bool IsVisibleInWindow(string name){var control=Get<FrameworkElement>(name);for(var parent=VisualTreeHelper.GetParent(control);parent!=null;parent=VisualTreeHelper.GetParent(parent)){var element=parent as FrameworkElement;if(element==null)continue;var bounds=control.TransformToAncestor(element).TransformBounds(new Rect(control.RenderSize));if(bounds.Top< -1||bounds.Left< -1||bounds.Bottom>element.ActualHeight+1||bounds.Right>element.ActualWidth+1)return false;}return true;}
+        private static IEnumerable<Button> Buttons(DependencyObject root){for(int i=0;i<VisualTreeHelper.GetChildrenCount(root);i++){var child=VisualTreeHelper.GetChild(root,i);var button=child as Button;if(button!=null)yield return button;foreach(var nested in Buttons(child))yield return nested;}}
+        private async Task InvokeGroup(string key){Window.UpdateLayout();var button=Buttons(Get<ItemsControl>("BrowseGroups")).FirstOrDefault(b=>(string)b.Tag==key);Assert(button!=null,"Group card not rendered: "+key);var peer=new System.Windows.Automation.Peers.ButtonAutomationPeer(button);((System.Windows.Automation.Provider.IInvokeProvider)peer.GetPattern(System.Windows.Automation.Peers.PatternInterface.Invoke)).Invoke();await Task.Delay(100);Window.UpdateLayout();}
+        private async Task NavigationSmoke(){
+            foreach(var category in catalogue.Select(t=>t.Category).Distinct()){
+                Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));await InvokeGroup("category:"+category);
+                if(Get<ScrollViewer>("CatalogueGroups").Visibility==Visibility.Visible){
+                    var keys=Get<ItemsControl>("BrowseGroups").Items.Cast<BrowseGroup>().Select(g=>g.Key).ToArray();
+                    foreach(var key in keys){await InvokeGroup(key);Assert(Get<ListBox>("Items").Items.Cast<ActionRow>().All(r=>r.Item.Category==category&&Groups.For(r.Item)==key)&&Selected()!=null,"Wrong subgroup results: "+key);Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));await InvokeGroup("category:"+category);}
+                }else Assert(Selected()!=null&&Get<ListBox>("Items").Items.Cast<ActionRow>().All(r=>r.Item.Category==category),"Wrong category results: "+category);
+            }
+            ChooseCollection(new[]{"UI-FILEEXT","UI-LAUNCHTO"});Get<ComboBox>("Category").SelectedValue="SVC";Assert(collection==null&&Get<ScrollViewer>("CatalogueGroups").Visibility==Visibility.Visible,"Collection restricted another category");await InvokeGroup("Bluetooth и камера");Assert(Get<ListBox>("Items").Items.Count==5,"Collection leaked into subgroup");
+            Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        }
         private void Capture(string name){Window.UpdateLayout();var root=(FrameworkElement)Window.Content;var bitmap=new RenderTargetBitmap((int)root.ActualWidth,(int)root.ActualHeight,96,96,PixelFormats.Pbgra32);bitmap.Render(root);var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));using(var file=File.Create(Path.Combine(Program.Home,name)))encoder.Save(file);}
         private static void Assert(bool value,string message){if(!value)throw new InvalidOperationException(message);}
     }
