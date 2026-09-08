@@ -8,9 +8,9 @@ using System.Web.Script.Serialization;
 
 namespace Wintools {
     internal sealed class Tweak {
-        public string Id, Category, Title, Description, Kind, Risk, Os;
+        public string Id, Category, Title, Description, Caveat, Compatibility, Kind, Risk, Os;
         public string Verb { get { return Category == "SYS" ? "system-change" : Category == "CLEAN" ? "cleanup" : "apply"; } }
-        public string Rollback { get { return Category == "CLEAN" ? "Нет: файлы удаляются" : Kind == "EDGE" ? "Ручная переустановка" : Kind == "APPX" ? "Регистрация из сохранённого payload; зависит от его наличия" : "Исходное состояние в журнале"; } }
+        public string Rollback { get { return Category == "CLEAN" ? "Удалённые файлы вернуть через Wintools нельзя." : Kind == "EDGE" ? "Потребуется заново установить браузер." : Kind == "APPX" ? "Попробуем вернуть приложение из оставшихся файлов. Если их уже нет, потребуется переустановка." : "Wintools сохранит прежнее значение. Вернуть его можно здесь или в истории изменений."; } }
     }
     internal static class Catalogue {
         internal static readonly Dictionary<string,string> Categories = new Dictionary<string,string> {
@@ -29,7 +29,7 @@ namespace Wintools {
                 string[] def;
                 bool known = definitions.TryGetValue(p[0], out def);
                 if (!known && p[1] != "SYS" && p[1] != "CLEAN") continue;
-                result.Add(new Tweak {Id=p[0],Category=p[1],Title=p[2],Description=string.Join(" ",p.Skip(3).Where(s=>s!="-")),Kind=known?def[4]:p[1],Risk=known?def[2]:"med",Os=known?def[3]:"any"});
+                result.Add(new Tweak {Id=p[0],Category=p[1],Title=p[2],Description=p[3],Caveat=p[4]=="-"?"Дополнительных условий нет.":p[4],Compatibility=p[5]=="-"?"":p[5],Kind=known?def[4]:p[1],Risk=known?def[2]:"med",Os=known?def[3]:"any"});
             }
             return result;
         }
@@ -37,14 +37,17 @@ namespace Wintools {
     internal sealed class Preferences {
         public string Theme = "system";
         public bool AutoCheck = true;
+        public bool AutoInstall = true;
         public bool IncludePreview = Program.Version.Contains("-");
         public bool RestorePoint = true;
         public List<string> Favorites = new List<string>();
+        public List<string> Plan = new List<string>();
         internal static Preferences Load() {
             try {
                 var result=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Path.Combine(Program.Data,"preferences.json"))) ?? new Preferences();
                 if(!new[]{"system","light","dark"}.Contains(result.Theme))result.Theme="system";
                 if(result.Favorites==null)result.Favorites=new List<string>();
+                if(result.Plan==null)result.Plan=new List<string>();
                 return result;
             }
             catch { return new Preferences(); }

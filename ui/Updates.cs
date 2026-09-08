@@ -51,7 +51,8 @@ namespace Wintools {
             return client;
         }
         internal static async Task<Update> Check(bool preview) {
-            using(var client=Client(Access.Load()))return await Check(client,preview,Program.Version);
+            // Public releases must not depend on a previously saved or expired token.
+            using(var client=Client(null))return await Check(client,preview,Program.Version);
         }
         internal static async Task<Update> Check(HttpClient client,bool preview,string current) {
             using(var response=await client.GetAsync("https://api.github.com/repos/Lucky2356/wintools/releases?per_page=100")) {
@@ -66,7 +67,7 @@ namespace Wintools {
         internal static void EnsureResponse(HttpResponseMessage response) {
             if(response.IsSuccessStatusCode)return;
             switch((int)response.StatusCode){
-                case 404:throw new IOException("GitHub не открыл репозиторий (404). Для закрытого wintools сохраните токен с доступом Contents: Read в настройках. Вход в GitHub в браузере не авторизует приложение.");
+                case 404:throw new IOException("GitHub не нашёл публичный репозиторий или файл (404). Повторите проверку позже или откройте страницу выпусков.");
                 case 401:throw new IOException("GitHub отклонил токен (401). Он недействителен или истёк. Обновите доступ в настройках.");
                 case 403:case 429:throw new IOException("GitHub ограничил запрос ("+(int)response.StatusCode+"). Проверьте права токена или повторите позже: возможно, достигнут лимит запросов.");
                 default:throw new IOException("GitHub временно недоступен: HTTP "+(int)response.StatusCode+". Повторите проверку позже.");
@@ -80,7 +81,7 @@ namespace Wintools {
             }
         }
         internal static async Task<string> Download(Update update,Action<int> progress) {
-            using(var client=Client(Access.Load()))return await Download(client,update,Program.Version,progress);
+            using(var client=Client(null))return await Download(client,update,Program.Version,progress);
         }
         internal static async Task<string> Download(HttpClient client,Update update,string current,Action<int> progress) {
             var validated=Select(new[]{update.Release},current,true);
@@ -112,16 +113,16 @@ namespace Wintools {
                 return directory;
             } catch {if(File.Exists(path))File.Delete(path);throw;}
         }
-        internal static void LaunchReplacement(string directory,string digest) {
+        internal static void LaunchReplacement(string directory,string digest,bool relaunch=true) {
             if(!ValidExecutableName(Path.GetFileName(Program.Exe)))throw new IOException("Недопустимое имя EXE для обновления.");
             if(File.Exists(Path.Combine(Program.Data,"state","run.lock")))throw new IOException("Дождитесь завершения операции движка перед обновлением.");
             var updater=Path.Combine(directory,"updater.exe");
             File.Copy(Program.Exe,updater,false);
-            var args="--replace "+Program.Quote(Path.GetFileName(Program.Exe))+" "+Process.GetCurrentProcess().Id+" "+digest;
+            var args="--replace "+Program.Quote(Path.GetFileName(Program.Exe))+" "+Process.GetCurrentProcess().Id+" "+digest+(relaunch?"":" --no-relaunch");
             Process.Start(new ProcessStartInfo(updater,args){UseShellExecute=false,CreateNoWindow=true,WorkingDirectory=directory});
         }
         internal static int Replace(string[] args) {
-            bool noLaunch=args.Length==5 && args[4]=="--ci-no-launch" && Program.Hosted;
+            bool noLaunch=args.Length==5 && (args[4]=="--no-relaunch" || args[4]=="--ci-no-launch" && Program.Hosted);
             if((args.Length!=4&&!noLaunch) || !ValidExecutableName(args[1]) || !Regex.IsMatch(args[3],"^[a-fA-F0-9]{64}$"))throw new ArgumentException("Invalid updater arguments.");
             var folder=new DirectoryInfo(Program.Home);
             if(!Regex.IsMatch(folder.Name,"^[a-f0-9]{32}$") || folder.Parent.Name!="updates" || folder.Parent.Parent.Name!="WintoolsData")throw new IOException("Invalid staging directory.");

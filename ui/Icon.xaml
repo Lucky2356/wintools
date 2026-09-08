@@ -1,0 +1,7 @@
+<DrawingImage xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+ <DrawingImage.Drawing><DrawingGroup>
+  <GeometryDrawing Brush="#285BD7"><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,256,256" RadiusX="56" RadiusY="56"/></GeometryDrawing.Geometry></GeometryDrawing>
+  <GeometryDrawing Geometry="M 54,68 L 86,188 L 128,116 L 170,188 L 202,68"><GeometryDrawing.Pen><Pen Brush="#FFFFFF" Thickness="22" StartLineCap="Round" EndLineCap="Round" LineJoin="Round"/></GeometryDrawing.Pen></GeometryDrawing>
+  <GeometryDrawing Brush="#93C5FD" Geometry="M 119,60 L 137,60 L 137,78 L 119,78 Z"/>
+ </DrawingGroup></DrawingImage.Drawing>
+</DrawingImage>

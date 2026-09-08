@@ -15,6 +15,7 @@ namespace Wintools {
             var catalogue=Catalogue.Load();Assert(catalogue.Count>100,"Embedded catalogue incomplete.");
             Assert(catalogue.First(t=>t.Id=="UI-FILEEXT").Title.Contains("расшир"),"CP866 catalogue not decoded.");
             Assert(catalogue.Any(t=>t.Category=="CLEAN"),"Cleanup catalogue missing.");
+            Assert(catalogue.All(t=>!string.IsNullOrWhiteSpace(t.Description)&&!string.IsNullOrWhiteSpace(t.Caveat)),"Result or caveat missing from catalogue.");
             Reject(()=>Program.Under(Program.Data,"..\\escape"),"Path traversal accepted.");
             Reject(()=>Engine.Arguments("apply","UI-FILEEXT & whoami","-",false),"Injected ID accepted.");
             Reject(()=>Engine.Arguments("cleanup","UI-FILEEXT","-",false),"Mismatched operation accepted.");
@@ -38,13 +39,12 @@ namespace Wintools {
             UpdateTests().GetAwaiter().GetResult();
             var marker=Path.Combine(Program.Data,"state","portable-test-marker.txt");Directory.CreateDirectory(Path.GetDirectoryName(marker));File.WriteAllText(marker,"preserve");
             Program.ExtractEngine();Assert(File.ReadAllText(marker)=="preserve","Extraction overwrote persistent state.");
-            var preferences=new Preferences();preferences.AutoCheck=false;preferences.Favorites.Add("UI-FILEEXT");preferences.Save();
-            Assert(!Preferences.Load().AutoCheck&&Preferences.Load().Favorites.Contains("UI-FILEEXT"),"Preferences were not retained.");
+            var preferences=new Preferences();preferences.AutoCheck=false;preferences.AutoInstall=false;preferences.Favorites.Add("UI-FILEEXT");preferences.Save();
+            Assert(!Preferences.Load().AutoCheck&&!Preferences.Load().AutoInstall&&Preferences.Load().Favorites.Contains("UI-FILEEXT"),"Preferences were not retained.");
             var preferencePath=Path.Combine(Program.Data,"preferences.json");
             File.WriteAllText(preferencePath,"{\"Theme\":\"invalid\",\"Favorites\":null,\"AutoCheck\":false}");
-            var repaired=Preferences.Load();Assert(repaired.Theme=="system"&&repaired.Favorites!=null&&!repaired.AutoCheck,"Malformed preferences not normalized.");
+            var repaired=Preferences.Load();Assert(repaired.Theme=="system"&&repaired.Favorites!=null&&!repaired.AutoCheck&&repaired.AutoInstall,"Malformed preferences or old-version defaults not normalized.");
             preferences.Save();
-            Access.Save("fixture-token");Assert(Access.Load()=="fixture-token","Encrypted token round trip failed.");Assert(!System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(Path.Combine(Program.Data,"github-access.bin"))).Contains("fixture-token"),"Token stored as plaintext.");Access.Save(null);
             var history=Path.Combine(Program.Data,"state","history-fixture.dat");File.WriteAllText(history,"run1|UI-FILEEXT|REG|a|b|c|d|e|f|OK|date\nrun1|UI-FILEEXT|REG|a|b|c|d|e|f|REVERTED|date");Assert(MainWindow.HistoryRows(history,catalogue).Length==1&&MainWindow.HistoryRows(history,catalogue)[0].CanRevert,"History grouping failed.");File.WriteAllText(history,"run1|UI-FILEEXT|REG|a|b|c|d|e|f|REVERTED|date");Assert(!MainWindow.HistoryRows(history,catalogue)[0].CanRevert,"Already reverted run enabled.");File.Delete(history);
             var result=Engine.Run("diagnose","-","-",false,false,text=>{}).GetAwaiter().GetResult();
             Assert(result.Code==0,"Portable diagnostic worker failed: "+result.Output);
@@ -60,8 +60,7 @@ namespace Wintools {
         private static async Task UpdateTests() {
             foreach(var status in new[]{HttpStatusCode.NotFound,HttpStatusCode.Unauthorized,HttpStatusCode.Forbidden})using(var client=new HttpClient(new ResponseHandler{Status=status})){bool failed=false;try{await Updates.Check(client,true,"0.0.0");}catch(IOException ex){failed=ex.Message.Contains(((int)status).ToString());}Assert(failed,"HTTP access error was hidden.");}
             using(var client=new HttpClient(new ResponseHandler{Status=HttpStatusCode.OK,Json="[{\"tag_name\":\"v9.0.0\",\"assets\":[]}]"})){bool failed=false;try{await Updates.Check(client,true,"0.0.0");}catch(IOException){failed=true;}Assert(failed,"Missing release binary reported as up to date.");}
-            var token=Environment.GetEnvironmentVariable("WTOOLS_TEST_GITHUB_TOKEN");Assert(!string.IsNullOrEmpty(token),"CI token required for real release download test.");
-            using(var client=Updates.Client(token)){var update=await Updates.Check(client,true,"0.0.0");Assert(update!=null&&update.Asset.id>0,"Real release lookup failed.");var directory=await Updates.Download(client,update,"0.0.0",null);Assert(Updates.HashMatches(Path.Combine(directory,"next.exe"),update.Asset.digest.Substring(7)),"Real authenticated download failed.");}
+            using(var client=Updates.Client(null)){Assert(client.DefaultRequestHeaders.Authorization==null,"Public client unexpectedly authenticated");var update=await Updates.Check(client,true,"0.0.0");Assert(update!=null&&update.Asset.id>0,"Real public release lookup failed.");var directory=await Updates.Download(client,update,"0.0.0",null);Assert(Updates.HashMatches(Path.Combine(directory,"next.exe"),update.Asset.digest.Substring(7)),"Real anonymous download failed.");}
         }
     }
 }

@@ -15,7 +15,7 @@ function Run-Portable($path,$arguments,$expected=0){
 }
 Run-Portable $exe '--self-test'
 Run-Portable $exe '--ui-smoke'
-foreach($name in @('portable-ui.png','portable-ui-light.png','portable-ui-settings-dark.png','portable-ui-settings-light.png','portable-ui-compact.png','portable-ui-updates.png')){
+foreach($name in @('portable-ui.png','portable-ui-light.png','portable-ui-settings-dark.png','portable-ui-settings-light.png','portable-ui-compact.png','portable-ui-updates.png','portable-ui-collections.png','portable-ui-browse.png','portable-ui-plan.png')){
   $screenshot=Join-Path $fixture $name
   if(-not(Test-Path $screenshot)){throw "UI screenshot missing: $name"}
   Copy-Item $screenshot (Join-Path (Split-Path $Executable -Parent) $name)
@@ -33,7 +33,7 @@ $lock=Join-Path $fixture 'WintoolsData\state\run.lock'
 [IO.File]::WriteAllText($lock,'busy')
 Run-Portable $updater "--replace WintoolsPortable.exe 2147483647 $hash --ci-no-launch" 4
 Remove-Item -LiteralPath $lock
-Run-Portable $updater "--replace WintoolsPortable.exe 2147483647 $hash --ci-no-launch"
+Run-Portable $updater "--replace WintoolsPortable.exe 2147483647 $hash --no-relaunch"
 if(-not(Test-Path ($exe+'.previous')) -or (Test-Path $next)){throw 'Atomic update or previous-version backup missing'}
 if((Get-FileHash ($exe+'.previous') -Algorithm SHA256).Hash -ne $hash){throw 'Previous version backup corrupted'}
 if(-not(Test-Path (Join-Path $fixture 'WintoolsData\preferences.json'))){throw 'Update lost preferences'}
