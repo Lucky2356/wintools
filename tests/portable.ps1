@@ -15,9 +15,11 @@ function Run-Portable($path,$arguments,$expected=0){
 }
 Run-Portable $exe '--self-test'
 Run-Portable $exe '--ui-smoke'
-$screenshot=Join-Path $fixture 'portable-ui.png'
-if(-not(Test-Path $screenshot)){throw 'UI screenshot missing'}
-Copy-Item $screenshot (Join-Path (Split-Path $Executable -Parent) 'portable-ui.png')
+foreach($name in @('portable-ui.png','portable-ui-light.png','portable-ui-settings-dark.png','portable-ui-settings-light.png','portable-ui-compact.png')){
+  $screenshot=Join-Path $fixture $name
+  if(-not(Test-Path $screenshot)){throw "UI screenshot missing: $name"}
+  Copy-Item $screenshot (Join-Path (Split-Path $Executable -Parent) $name)
+}
 # Exercise the real updater in a disposable portable directory. Do not launch the result.
 $stage=Join-Path $fixture ('WintoolsData\updates\'+[guid]::NewGuid().ToString('N'))
 $null=New-Item -ItemType Directory -Path $stage

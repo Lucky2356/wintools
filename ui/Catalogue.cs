@@ -35,12 +35,18 @@ namespace Wintools {
         }
     }
     internal sealed class Preferences {
+        public string Theme = "system";
         public bool AutoCheck = true;
         public bool IncludePreview = Program.Version.Contains("-");
         public bool RestorePoint = true;
         public List<string> Favorites = new List<string>();
         internal static Preferences Load() {
-            try { return new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Path.Combine(Program.Data,"preferences.json"))) ?? new Preferences(); }
+            try {
+                var result=new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Path.Combine(Program.Data,"preferences.json"))) ?? new Preferences();
+                if(!new[]{"system","light","dark"}.Contains(result.Theme))result.Theme="system";
+                if(result.Favorites==null)result.Favorites=new List<string>();
+                return result;
+            }
             catch { return new Preferences(); }
         }
         internal void Save() {

@@ -37,7 +37,7 @@ namespace Wintools {
                         using (var form = new MainForm(smoke)) Application.Run(form);
                     } finally { gate.ReleaseMutex(); }
                 }
-                return 0;
+                return Environment.ExitCode;
             } catch (Exception ex) {
                 if (Hosted) { File.WriteAllText(Path.Combine(Home, "portable-error.txt"), ex.ToString()); }
                 else MessageBox.Show(ex.Message, "Wintools", MessageBoxButtons.OK, MessageBoxIcon.Error);

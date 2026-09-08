@@ -85,6 +85,7 @@ namespace Wintools {
             } catch {if(File.Exists(path))File.Delete(path);throw;}
         }
         internal static void LaunchReplacement(string directory,string digest) {
+            if(!ValidExecutableName(Path.GetFileName(Program.Exe)))throw new IOException("Недопустимое имя EXE для обновления.");
             if(File.Exists(Path.Combine(Program.Data,"state","run.lock")))throw new IOException("Дождитесь завершения операции движка перед обновлением.");
             var updater=Path.Combine(directory,"updater.exe");
             File.Copy(Program.Exe,updater,false);
@@ -93,7 +94,7 @@ namespace Wintools {
         }
         internal static int Replace(string[] args) {
             bool noLaunch=args.Length==5 && args[4]=="--ci-no-launch" && Program.Hosted;
-            if((args.Length!=4&&!noLaunch) || !Regex.IsMatch(args[1],"^[A-Za-z0-9 _.()-]+\\.exe$",RegexOptions.IgnoreCase) || !Regex.IsMatch(args[3],"^[a-fA-F0-9]{64}$"))throw new ArgumentException("Invalid updater arguments.");
+            if((args.Length!=4&&!noLaunch) || !ValidExecutableName(args[1]) || !Regex.IsMatch(args[3],"^[a-fA-F0-9]{64}$"))throw new ArgumentException("Invalid updater arguments.");
             var folder=new DirectoryInfo(Program.Home);
             if(!Regex.IsMatch(folder.Name,"^[a-f0-9]{32}$") || folder.Parent.Name!="updates" || folder.Parent.Parent.Name!="WintoolsData")throw new IOException("Invalid staging directory.");
             string home=folder.Parent.Parent.Parent.FullName;
@@ -126,6 +127,9 @@ namespace Wintools {
                 if(!Program.Hosted)System.Windows.Forms.MessageBox.Show("Не удалось обновить программу. Подробности: WintoolsData\\update-error.txt\n"+ex.Message,"Wintools");
                 return 4;
             }
+        }
+        internal static bool ValidExecutableName(string name) {
+            return !string.IsNullOrWhiteSpace(name) && name==Path.GetFileName(name) && name.IndexOfAny(Path.GetInvalidFileNameChars())<0 && !name.Contains("\\") && !name.Contains("/") && name.EndsWith(".exe",StringComparison.OrdinalIgnoreCase);
         }
     }
 }

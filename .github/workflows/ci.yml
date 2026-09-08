@@ -94,7 +94,7 @@ jobs:
         if: always()
         with:
           name: portable-ui-${{ matrix.os }}
-          path: dist/portable/portable-ui.png
+          path: dist/portable/portable-ui*.png
           if-no-files-found: warn
       - uses: actions/upload-artifact@v7
         if: matrix.os == 'windows-2022'
