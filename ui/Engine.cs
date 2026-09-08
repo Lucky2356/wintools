@@ -33,7 +33,7 @@ namespace Wintools {
             Program.SafeDirectory(directory);
             Directory.CreateDirectory(directory);
             var log=Path.Combine(directory,token+".log");
-            var arguments="--worker "+verb+" "+id+" "+run+" "+token+" "+(dry?"dry":restorePoint?"restore":"normal");
+            var arguments="--worker "+verb+" "+id+" "+run+" "+token+" "+(dry?"dry":restorePoint?"restore":"normal")+" "+WindowsIdentity.GetCurrent().User.Value;
             bool needsAdmin=verb!="diagnose" && verb!="status";
             bool admin=new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
             var info=new ProcessStartInfo(Program.Exe,arguments){WorkingDirectory=Program.Home};
@@ -42,20 +42,26 @@ namespace Wintools {
             using(var process=Process.Start(info)) {
                 while(!process.HasExited) {
                     await Task.Delay(400);
-                    if(File.Exists(log)) progress(ReadLog(log));
+                    try{if(File.Exists(log))progress(ReadLog(log));}catch(IOException){}catch(UnauthorizedAccessException){}
                 }
-                return new EngineResult{Code=process.ExitCode,Output=File.Exists(log)?ReadLog(log):"Операция завершилась без вывода."};
+                string result;
+                try{result=File.Exists(log)?ReadLog(log):"Операция завершилась без вывода.";}catch(IOException){result="Операция завершена. Вывод временно недоступен: "+log;}catch(UnauthorizedAccessException){result="Операция завершена. Нет доступа к выводу: "+log;}
+                return new EngineResult{Code=process.ExitCode,Output=result};
             }
         }
         private static string ReadLog(string path) {
             using(var file=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite))
+            {
+                if(file.Length>600000)file.Seek(-600000,SeekOrigin.End);
             using(var reader=new StreamReader(file,Encoding.UTF8)) {
                 var text=reader.ReadToEnd();
                 return text.Length>150000?text.Substring(text.Length-150000):text;
             }
+            }
         }
         internal static int Worker(string[] args) {
-            if(args.Length!=6 || !Regex.IsMatch(args[4],"^[a-f0-9]{32}$") || !new[]{"dry","restore","normal"}.Contains(args[5])) throw new ArgumentException("Invalid worker request.");
+            if(args.Length!=7 || !Regex.IsMatch(args[4],"^[a-f0-9]{32}$") || !new[]{"dry","restore","normal"}.Contains(args[5])) throw new ArgumentException("Invalid worker request.");
+            if(args[6]!=WindowsIdentity.GetCurrent().User.Value)throw new InvalidOperationException("Повышение прав выполнено под другим пользователем. Операция отменена, чтобы не изменить чужие настройки и приложения. Запустите Wintools в сеансе нужного пользователя с правами администратора.");
             Program.SafeDirectory(Program.Data);
             var command=Arguments(args[1],args[2],args[3],args[5]=="restore");
             if(args[5]=="dry") command+=" /dry";

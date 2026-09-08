@@ -89,6 +89,8 @@ jobs:
           .\ui\build.ps1 -EngineZip "$PWD\dist\wintools-$version.zip"
       - name: Test portable UI, worker and updater
         shell: powershell
+        env:
+          WTOOLS_TEST_GITHUB_TOKEN: ${{ github.token }}
         run: .\tests\portable.ps1 -Executable "$PWD\dist\portable\WintoolsPortable.exe"
       - uses: actions/upload-artifact@v7
         if: always()

@@ -23,7 +23,8 @@ namespace Wintools {
                 if (args.Length > 0 && args[0] == "--worker") return Engine.Worker(args);
                 bool test = args.Length == 1 && args[0] == "--self-test";
                 bool smoke = args.Length == 1 && args[0] == "--ui-smoke";
-                if ((test || smoke) && !Hosted) throw new InvalidOperationException("Tests run only on GitHub-hosted runners.");
+                if (test && !Hosted) throw new InvalidOperationException("System integration tests run only on GitHub-hosted runners.");
+                if (smoke && !Hosted && Directory.Exists(Data)) throw new InvalidOperationException("UI smoke requires a fresh portable directory so existing preferences and history cannot be changed.");
                 if (args.Length > 0 && !test && !smoke) throw new ArgumentException("Unknown argument.");
                 using (var gate = new Mutex(false, MutexName(Home))) {
                     bool acquired;
@@ -32,9 +33,9 @@ namespace Wintools {
                     try {
                         ExtractEngine();
                         if (test) return SelfTests.Run();
-                        Application.EnableVisualStyles();
-                        Application.SetCompatibleTextRenderingDefault(false);
-                        using (var form = new MainForm(smoke)) Application.Run(form);
+                        var application=new System.Windows.Application{ShutdownMode=System.Windows.ShutdownMode.OnMainWindowClose};
+                        var window=new MainWindow(smoke);
+                        application.Run(window.Window);
                     } finally { gate.ReleaseMutex(); }
                 }
                 return Environment.ExitCode;

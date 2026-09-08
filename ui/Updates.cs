@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -12,26 +13,27 @@ using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
 namespace Wintools {
-    public sealed class ReleaseAsset { public string name; public string browser_download_url; public string digest; public long size; }
+    public sealed class ReleaseAsset { public string name; public string browser_download_url; public string digest; public long size; public long id; }
     public sealed class Release { public string tag_name; public string html_url; public bool draft; public bool prerelease; public ReleaseAsset[] assets; }
     internal sealed class Update { public Release Release; public ReleaseAsset Asset; }
     internal static class Updates {
         private const string Repo="https://github.com/Lucky2356/wintools/";
+        private static int[] VersionParts(string value) {
+            var match=Regex.Match(value??"","^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:-rc\\.(\\d+))?$");if(!match.Success)return null;
+            var parts=new int[5];for(int i=0;i<3;i++)if(!int.TryParse(match.Groups[i+1].Value,out parts[i]))return null;
+            parts[3]=match.Groups[4].Success?0:1;if(match.Groups[4].Success&&!int.TryParse(match.Groups[4].Value,out parts[4]))return null;return parts;
+        }
         internal static int Compare(string left,string right) {
-            var pattern="^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:-rc\\.(\\d+))?$";
-            var a=Regex.Match(left,pattern);var b=Regex.Match(right,pattern);
-            if(!a.Success || !b.Success) throw new FormatException("Unsupported release version.");
-            for(int i=1;i<=3;i++){int n=int.Parse(a.Groups[i].Value).CompareTo(int.Parse(b.Groups[i].Value));if(n!=0)return n;}
-            if(a.Groups[4].Success!=b.Groups[4].Success)return a.Groups[4].Success?-1:1;
-            return a.Groups[4].Success?int.Parse(a.Groups[4].Value).CompareTo(int.Parse(b.Groups[4].Value)):0;
+            var a=VersionParts(left);var b=VersionParts(right);if(a==null||b==null)throw new FormatException("Unsupported release version.");
+            for(int i=0;i<a.Length;i++){int order=a[i].CompareTo(b[i]);if(order!=0)return order;}return 0;
         }
         internal static Update Select(IEnumerable<Release> releases,string current,bool preview) {
             Update chosen=null;
             foreach(var release in releases) {
-                if(release.draft || (release.prerelease && !preview) || !Regex.IsMatch(release.tag_name??"","^v\\d+\\.\\d+\\.\\d+(-rc\\.\\d+)?$"))continue;
+                if(release==null || release.draft || (release.prerelease && !preview) || !(release.tag_name??"").StartsWith("v") || VersionParts(release.tag_name)==null)continue;
                 if(!preview && release.tag_name.Contains("-"))continue;
                 if(Compare(release.tag_name,current)<=0)continue;
-                var asset=(release.assets??new ReleaseAsset[0]).FirstOrDefault(a=>a.name=="WintoolsPortable.exe");
+                var asset=(release.assets??new ReleaseAsset[0]).FirstOrDefault(a=>a!=null&&a.name=="WintoolsPortable.exe");
                 if(asset==null || !Regex.IsMatch(asset.digest??"","^sha256:[a-fA-F0-9]{64}$") || asset.size<=0 || asset.size>50*1024*1024)continue;
                 if(asset.browser_download_url!=Repo+"releases/download/"+release.tag_name+"/WintoolsPortable.exe")continue;
                 if(release.html_url!=Repo+"releases/tag/"+release.tag_name)continue;
@@ -39,18 +41,35 @@ namespace Wintools {
             }
             return chosen;
         }
-        private static HttpClient Client() {
+        internal static HttpClient Client(string token) {
             ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
             var client=new HttpClient{Timeout=TimeSpan.FromSeconds(90)};
             client.DefaultRequestHeaders.UserAgent.ParseAdd("WintoolsPortable/"+Program.Version);
             client.DefaultRequestHeaders.Add("Accept","application/vnd.github+json");
+            client.DefaultRequestHeaders.Add("X-GitHub-Api-Version","2022-11-28");
+            if(!string.IsNullOrWhiteSpace(token))client.DefaultRequestHeaders.Authorization=new AuthenticationHeaderValue("Bearer",token.Trim());
             return client;
         }
         internal static async Task<Update> Check(bool preview) {
-            using(var client=Client()) {
-                var json=await client.GetStringAsync("https://api.github.com/repos/Lucky2356/wintools/releases?per_page=30");
+            using(var client=Client(Access.Load()))return await Check(client,preview,Program.Version);
+        }
+        internal static async Task<Update> Check(HttpClient client,bool preview,string current) {
+            using(var response=await client.GetAsync("https://api.github.com/repos/Lucky2356/wintools/releases?per_page=100")) {
+                EnsureResponse(response);
+                var json=await response.Content.ReadAsStringAsync();
                 var releases=new JavaScriptSerializer{MaxJsonLength=2*1024*1024}.Deserialize<Release[]>(json);
-                return Select(releases,Program.Version,preview);
+                var list=releases??new Release[0];var result=Select(list,current,preview);
+                if(result==null&&list.Any(r=>r!=null&&!r.draft&&(preview||!r.prerelease&&!((r.tag_name??"").Contains("-")))&&VersionParts(r.tag_name)!=null&&Compare(r.tag_name,current)>0))throw new IOException("Новый выпуск найден, но его EXE или контрольная сумма отсутствуют либо не прошли проверку. Откройте GitHub Releases или повторите позже.");
+                return result;
+            }
+        }
+        internal static void EnsureResponse(HttpResponseMessage response) {
+            if(response.IsSuccessStatusCode)return;
+            switch((int)response.StatusCode){
+                case 404:throw new IOException("GitHub не открыл репозиторий (404). Для закрытого wintools сохраните токен с доступом Contents: Read в настройках. Вход в GitHub в браузере не авторизует приложение.");
+                case 401:throw new IOException("GitHub отклонил токен (401). Он недействителен или истёк. Обновите доступ в настройках.");
+                case 403:case 429:throw new IOException("GitHub ограничил запрос ("+(int)response.StatusCode+"). Проверьте права токена или повторите позже: возможно, достигнут лимит запросов.");
+                default:throw new IOException("GitHub временно недоступен: HTTP "+(int)response.StatusCode+". Повторите проверку позже.");
             }
         }
         internal static bool HashMatches(string file,string expected) {
@@ -60,25 +79,34 @@ namespace Wintools {
                 return string.Equals(actual,expected,StringComparison.OrdinalIgnoreCase);
             }
         }
-        internal static async Task<string> Download(Update update) {
-            if(Select(new[]{update.Release},Program.Version,true)==null)throw new IOException("Update metadata rejected.");
+        internal static async Task<string> Download(Update update,Action<int> progress) {
+            using(var client=Client(Access.Load()))return await Download(client,update,Program.Version,progress);
+        }
+        internal static async Task<string> Download(HttpClient client,Update update,string current,Action<int> progress) {
+            var validated=Select(new[]{update.Release},current,true);
+            if(validated==null || !object.ReferenceEquals(validated.Asset,update.Asset))throw new IOException("Метаданные обновления не прошли проверку.");
             var directory=Path.Combine(Program.Data,"updates",Guid.NewGuid().ToString("N"));
             Program.SafeDirectory(directory);Directory.CreateDirectory(directory);
             var path=Path.Combine(directory,"next.exe");
             try {
-                using(var client=Client())
-                using(var response=await client.GetAsync(update.Asset.browser_download_url,HttpCompletionOption.ResponseHeadersRead)) {
-                    response.EnsureSuccessStatusCode();
+                var url=update.Asset.id>0?"https://api.github.com/repos/Lucky2356/wintools/releases/assets/"+update.Asset.id:update.Asset.browser_download_url;
+                if(update.Asset.id<=0 && client.DefaultRequestHeaders.Authorization!=null)throw new IOException("В релизе отсутствует идентификатор файла для авторизованного скачивания.");
+                using(var request=new HttpRequestMessage(HttpMethod.Get,url)) {
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                using(var response=await client.SendAsync(request,HttpCompletionOption.ResponseHeadersRead)) {
+                    EnsureResponse(response);
                     using(var input=await response.Content.ReadAsStreamAsync())using(var output=File.Create(path)) {
                         var buffer=new byte[81920];long total=0;int count;
                         using(var timeout=new CancellationTokenSource(TimeSpan.FromMinutes(3))) {
                             while((count=await input.ReadAsync(buffer,0,buffer.Length,timeout.Token))>0) {
                                 total+=count;if(total>update.Asset.size)throw new IOException("Update exceeds declared size.");
                                 await output.WriteAsync(buffer,0,count,timeout.Token);
+                                if(progress!=null)progress((int)(total*100/update.Asset.size));
                             }
                         }
                         if(total!=update.Asset.size)throw new IOException("Incomplete update.");
                     }
+                }
                 }
                 if(!HashMatches(path,update.Asset.digest.Substring(7)))throw new IOException("SHA-256 обновления не совпадает. Текущая версия сохранена.");
                 return directory;
@@ -106,7 +134,7 @@ namespace Wintools {
                 if(!int.TryParse(args[2],out pid))throw new ArgumentException("Invalid parent PID.");
                 try {
                     using(var parent=Process.GetProcessById(pid)) {
-                        if(!string.Equals(parent.MainModule.FileName,destination,StringComparison.OrdinalIgnoreCase))throw new IOException("Unexpected parent executable.");
+                        if(!parent.HasExited&&!string.Equals(parent.MainModule.FileName,destination,StringComparison.OrdinalIgnoreCase))throw new IOException("Unexpected parent executable.");
                         if(!parent.WaitForExit(60000))throw new IOException("Приложение ещё работает; обновление не установлено.");
                     }
                 } catch(ArgumentException) { }
@@ -117,7 +145,7 @@ namespace Wintools {
                         if(File.Exists(Path.Combine(home,"WintoolsData","state","run.lock")))throw new IOException("Engine is busy.");
                         if(!HashMatches(next,args[3]))throw new IOException("Update hash mismatch.");
                         if((File.GetAttributes(destination)&FileAttributes.ReparsePoint)!=0)throw new IOException("Linked executable.");
-                        File.Replace(next,destination,destination+".previous");
+                        for(int attempt=0;;attempt++)try{File.Replace(next,destination,destination+".previous");break;}catch(IOException ex){int code=ex.HResult&0xFFFF;if(attempt>=24||(code!=32&&code!=33))throw;Thread.Sleep(200);}
                     }finally{gate.ReleaseMutex();}
                 }
                 if(!noLaunch)Process.Start(new ProcessStartInfo(destination){UseShellExecute=true,WorkingDirectory=home});
