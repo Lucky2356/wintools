@@ -59,9 +59,9 @@ namespace Wintools {
                     if(!dry){preferences.Plan.Remove(item.Id);preferences.Save();}
                 }
             } catch(Exception ex){failed=true;Get<TextBox>("Output").AppendText("\n"+ex.Message);}
-            finally{runningPlan=false;SetBusy(false);ReadHistory();RefreshPlan();}
+            finally{if(!dry){services=null;FilterServices();serviceStatus.Text="После выполнения плана обновите снимок служб.";}runningPlan=false;SetBusy(false);ReadHistory();RefreshPlan();}
             string message=(dry?"Проверено: ":"Выполнено: ")+completed+" из "+items.Length+(failed?". Остановлено из-за ошибки; подробности в выводе.":stopPlan?". Остановлено по вашему запросу.":". Готово.");
-            Text("PlanStatus",message);Text("Status",message);await PrepareAutomaticUpdate();
+            Text("PlanStatus",message);Text("Status",message);if(!dry&&!smoke)await RefreshServices();await PrepareAutomaticUpdate();
         }
     }
 }

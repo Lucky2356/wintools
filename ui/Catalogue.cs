@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 
 namespace Wintools {
     internal sealed class Tweak {
-        public string Id, Category, Title, Description, Caveat, Compatibility, Kind, Risk, Os;
+        public string Id, Category, Title, Description, Caveat, Compatibility, Kind, Risk, Os, Target;
         public string Verb { get { return Category == "SYS" ? "system-change" : Category == "CLEAN" ? "cleanup" : "apply"; } }
         public string Rollback { get { return Category == "CLEAN" ? "Удалённые файлы вернуть через Wintools нельзя." : Kind == "EDGE" ? "Потребуется заново установить браузер." : Kind == "APPX" ? "Попробуем вернуть приложение из оставшихся файлов. Если их уже нет, потребуется переустановка." : "Wintools сохранит прежнее значение. Вернуть его можно здесь или в истории изменений."; } }
     }
@@ -29,7 +29,7 @@ namespace Wintools {
                 string[] def;
                 bool known = definitions.TryGetValue(p[0], out def);
                 if (!known && p[1] != "SYS" && p[1] != "CLEAN") continue;
-                result.Add(new Tweak {Id=p[0],Category=p[1],Title=p[2],Description=p[3],Caveat=p[4]=="-"?"Дополнительных условий нет.":p[4],Compatibility=p[5]=="-"?"":p[5],Kind=known?def[4]:p[1],Risk=known?def[2]:"med",Os=known?def[3]:"any"});
+                result.Add(new Tweak {Id=p[0],Category=p[1],Title=p[2],Description=p[3],Caveat=p[4]=="-"?"Дополнительных условий нет.":p[4],Compatibility=p[5]=="-"?"":p[5],Kind=known?def[4]:p[1],Risk=known?def[2]:"med",Os=known?def[3]:"any",Target=known?def[5]:null});
             }
             return result;
         }
