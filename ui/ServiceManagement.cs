@@ -7,6 +7,7 @@ using System.Windows.Controls;
 namespace Wintools {
     internal sealed partial class MainWindow {
         private ServiceSnapshot selectedServiceSnapshot;
+        private int serviceSelectionEpoch;
         private ServiceChange selectedServiceRestore;
         private WrapPanel serviceControls;
         private Button serviceStart,serviceStop,serviceRestart,serviceModeApply,serviceRestore;
@@ -27,11 +28,11 @@ namespace Wintools {
             if(serviceControls==null)return;var current=selectedServiceSnapshot;bool ready=!busy&&ServiceActions.Manageable(current);
             serviceControls.Visibility=serviceList.SelectedItem==null?Visibility.Collapsed:Visibility.Visible;serviceStart.IsEnabled=ready&&current.State=="Stopped"&&current.Mode!="Disabled";serviceStop.IsEnabled=ready&&current.State=="Running"&&current.CanStop;serviceRestart.IsEnabled=serviceStop.IsEnabled&&current.Mode!="Disabled";serviceModeApply.IsEnabled=serviceStartMode.IsEnabled=ready;serviceRestore.IsEnabled=ready&&selectedServiceRestore!=null;
         }
-        private async Task ReadServiceSelection(){
-            var row=serviceList.SelectedItem as ServiceState;selectedServiceSnapshot=null;selectedServiceRestore=null;RefreshServiceControls();if(row==null)return;
-            try{var inspect=serviceInspect;var history=serviceLatest;var current=await Task.Run(()=>inspect(row.Name));ServiceChange original=null;string historyError=null;try{original=await Task.Run(()=>history(row.Name));}catch(Exception ex){historyError="История недоступна: "+ex.Message;}if(closed||(serviceList.SelectedItem as ServiceState)!=row)return;selectedServiceSnapshot=current;selectedServiceRestore=original;serviceStartMode.SelectedIndex=current.Mode=="Auto"?(current.Delayed?1:0):current.Mode=="Manual"?2:3;
+        private async Task ReadServiceSelection(bool refresh=false){
+            int epoch=++serviceSelectionEpoch;var row=serviceList.SelectedItem as ServiceState;var previous=selectedServiceSnapshot;if(!refresh){selectedServiceSnapshot=null;selectedServiceRestore=null;}RefreshServiceControls();if(row==null)return;
+            try{var inspect=serviceInspect;var history=serviceLatest;var current=await Task.Run(()=>inspect(row.Name));ServiceChange original=null;string historyError=null;try{original=await Task.Run(()=>history(row.Name));}catch(Exception ex){historyError="История недоступна: "+ex.Message;}if(closed||epoch!=serviceSelectionEpoch||(serviceList.SelectedItem as ServiceState)!=row)return;selectedServiceSnapshot=current;selectedServiceRestore=original;if(!refresh||previous==null||previous.Mode!=current.Mode||previous.Delayed!=current.Delayed)serviceStartMode.SelectedIndex=current.Mode=="Auto"?(current.Delayed?1:0):current.Mode=="Manual"?2:3;
                 string description=string.IsNullOrWhiteSpace(current.Description)?"Описание Windows не указано. Проверьте назначение службы перед изменением.":current.Description;serviceSelection.Text=historyError??(description.Length>230?description.Substring(0,230)+"…":description);serviceSelection.ToolTip=description;serviceRestore.ToolTip=historyError??(original==null?"Сохранённых изменений этой службы пока нет.":"Восстановить состояние перед действием "+original.Action+" от "+original.TimeUtc);RefreshServiceControls();
-            }catch(Exception ex){if(!closed&&(serviceList.SelectedItem as ServiceState)==row){serviceSelection.Text="Не удалось подготовить управление: "+ex.Message;RefreshServiceControls();}}
+            }catch(Exception ex){if(!closed&&epoch==serviceSelectionEpoch&&(serviceList.SelectedItem as ServiceState)==row){selectedServiceSnapshot=null;selectedServiceRestore=null;serviceSelection.Text="Не удалось подготовить управление: "+ex.Message;RefreshServiceControls();}}
         }
         private async Task ChangeSelectedService(string action){
             var snapshot=selectedServiceSnapshot;var original=selectedServiceRestore;if(busy||snapshot==null||(action=="restore"&&original==null))return;
