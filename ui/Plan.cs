@@ -13,8 +13,8 @@ namespace Wintools {
         private static bool CanPlan(Tweak item){return item!=null&&item.Category!="CLEAN"&&item.Kind!="EDGE";}
         private void InitializePlan() {
             planAction=(item,dry,progress)=>Engine.Run(item.Verb,item.Id,"-",dry,preferences.RestorePoint,progress);
-            preferences.Plan=preferences.Plan.Where(id=>catalogue.Any(t=>t.Id==id&&CanPlan(t))).Distinct().Take(50).ToList();
-            Click("PlanAdd",()=>{var item=Selected();if(busy||!CanPlan(item)||preferences.Plan.Contains(item.Id))return;if(preferences.Plan.Count>=50){Text("Status","В плане уже 50 действий. Выполните или сократите его.");return;}preferences.Plan.Add(item.Id);bool saved=SavePreferences();if(!saved)preferences.Plan.Remove(item.Id);RefreshPlan();if(saved)Text("Status","Добавлено в план: "+item.Title);});
+            preferences.Plan=preferences.Plan.Where(id=>catalogue.Any(t=>t.Id==id&&CanPlan(t))).Distinct().Take(200).ToList();
+            Click("PlanAdd",()=>{var item=Selected();if(busy||!CanPlan(item)||preferences.Plan.Contains(item.Id))return;if(preferences.Plan.Count>=200){Text("Status","В плане уже 200 действий. Выполните или сократите его.");return;}preferences.Plan.Add(item.Id);bool saved=SavePreferences();if(!saved)preferences.Plan.Remove(item.Id);RefreshPlan();if(saved)Text("Status","Добавлено в план: "+item.Title);});
             Get<ListBox>("PlanItems").SelectionChanged+=(s,e)=>RefreshEnabled();
             Click("PlanRemove",()=>ChangePlan(0));Click("PlanUp",()=>ChangePlan(-1));Click("PlanDown",()=>ChangePlan(1));
             Click("PlanStop",()=>{stopPlan=true;Enabled("PlanStop",false);Text("PlanStatus","Остановимся после текущего действия. Уже выполненные изменения сохранятся в истории.");});

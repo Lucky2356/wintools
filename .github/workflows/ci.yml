@@ -49,7 +49,7 @@ jobs:
           if ($version -notmatch '^\d+\.\d+\.\d+(-rc\.\d+)?$') { throw 'Invalid version' }
           New-Item -ItemType Directory dist | Out-Null
           $zip = "dist/wintools-$version.zip"
-          git archive --format=zip --output=$zip HEAD wintweaks.cmd menu.cmd lib data README.md CHANGELOG.md SECURITY.md VERSION
+          git archive --format=zip --output=$zip HEAD wintweaks.cmd menu.cmd lib data README.md CHANGELOG.md SECURITY.md VERSION docs
           if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $PWD $zip))

@@ -75,7 +75,7 @@ namespace Wintools {
                 foreach (var entry in zip.Entries) {
                     if (entry.FullName.EndsWith("/")) continue;
                     var name = entry.FullName.Replace('/', Path.DirectorySeparatorChar);
-                    bool allowed = name.StartsWith("lib\\", StringComparison.Ordinal) || name.StartsWith("data\\", StringComparison.Ordinal) || new[] {"wintweaks.cmd","menu.cmd","VERSION","README.md","CHANGELOG.md","SECURITY.md"}.Contains(name);
+                    bool allowed = name.StartsWith("lib\\", StringComparison.Ordinal) || name.StartsWith("data\\", StringComparison.Ordinal) || name == "docs\\product-review.md" || new[] {"wintweaks.cmd","menu.cmd","VERSION","README.md","CHANGELOG.md","SECURITY.md"}.Contains(name);
                     if (!allowed) throw new IOException("Unexpected embedded file: " + name);
                     var destination = Under(Data, name);
                     SafeDirectory(Path.GetDirectoryName(destination));

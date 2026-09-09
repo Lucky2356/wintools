@@ -79,14 +79,8 @@ namespace Wintools {
             Get<CheckBox>("RestorePoint").Click+=(s,e)=>{preferences.RestorePoint=Checked("RestorePoint");SavePreferences();};
             Get<CheckBox>("PreviewChannel").Click+=async(s,e)=>{preferences.IncludePreview=Checked("PreviewChannel");available=null;DiscardStaged();RefreshEnabled();SavePreferences();await CheckUpdates(true);};
             for(int i=0;i<nav.Length;i++){int index=i;Click(nav[i],()=>ShowPage(index));}
-            Click("CollectionPrivacy",()=>ChooseCollection(new[]{"PRIV-CDM-SYSPANE","PRIV-CDM-SILENTAPPS","PRIV-SOFTLANDING","PRIV-TAILORED","UI-SYNC-NOTIFY","PRIV-ADVID-USER","PRIV-SVC-DIAGTRACK","PRIV-SVC-DMWAPP"}));
-            Click("CollectionExplorer",()=>ChooseCollection(new[]{"UI-FILEEXT","UI-LAUNCHTO","UI-COMPACT-VIEW","UI-NO-RECENT","UI-NO-FREQUENT"}));
-            Click("CollectionGaming",()=>ChooseCollection(new[]{"PERF-GAMEDVR-USER","PERF-GAMEDVR-POLICY","EDGE-STARTUP-BOOST","EDGE-BACKGROUND-OFF"}));
-            Click("CollectionUnused",()=>ChooseCollection(new[]{"SVC-RETAILDEMO","SVC-MAPSBROKER","SVC-FAX","SVC-WMPNETWORKSVC","SVC-WALLETSERVICE","SVC-SEMGRSVC","SVC-WISVC","SVC-PUSHTOINSTALL"}));
-            Click("CollectionPrint",()=>ChooseCollection(new[]{"SVC-SPOOLER","SVC-PRINTNOTIFY","SVC-PRINTSCANBROKERSERVICE","SVC-PRINTDEVICECONFIGURATIONSERVICE","SVC-STISVC","SVC-WIARPC"}));
-            Click("CollectionXbox",()=>ChooseCollection(new[]{"SVC-XBL-AUTH","SVC-XBL-SAVE","SVC-XBL-NETAPI","SVC-XBOX-GIP","SVC-GAMINGSERVICES","SVC-GAMINGSERVICESNET"}));
             Click("ClearCollection",()=>{collection=null;Visible("ClearCollection",false);Filter();});
-            InitializeHealth();
+            InitializeCollections();InitializeHealth();
             ClickAsync("Preview",async()=>{var item=Selected();if(item!=null)await Run(item.Verb,item.Id,null,true);});
             ClickAsync("Apply",async()=>{var item=Selected();if(item!=null&&await Confirm(item.Title+"\n\n"+item.Description+"\n\n"+item.Caveat+"\n\nОткат: "+item.Rollback))await Run(item.Verb,item.Id,null,false);});
             ClickAsync("Revert",async()=>{var item=Selected();if(item!=null&&await Confirm("Восстановить сохранённое состояние для «"+item.Title+"»?"))await Run("revert",item.Id,null,false);});
@@ -105,7 +99,7 @@ namespace Wintools {
             Window.SizeChanged+=(s,e)=>{Get<TextBox>("Output").Height=Window.ActualHeight<790?48:100;Window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>{if(!closed&&page==0){var list=Get<ListBox>("Items");list.UpdateLayout();if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}}));};
             Window.Loaded+=async(s,e)=>{if(smoke){try{await Smoke();}catch(Exception ex){File.WriteAllText(Path.Combine(Program.Home,"portable-error.txt"),ex.ToString());Environment.ExitCode=4;}finally{busy=false;downloading=false;DiscardStaged();Window.Close();}return;}await RefreshServices();if(preferences.AutoCheck)await CheckUpdates(false);};
             updateTimer.Tick+=async(s,e)=>{if(preferences.AutoCheck&&!closed)await CheckUpdates(false);};if(!smoke)updateTimer.Start();
-            InitializeResponsive();InitializePlan();ready=true;ApplyTheme();Filter();ReadHistory();RefreshPlan();ShowPage(0);SystemEvents.UserPreferenceChanged+=SystemPreferenceChanged;
+            InitializeResponsive();InitializePlan();InitializeProfiles();ready=true;ApplyTheme();Filter();ReadHistory();RefreshPlan();ShowPage(0);SystemEvents.UserPreferenceChanged+=SystemPreferenceChanged;
         }
         private bool PaletteDark(){return NativeTheme.IsDark(preferences.Theme);}
         private void ApplyTheme() {
@@ -115,10 +109,10 @@ namespace Wintools {
         }
         private void SystemPreferenceChanged(object sender,UserPreferenceChangedEventArgs e){if(!closed)Window.Dispatcher.BeginInvoke(new Action(()=>{if(!closed)ApplyTheme();}));}
         private void ShowPage(int index) {
-            page=index;for(int i=0;i<pages.Length;i++){Visible(pages[i],i==index);Get<Button>(nav[i]).SetResourceReference(Control.BackgroundProperty,i==index?"Selection":"Sidebar");Get<Button>(nav[i]).SetResourceReference(Control.ForegroundProperty,i==index?"Text":"Muted");}
+            page=index;ResourceVisibility();for(int i=0;i<pages.Length;i++){Visible(pages[i],i==index);Get<Button>(nav[i]).SetResourceReference(Control.BackgroundProperty,i==index?"Selection":"Sidebar");Get<Button>(nav[i]).SetResourceReference(Control.ForegroundProperty,i==index?"Text":"Muted");}
             Text("PageTitle",new[]{"Windows под ваши задачи","История изменений","С чего начать","Настройки приложения","Ваш план изменений","Службы сейчас","Состояние вашего ПК","Сверка настроек","Ускорение Windows"}[index]);
             Text("PageEyebrow",new[]{"КАТАЛОГ ДЕЙСТВИЙ","ЖУРНАЛ ЭТОГО КОМПЬЮТЕРА","ПОДБОРКИ","ВАШИ ПРЕДПОЧТЕНИЯ","ПОДГОТОВКА И ВЫПОЛНЕНИЕ","РАБОТА И АВТОЗАПУСК","ПОНЯТНАЯ ДИАГНОСТИКА","ПРОВЕРКА БЕЗ ИЗМЕНЕНИЙ","ПРАКТИЧЕСКИЕ ШАГИ"}[index]);
-            Text("PageHint",new[]{"Выберите раздел или найдите нужное действие.","Исходные состояния и откат сохранённых запусков.","Небольшие наборы для повседневных задач.","Автообновление, защита и данные приложения.","Соберите действия, проверьте и выполните по порядку.","Снимок установленных служб Windows.","Показатели и подсказки вместо технического лога.","Сохранились ли применённые настройки?","Выберите улучшение под свою задачу."}[index]);
+            Text("PageHint",new[]{"Выберите раздел или найдите нужное действие.","Исходные состояния и откат сохранённых запусков.","Три подборки с настройкой под ваши задачи.","Автообновление, защита и данные приложения.","Соберите действия, проверьте и выполните по порядку.","Снимок установленных служб Windows.","Показатели и подсказки вместо технического лога.","Сохранились ли применённые настройки?","Выберите улучшение под свою задачу."}[index]);
             if(index==0&&ready){Window.UpdateLayout();var list=Get<ListBox>("Items");if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}
         }
         private void ChooseCollection(string[] ids){selectedGroup=null;Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;collection=new HashSet<string>(ids);Get<CheckBox>("Favorites").IsChecked=false;Get<CheckBox>("Risky").IsChecked=false;Visible("ClearCollection",true);Filter();ShowPage(0);}
@@ -142,7 +136,7 @@ namespace Wintools {
         private void RefreshEnabled() {
             if(!ready)return;foreach(var name in operations)Enabled(name,!busy);var item=Selected();Enabled("Apply",!busy&&item!=null);Enabled("Preview",!busy&&item!=null);Enabled("Star",!busy&&item!=null);Enabled("Revert",!busy&&item!=null&&item.Category!="CLEAN"&&item.Kind!="EDGE");var row=Get<ListBox>("History").SelectedItem as HistoryRow;Enabled("HistoryRevert",!busy&&row!=null&&row.CanRevert);
             foreach(var name in new[]{"CheckUpdates","AutoInstall","PreviewChannel"})Enabled(name,!busy&&!checking&&!downloading);Enabled("RestorePoint",!busy);Enabled("InstallUpdate",!busy&&!checking&&!downloading&&available!=null);Visible("InstallUpdate",available!=null);
-            RefreshPlanEnabled();
+            RefreshPlanEnabled();foreach(var button in collectionPlanButtons)button.IsEnabled=!busy;Enabled("ProfileImport",!busy);Enabled("ProfileExport",!busy&&preferences.Plan.Count>0);
             if(healthStart!=null){healthStart.IsEnabled=!busy;verificationStart.IsEnabled=!busy;serviceRefresh.IsEnabled=!busy&&!readingServices;Enabled("RefreshCatalogueServices",!busy&&!readingServices);}
         }
         private void SetBusy(bool value){busy=value;if(value)serviceEpoch++;RefreshEnabled();if(value)Text("Status","Выполняется операция…");}
@@ -208,7 +202,7 @@ namespace Wintools {
             planCalls=0;planAction=(item,dry,progress)=>Task.FromResult(new EngineResult{Code=++planCalls==1?0:4,Output="fixture result"});await RunPlan(false);Assert(planCalls==2&&preferences.Plan.Count==1&&Preferences.Load().Plan.Count==1,"Plan did not stop and retain failed item");
             preferences.Plan.Insert(0,"UI-FILEEXT");planCalls=0;planAction=(item,dry,progress)=>{planCalls++;stopPlan=true;return Task.FromResult(new EngineResult{Code=0,Output="fixture stopped"});};await RunPlan(false);Assert(planCalls==1&&preferences.Plan.Count==1,"Plan stop ignored");preferences.Plan.Clear();preferences.Save();RefreshPlan();planAction=realPlanAction;ExpandOutput(false);Get<TextBox>("Output").Text="Результаты предпросмотра и выполнения появятся здесь.";
             Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;showAll=true;Filter();ShowPage(0);
-            await Task.Delay(250);Get<ComboBox>("Theme").SelectedIndex=2;Assert(Preferences.Load().Theme=="dark","Theme persistence");
+            await Task.Delay(250);Get<ComboBox>("Theme").SelectedIndex=2;Assert(Preferences.Load().Theme=="dark","Theme persistence: "+Get<TextBlock>("Status").Text);
             Get<ListBox>("Items").SelectedIndex=3;var id=Selected().Id;Get<Button>("Star").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(Selected().Id==id,"Favorite selection lost");Get<Button>("Star").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             SetBusy(true);Get<ComboBox>("Theme").SelectedIndex=1;Assert(!Get<Button>("Apply").IsEnabled,"Theme lost operation lock");SetBusy(false);Text("Status","Готово к работе");
             Get<TextBox>("Search").Text="__not_found__";Assert(Selected()==null&&!Get<Button>("Apply").IsEnabled,"Empty search actions");Get<TextBox>("Search").Clear();
@@ -216,7 +210,7 @@ namespace Wintools {
             foreach(int mode in new[]{1,2}){Get<ComboBox>("Theme").SelectedIndex=mode;ShowPage(0);await Task.Delay(100);Capture(mode==2?"portable-ui.png":"portable-ui-light.png");ShowPage(3);await Task.Delay(100);Capture(mode==2?"portable-ui-settings-dark.png":"portable-ui-settings-light.png");}
             ChooseCollection(new[]{"UI-FILEEXT","UI-LAUNCHTO"});Assert(Get<ListBox>("Items").Items.Count==2,"Collection filter failed");Get<Button>("ClearCollection").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(Get<ListBox>("Items").Items.Count>100,"Collection reset failed");
             ShowPage(2);await Task.Delay(100);Capture("portable-ui-collections.png");ShowPage(3);Text("UpdateStatus","Установлена актуальная версия "+Program.Version+". Обновления загружаются автоматически.");await Task.Delay(100);Capture("portable-ui-updates.png");
-            await HealthSmoke();ShowPage(0);Window.Width=Window.MinWidth;Window.Height=Window.MinHeight;ExpandOutput(true);Window.UpdateLayout();await Task.Delay(100);Capture("portable-ui-compact.png");Assert(IsVisibleInWindow("Apply")&&IsVisibleInWindow("Star")&&IsVisibleInWindow("ActionTitle")&&IsVisibleInWindow("Metadata")&&IsVisibleInWindow("Verify"),"Compact clipping: Apply="+IsVisibleInWindow("Apply")+" Star="+IsVisibleInWindow("Star")+" Title="+IsVisibleInWindow("ActionTitle")+" Metadata="+IsVisibleInWindow("Metadata")+" Verify="+IsVisibleInWindow("Verify"));Capture("portable-ui-compact.png");
+            await HealthSmoke();await WorkspaceSmoke();await MonitorSmoke();ShowPage(0);Window.Width=Window.MinWidth;Window.Height=Window.MinHeight;ExpandOutput(true);Window.UpdateLayout();await Task.Delay(100);Capture("portable-ui-compact.png");Assert(IsVisibleInWindow("Apply")&&IsVisibleInWindow("Star")&&IsVisibleInWindow("ActionTitle")&&IsVisibleInWindow("Metadata")&&IsVisibleInWindow("Verify"),"Compact clipping: Apply="+IsVisibleInWindow("Apply")+" Star="+IsVisibleInWindow("Star")+" Title="+IsVisibleInWindow("ActionTitle")+" Metadata="+IsVisibleInWindow("Metadata")+" Verify="+IsVisibleInWindow("Verify"));Capture("portable-ui-compact.png");
             ExpandOutput(false);Get<ComboBox>("Theme").SelectedIndex=0;
         }
         private bool IsVisibleInWindow(string name){var control=Get<FrameworkElement>(name);for(var parent=VisualTreeHelper.GetParent(control);parent!=null;parent=VisualTreeHelper.GetParent(parent)){var element=parent as FrameworkElement;if(element==null)continue;var bounds=control.TransformToAncestor(element).TransformBounds(new Rect(control.RenderSize));if(bounds.Top< -1||bounds.Left< -1||bounds.Bottom>element.ActualHeight+1||bounds.Right>element.ActualWidth+1)return false;}return true;}
