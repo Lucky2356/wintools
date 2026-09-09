@@ -15,7 +15,7 @@ function Run-Portable($path,$arguments,$expected=0){
 }
 Run-Portable $exe '--self-test'
 Run-Portable $exe '--ui-smoke'
-foreach($name in @('portable-ui.png','portable-ui-light.png','portable-ui-settings-dark.png','portable-ui-settings-light.png','portable-ui-compact.png','portable-ui-updates.png','portable-ui-collections.png','portable-ui-browse.png','portable-ui-plan.png','portable-ui-health-5.png','portable-ui-health-6.png','portable-ui-health-7.png','portable-ui-health-8.png','portable-ui-service-cards.png','portable-ui-wide-2.png','portable-ui-wide-3.png','portable-ui-wide-5.png','portable-ui-monitor.png','portable-ui-applications.png','portable-ui-applications-compact.png')){
+foreach($name in @('portable-ui.png','portable-ui-light.png','portable-ui-settings-dark.png','portable-ui-settings-light.png','portable-ui-compact.png','portable-ui-updates.png','portable-ui-collections.png','portable-ui-browse.png','portable-ui-plan.png','portable-ui-health-5.png','portable-ui-health-6.png','portable-ui-health-7.png','portable-ui-health-8.png','portable-ui-service-cards.png','portable-ui-wide-2.png','portable-ui-wide-3.png','portable-ui-wide-5.png','portable-ui-monitor.png','portable-ui-applications.png','portable-ui-applications-compact.png','portable-ui-network.png')){
   $screenshot=Join-Path $fixture $name
   if(-not(Test-Path $screenshot)){throw "UI screenshot missing: $name"}
   Copy-Item $screenshot (Join-Path (Split-Path $Executable -Parent) $name)
