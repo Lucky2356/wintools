@@ -30,8 +30,9 @@ namespace Wintools {
         public string Status {get;set;}
         public bool CanRevert {get;set;}
         internal string ServiceName;
+        internal bool PowerChange;
         internal DateTime TimeUtc;
-        public string Detail {get{return TimeUtc==DateTime.MinValue?Run:TimeUtc.ToLocalTime().ToString("g")+" · "+(ServiceName==null?"Запуск":ServiceName);}}
+        public string Detail {get{return TimeUtc==DateTime.MinValue?Run:TimeUtc.ToLocalTime().ToString("g")+" · "+(PowerChange?"Питание":ServiceName==null?"Запуск":ServiceName);}}
     }
     internal sealed partial class MainWindow {
         internal readonly Window Window;
@@ -89,7 +90,7 @@ namespace Wintools {
             ClickAsync("Revert",async()=>{var item=Selected();if(item!=null&&await Confirm("Восстановить сохранённое состояние для «"+item.Title+"»?"))await Run("revert",item.Id,null,false);});
             Click("Star",()=>{var item=Selected();if(item==null)return;if(preferences.Favorites.Contains(item.Id))preferences.Favorites.Remove(item.Id);else preferences.Favorites.Add(item.Id);SavePreferences();Filter();});
             Click("RefreshHistory",ReadHistory);
-            ClickAsync("HistoryRevert",async()=>{var row=Get<ListBox>("History").SelectedItem as HistoryRow;if(row!=null&&row.ServiceName!=null){await RestoreServiceHistory(row);return;}if(row!=null&&row.CanRevert&&await Confirm("Откатить запуск "+row.Run+"?\n\nСначала откатывайте более новые изменения."))await Run("revert",null,row.Run,false);});
+            ClickAsync("HistoryRevert",async()=>{var row=Get<ListBox>("History").SelectedItem as HistoryRow;if(row!=null&&row.PowerChange){await RestorePowerHistory(row.Run);return;}if(row!=null&&row.ServiceName!=null){await RestoreServiceHistory(row);return;}if(row!=null&&row.CanRevert&&await Confirm("Откатить запуск "+row.Run+"?\n\nСначала откатывайте более новые изменения."))await Run("revert",null,row.Run,false);});
             Click("OpenLogs",()=>OpenFolder("logs"));Click("OpenReports",()=>OpenFolder("reports"));Click("OpenData",()=>OpenFolder(""));
             Click("ReleaseLink",()=>OpenUrl("https://github.com/Lucky2356/wintools/releases"));
             ClickAsync("CheckUpdates",()=>CheckUpdates(true));ClickAsync("InstallUpdate",InstallUpdate);
@@ -117,7 +118,7 @@ namespace Wintools {
             Text("PageEyebrow",new[]{"КАТАЛОГ ДЕЙСТВИЙ","ЖУРНАЛ ЭТОГО КОМПЬЮТЕРА","ПОДБОРКИ","ВАШИ ПРЕДПОЧТЕНИЯ","ПОДГОТОВКА И ВЫПОЛНЕНИЕ","РАБОТА И АВТОЗАПУСК","ПОНЯТНАЯ ДИАГНОСТИКА","ПРОВЕРКА БЕЗ ИЗМЕНЕНИЙ","ПРАКТИЧЕСКИЕ ШАГИ","ПРОГРАММЫ НА КОМПЬЮТЕРЕ","ДИАГНОСТИКА СЕТИ"}[index]);
             Text("PageHint",new[]{"Выберите раздел или найдите нужное действие.","Исходные состояния и откат сохранённых запусков.","Три подборки с настройкой под ваши задачи.","Автообновление, защита и данные приложения.","Соберите действия, проверьте и выполните по порядку.","Снимок установленных служб Windows.","Показатели и подсказки вместо технического лога.","Сохранились ли применённые настройки?","Выберите улучшение под свою задачу.","Поиск, размер и удаление настольных программ.","Задержка, ответы сервера и стабильность соединения."}[index]);
             if(index==9&&ready&&!smoke&&!applicationsLoaded&&!readingApplications){var read=ReadApplications();}
-            if(index==0&&ready){Window.UpdateLayout();var list=Get<ListBox>("Items");if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}
+            if(index==0&&ready){Filter();Window.UpdateLayout();var list=Get<ListBox>("Items");if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}
         }
         private void ChooseCollection(string[] ids){selectedGroup=null;Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;collection=new HashSet<string>(ids);Get<CheckBox>("Favorites").IsChecked=false;Get<CheckBox>("Risky").IsChecked=false;Visible("ClearCollection",true);Filter();ShowPage(0);}
         private Tweak Selected(){var row=Get<ListBox>("Items").SelectedItem as ActionRow;return row==null?null:row.Item;}
@@ -140,12 +141,12 @@ namespace Wintools {
         private void RefreshEnabled() {
             if(!ready)return;foreach(var name in operations)Enabled(name,!busy);var item=Selected();Enabled("Apply",!busy&&item!=null);Enabled("Preview",!busy&&item!=null);Enabled("Star",!busy&&item!=null);Enabled("Revert",!busy&&item!=null&&item.Category!="CLEAN"&&item.Kind!="EDGE");var row=Get<ListBox>("History").SelectedItem as HistoryRow;Enabled("HistoryRevert",!busy&&row!=null&&row.CanRevert);
             foreach(var name in new[]{"CheckUpdates","AutoInstall","PreviewChannel"})Enabled(name,!busy&&!checking&&!downloading);Enabled("RestorePoint",!busy);Enabled("InstallUpdate",!busy&&!checking&&!downloading&&available!=null);Visible("InstallUpdate",available!=null);
-            RefreshServiceControls();if(applicationList!=null)ApplicationSelection();RefreshPlanEnabled();foreach(var button in collectionPlanButtons)button.IsEnabled=!busy;Enabled("ProfileImport",!busy);Enabled("ProfileExport",!busy&&preferences.Plan.Count>0);
+            RefreshServiceControls();RefreshPowerEnabled();if(applicationList!=null)ApplicationSelection();RefreshPlanEnabled();foreach(var button in collectionPlanButtons)button.IsEnabled=!busy;Enabled("ProfileImport",!busy);Enabled("ProfileExport",!busy&&preferences.Plan.Count>0);
             if(healthStart!=null){healthStart.IsEnabled=!busy;verificationStart.IsEnabled=!busy;serviceRefresh.IsEnabled=!busy&&!readingServices;Enabled("RefreshCatalogueServices",!busy&&!readingServices);}
         }
         private void SetBusy(bool value){busy=value;if(value)serviceEpoch++;ServiceVisibility();RefreshEnabled();if(value)Text("Status","Выполняется операция…");}
         private void ReadHistory() {
-            try{var rows=HistoryRows(Path.Combine(Program.Data,"state","applied.dat"),catalogue).Concat(ServiceHistoryRows()).OrderByDescending(r=>r.TimeUtc).ToArray();Get<ListBox>("History").ItemsSource=rows;Text("HistoryStatus",rows.Length==0?"Изменений пока нет. После выполнения действия здесь появится запись.":"Запусков: "+rows.Length+". Сначала откатывайте самые новые изменения.");}
+            try{var rows=HistoryRows(Path.Combine(Program.Data,"state","applied.dat"),catalogue).Concat(ServiceHistoryRows()).Concat(PowerHistoryRows()).OrderByDescending(r=>r.TimeUtc).ToArray();Get<ListBox>("History").ItemsSource=rows;Text("HistoryStatus",rows.Length==0?"Изменений пока нет. После выполнения действия здесь появится запись.":"Запусков: "+rows.Length+". Сначала откатывайте самые новые изменения.");}
             catch(IOException ex){Get<ListBox>("History").ItemsSource=null;Text("HistoryStatus","Журнал недоступен. Повторите чтение позже. "+ex.Message);}
             catch(UnauthorizedAccessException ex){Get<ListBox>("History").ItemsSource=null;Text("HistoryStatus","Журнал недоступен. Нет доступа к файлу. "+ex.Message);}
             RefreshEnabled();
@@ -203,7 +204,7 @@ namespace Wintools {
             Get<TextBox>("Search").Text="UI-LAUNCHTO";Get<Button>("PlanAdd").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(preferences.Plan.Count==2,"Plan add failed");ShowPage(4);await Task.Delay(100);Capture("portable-ui-plan.png");
             Get<ListBox>("PlanItems").SelectedIndex=0;using(var locked=new FileStream(lockedPreferences,FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None)){ChangePlan(0);Assert(preferences.Plan.Count==2&&Preferences.Load().Plan.Count==2,"Failed plan removal diverged from saved plan");}File.Delete(lockedPreferences);
             var realPlanAction=planAction;int planCalls=0;planAction=(item,dry,progress)=>{planCalls++;return Task.FromResult(new EngineResult{Code=0,Output="fixture preview"});};await RunPlan(true);Assert(planCalls==2&&preferences.Plan.Count==2,"Preview changed the saved plan");
-            planCalls=0;planAction=(item,dry,progress)=>Task.FromResult(new EngineResult{Code=++planCalls==1?0:4,Output="fixture result"});await RunPlan(false);Assert(planCalls==2&&preferences.Plan.Count==1&&Preferences.Load().Plan.Count==1,"Plan did not stop and retain failed item");
+            planCalls=0;planAction=(item,dry,progress)=>Task.FromResult(new EngineResult{Code=++planCalls==1?0:4,Output="fixture result"});await RunPlan(false);Assert(planCalls==2&&preferences.Plan.Count==1&&Preferences.Load().Plan.Count==1,"Plan did not stop and retain failed item: calls="+planCalls+"; memory="+preferences.Plan.Count+"; saved="+Preferences.Load().Plan.Count+"; output="+Get<TextBox>("Output").Text);
             preferences.Plan.Insert(0,"UI-FILEEXT");planCalls=0;planAction=(item,dry,progress)=>{planCalls++;stopPlan=true;return Task.FromResult(new EngineResult{Code=0,Output="fixture stopped"});};await RunPlan(false);Assert(planCalls==1&&preferences.Plan.Count==1,"Plan stop ignored");preferences.Plan.Clear();preferences.Save();RefreshPlan();planAction=realPlanAction;ExpandOutput(false);Get<TextBox>("Output").Text="Результаты предпросмотра и выполнения появятся здесь.";
             Get<TextBox>("Search").Clear();Get<ComboBox>("Category").SelectedIndex=0;showAll=true;Filter();ShowPage(0);
             await Task.Delay(250);Get<ComboBox>("Theme").SelectedIndex=2;Assert(Preferences.Load().Theme=="dark","Theme persistence: "+Get<TextBlock>("Status").Text);
@@ -214,7 +215,7 @@ namespace Wintools {
             foreach(int mode in new[]{1,2}){Get<ComboBox>("Theme").SelectedIndex=mode;ShowPage(0);await Task.Delay(100);Capture(mode==2?"portable-ui.png":"portable-ui-light.png");ShowPage(3);await Task.Delay(100);Capture(mode==2?"portable-ui-settings-dark.png":"portable-ui-settings-light.png");}
             ChooseCollection(new[]{"UI-FILEEXT","UI-LAUNCHTO"});Assert(Get<ListBox>("Items").Items.Count==2,"Collection filter failed");Get<Button>("ClearCollection").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(Get<ListBox>("Items").Items.Count>100,"Collection reset failed");
             ShowPage(2);await Task.Delay(100);Capture("portable-ui-collections.png");ShowPage(3);Text("UpdateStatus","Установлена актуальная версия "+Program.Version+". Обновления загружаются автоматически.");await Task.Delay(100);Capture("portable-ui-updates.png");
-            await HealthSmoke();await WorkspaceSmoke();await MonitorSmoke();await ApplicationSmoke();await NetworkSmoke();await ServiceManagementSmoke();await ServiceWatchingSmoke();ShowPage(0);Window.Width=Window.MinWidth;Window.Height=Window.MinHeight;ExpandOutput(true);Window.UpdateLayout();await Task.Delay(100);Capture("portable-ui-compact.png");Assert(IsVisibleInWindow("Apply")&&IsVisibleInWindow("Star")&&IsVisibleInWindow("ActionTitle")&&IsVisibleInWindow("Metadata")&&IsVisibleInWindow("Verify"),"Compact clipping: Apply="+IsVisibleInWindow("Apply")+" Star="+IsVisibleInWindow("Star")+" Title="+IsVisibleInWindow("ActionTitle")+" Metadata="+IsVisibleInWindow("Metadata")+" Verify="+IsVisibleInWindow("Verify"));Capture("portable-ui-compact.png");
+            await HealthSmoke();await WorkspaceSmoke();await MonitorSmoke();await ApplicationSmoke();await NetworkSmoke();await ServiceManagementSmoke();await ServiceWatchingSmoke();await PowerSmoke();await PlanPersistenceSmoke();ShowPage(0);Window.Width=Window.MinWidth;Window.Height=Window.MinHeight;ExpandOutput(true);Window.UpdateLayout();await Task.Delay(100);Capture("portable-ui-compact.png");Assert(IsVisibleInWindow("Apply")&&IsVisibleInWindow("Star")&&IsVisibleInWindow("ActionTitle")&&IsVisibleInWindow("Metadata")&&IsVisibleInWindow("Verify"),"Compact clipping: Apply="+IsVisibleInWindow("Apply")+" Star="+IsVisibleInWindow("Star")+" Title="+IsVisibleInWindow("ActionTitle")+" Metadata="+IsVisibleInWindow("Metadata")+" Verify="+IsVisibleInWindow("Verify"));Capture("portable-ui-compact.png");
             ExpandOutput(false);Get<ComboBox>("Theme").SelectedIndex=0;
         }
         private bool IsVisibleInWindow(string name){var control=Get<FrameworkElement>(name);for(var parent=VisualTreeHelper.GetParent(control);parent!=null;parent=VisualTreeHelper.GetParent(parent)){var element=parent as FrameworkElement;if(element==null)continue;var bounds=control.TransformToAncestor(element).TransformBounds(new Rect(control.RenderSize));if(bounds.Top< -1||bounds.Left< -1||bounds.Bottom>element.ActualHeight+1||bounds.Right>element.ActualWidth+1)return false;}return true;}

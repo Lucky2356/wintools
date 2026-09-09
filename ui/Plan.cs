@@ -43,7 +43,7 @@ namespace Wintools {
         }
         private async Task RunPlan(bool dry) {
             if(busy||preferences.Plan.Count==0)return;
-            var items=PlanItems();runningPlan=true;stopPlan=false;SetBusy(true);ExpandOutput(true);var output=new StringBuilder();int completed=0;bool failed=false;
+            var items=PlanItems();runningPlan=true;stopPlan=false;SetBusy(true);ExpandOutput(true);var output=new StringBuilder();int completed=0;bool failed=false;string saveFailure=null;
             try {
                 foreach(var item in items) {
                     if(stopPlan)break;
@@ -56,11 +56,11 @@ namespace Wintools {
                     Get<TextBox>("Output").Text=output.ToString();
                     if(result.Code!=0){failed=true;break;}
                     completed++;
-                    if(!dry){preferences.Plan.Remove(item.Id);preferences.Save();}
+                    if(!dry){var previousPlan=preferences.Plan.ToList();preferences.Plan.Remove(item.Id);try{preferences.Save();}catch(Exception ex){preferences.Plan=previousPlan;saveFailure="Действие выполнено, но обновлённый план не удалось сохранить. Оно осталось в списке. Проверьте историю перед повторным выполнением.";throw new System.IO.IOException(saveFailure+" "+ex.Message,ex);}}
                 }
             } catch(Exception ex){failed=true;Get<TextBox>("Output").AppendText("\n"+ex.Message);}
             finally{if(!dry){services=null;FilterServices();serviceStatus.Text="После выполнения плана обновите снимок служб.";}runningPlan=false;SetBusy(false);ReadHistory();RefreshPlan();}
-            string message=(dry?"Проверено: ":"Выполнено: ")+completed+" из "+items.Length+(failed?". Остановлено из-за ошибки; подробности в выводе.":stopPlan?". Остановлено по вашему запросу.":". Готово.");
+            string message=(dry?"Проверено: ":"Выполнено: ")+completed+" из "+items.Length+(failed?(saveFailure==null?". Остановлено из-за ошибки; подробности в выводе.":". "+saveFailure):stopPlan?". Остановлено по вашему запросу.":". Готово.");
             Text("PlanStatus",message);Text("Status",message);if(!dry&&!smoke)await RefreshServices();await PrepareAutomaticUpdate();
         }
     }
