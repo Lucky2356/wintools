@@ -29,6 +29,9 @@ namespace Wintools {
         public string Title {get;set;}
         public string Status {get;set;}
         public bool CanRevert {get;set;}
+        internal string ServiceName;
+        internal DateTime TimeUtc;
+        public string Detail {get{return TimeUtc==DateTime.MinValue?Run:TimeUtc.ToLocalTime().ToString("g")+" · "+(ServiceName==null?"Запуск":ServiceName);}}
     }
     internal sealed partial class MainWindow {
         internal readonly Window Window;
@@ -86,7 +89,7 @@ namespace Wintools {
             ClickAsync("Revert",async()=>{var item=Selected();if(item!=null&&await Confirm("Восстановить сохранённое состояние для «"+item.Title+"»?"))await Run("revert",item.Id,null,false);});
             Click("Star",()=>{var item=Selected();if(item==null)return;if(preferences.Favorites.Contains(item.Id))preferences.Favorites.Remove(item.Id);else preferences.Favorites.Add(item.Id);SavePreferences();Filter();});
             Click("RefreshHistory",ReadHistory);
-            ClickAsync("HistoryRevert",async()=>{var row=Get<ListBox>("History").SelectedItem as HistoryRow;if(row!=null&&row.CanRevert&&await Confirm("Откатить запуск "+row.Run+"?\n\nСначала откатывайте более новые изменения."))await Run("revert",null,row.Run,false);});
+            ClickAsync("HistoryRevert",async()=>{var row=Get<ListBox>("History").SelectedItem as HistoryRow;if(row!=null&&row.ServiceName!=null){await RestoreServiceHistory(row);return;}if(row!=null&&row.CanRevert&&await Confirm("Откатить запуск "+row.Run+"?\n\nСначала откатывайте более новые изменения."))await Run("revert",null,row.Run,false);});
             Click("OpenLogs",()=>OpenFolder("logs"));Click("OpenReports",()=>OpenFolder("reports"));Click("OpenData",()=>OpenFolder(""));
             Click("ReleaseLink",()=>OpenUrl("https://github.com/Lucky2356/wintools/releases"));
             ClickAsync("CheckUpdates",()=>CheckUpdates(true));ClickAsync("InstallUpdate",InstallUpdate);
@@ -137,12 +140,12 @@ namespace Wintools {
         private void RefreshEnabled() {
             if(!ready)return;foreach(var name in operations)Enabled(name,!busy);var item=Selected();Enabled("Apply",!busy&&item!=null);Enabled("Preview",!busy&&item!=null);Enabled("Star",!busy&&item!=null);Enabled("Revert",!busy&&item!=null&&item.Category!="CLEAN"&&item.Kind!="EDGE");var row=Get<ListBox>("History").SelectedItem as HistoryRow;Enabled("HistoryRevert",!busy&&row!=null&&row.CanRevert);
             foreach(var name in new[]{"CheckUpdates","AutoInstall","PreviewChannel"})Enabled(name,!busy&&!checking&&!downloading);Enabled("RestorePoint",!busy);Enabled("InstallUpdate",!busy&&!checking&&!downloading&&available!=null);Visible("InstallUpdate",available!=null);
-            if(applicationList!=null)ApplicationSelection();RefreshPlanEnabled();foreach(var button in collectionPlanButtons)button.IsEnabled=!busy;Enabled("ProfileImport",!busy);Enabled("ProfileExport",!busy&&preferences.Plan.Count>0);
+            RefreshServiceControls();if(applicationList!=null)ApplicationSelection();RefreshPlanEnabled();foreach(var button in collectionPlanButtons)button.IsEnabled=!busy;Enabled("ProfileImport",!busy);Enabled("ProfileExport",!busy&&preferences.Plan.Count>0);
             if(healthStart!=null){healthStart.IsEnabled=!busy;verificationStart.IsEnabled=!busy;serviceRefresh.IsEnabled=!busy&&!readingServices;Enabled("RefreshCatalogueServices",!busy&&!readingServices);}
         }
         private void SetBusy(bool value){busy=value;if(value)serviceEpoch++;RefreshEnabled();if(value)Text("Status","Выполняется операция…");}
         private void ReadHistory() {
-            try{var rows=HistoryRows(Path.Combine(Program.Data,"state","applied.dat"),catalogue);Get<ListBox>("History").ItemsSource=rows;Text("HistoryStatus",rows.Length==0?"Изменений пока нет. После выполнения действия здесь появится запись.":"Запусков: "+rows.Length+". Сначала откатывайте самые новые изменения.");}
+            try{var rows=HistoryRows(Path.Combine(Program.Data,"state","applied.dat"),catalogue).Concat(ServiceHistoryRows()).OrderByDescending(r=>r.TimeUtc).ToArray();Get<ListBox>("History").ItemsSource=rows;Text("HistoryStatus",rows.Length==0?"Изменений пока нет. После выполнения действия здесь появится запись.":"Запусков: "+rows.Length+". Сначала откатывайте самые новые изменения.");}
             catch(IOException ex){Get<ListBox>("History").ItemsSource=null;Text("HistoryStatus","Журнал недоступен. Повторите чтение позже. "+ex.Message);}
             catch(UnauthorizedAccessException ex){Get<ListBox>("History").ItemsSource=null;Text("HistoryStatus","Журнал недоступен. Нет доступа к файлу. "+ex.Message);}
             RefreshEnabled();
@@ -150,7 +153,7 @@ namespace Wintools {
         internal static HistoryRow[] HistoryRows(string path,List<Tweak> catalogue) {
             if(!File.Exists(path))return new HistoryRow[0];var lines=File.ReadAllLines(path,Encoding.GetEncoding(28591)).Where(l=>!string.IsNullOrWhiteSpace(l)).Select(l=>l.Split('|')).ToArray();
             if(lines.Any(p=>p.Length!=11||p.Any(string.IsNullOrWhiteSpace)||!new[]{"OK","PENDING","FAILED","REVERTED","MANUAL"}.Contains(p[9])||!Regex.IsMatch(p[0],"^[A-Za-z0-9_.-]{1,100}$")||!Regex.IsMatch(p[1],"^[A-Z][A-Z0-9-]{1,63}$")))throw new IOException("Журнал содержит повреждённые записи. Откат из интерфейса отключён до проверки файла.");
-            return lines.Reverse().GroupBy(p=>p[0]).Select(g=>{var entries=g.ToArray();bool pending=entries.Any(p=>p[9]=="PENDING"||p[9]=="FAILED");bool active=entries.Any(p=>p[9]=="OK");var item=catalogue.FirstOrDefault(t=>t.Id==entries[0][1]);return new HistoryRow{Run=g.Key,Title=entries.Length>1?entries.Length+" действий":item==null?entries[0][1]:item.Title,Status=pending?"Требует внимания":active?"Применено":entries.All(p=>p[9]=="REVERTED")?"Откат выполнен":"Ручной откат",CanRevert=pending||active};}).ToArray();
+            return lines.Reverse().GroupBy(p=>p[0]).Select(g=>{var entries=g.ToArray();bool pending=entries.Any(p=>p[9]=="PENDING"||p[9]=="FAILED");bool active=entries.Any(p=>p[9]=="OK");var item=catalogue.FirstOrDefault(t=>t.Id==entries[0][1]);return new HistoryRow{Run=g.Key,TimeUtc=HistoryTime(g.Key),Title=entries.Length>1?entries.Length+" действий":item==null?entries[0][1]:item.Title,Status=pending?"Требует внимания":active?"Применено":entries.All(p=>p[9]=="REVERTED")?"Откат выполнен":"Ручной откат",CanRevert=pending||active};}).ToArray();
         }
         private Task<bool> Confirm(string message){if(busy||confirmation!=null)return Task.FromResult(false);confirmation=new TaskCompletionSource<bool>();Text("ConfirmText",message);Get<Grid>("Body").IsEnabled=false;Visible("ConfirmOverlay",true);Get<Button>("ConfirmNo").Focus();return confirmation.Task;}
         private void FinishConfirmation(bool accepted){if(confirmation==null)return;var pending=confirmation;confirmation=null;Visible("ConfirmOverlay",false);Get<Grid>("Body").IsEnabled=true;pending.SetResult(accepted);}
@@ -211,7 +214,7 @@ namespace Wintools {
             foreach(int mode in new[]{1,2}){Get<ComboBox>("Theme").SelectedIndex=mode;ShowPage(0);await Task.Delay(100);Capture(mode==2?"portable-ui.png":"portable-ui-light.png");ShowPage(3);await Task.Delay(100);Capture(mode==2?"portable-ui-settings-dark.png":"portable-ui-settings-light.png");}
             ChooseCollection(new[]{"UI-FILEEXT","UI-LAUNCHTO"});Assert(Get<ListBox>("Items").Items.Count==2,"Collection filter failed");Get<Button>("ClearCollection").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Assert(Get<ListBox>("Items").Items.Count>100,"Collection reset failed");
             ShowPage(2);await Task.Delay(100);Capture("portable-ui-collections.png");ShowPage(3);Text("UpdateStatus","Установлена актуальная версия "+Program.Version+". Обновления загружаются автоматически.");await Task.Delay(100);Capture("portable-ui-updates.png");
-            await HealthSmoke();await WorkspaceSmoke();await MonitorSmoke();await ApplicationSmoke();await NetworkSmoke();ShowPage(0);Window.Width=Window.MinWidth;Window.Height=Window.MinHeight;ExpandOutput(true);Window.UpdateLayout();await Task.Delay(100);Capture("portable-ui-compact.png");Assert(IsVisibleInWindow("Apply")&&IsVisibleInWindow("Star")&&IsVisibleInWindow("ActionTitle")&&IsVisibleInWindow("Metadata")&&IsVisibleInWindow("Verify"),"Compact clipping: Apply="+IsVisibleInWindow("Apply")+" Star="+IsVisibleInWindow("Star")+" Title="+IsVisibleInWindow("ActionTitle")+" Metadata="+IsVisibleInWindow("Metadata")+" Verify="+IsVisibleInWindow("Verify"));Capture("portable-ui-compact.png");
+            await HealthSmoke();await WorkspaceSmoke();await MonitorSmoke();await ApplicationSmoke();await NetworkSmoke();await ServiceManagementSmoke();ShowPage(0);Window.Width=Window.MinWidth;Window.Height=Window.MinHeight;ExpandOutput(true);Window.UpdateLayout();await Task.Delay(100);Capture("portable-ui-compact.png");Assert(IsVisibleInWindow("Apply")&&IsVisibleInWindow("Star")&&IsVisibleInWindow("ActionTitle")&&IsVisibleInWindow("Metadata")&&IsVisibleInWindow("Verify"),"Compact clipping: Apply="+IsVisibleInWindow("Apply")+" Star="+IsVisibleInWindow("Star")+" Title="+IsVisibleInWindow("ActionTitle")+" Metadata="+IsVisibleInWindow("Metadata")+" Verify="+IsVisibleInWindow("Verify"));Capture("portable-ui-compact.png");
             ExpandOutput(false);Get<ComboBox>("Theme").SelectedIndex=0;
         }
         private bool IsVisibleInWindow(string name){var control=Get<FrameworkElement>(name);for(var parent=VisualTreeHelper.GetParent(control);parent!=null;parent=VisualTreeHelper.GetParent(parent)){var element=parent as FrameworkElement;if(element==null)continue;var bounds=control.TransformToAncestor(element).TransformBounds(new Rect(control.RenderSize));if(bounds.Top< -1||bounds.Left< -1||bounds.Bottom>element.ActualHeight+1||bounds.Right>element.ActualWidth+1)return false;}return true;}
