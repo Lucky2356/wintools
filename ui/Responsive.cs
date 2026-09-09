@@ -17,9 +17,9 @@ namespace Wintools {
             var body=Get<Grid>("Body");bool compact=Window.ActualWidth<1100||Window.ActualHeight<740;
             body.ColumnDefinitions[0].Width=new GridLength(compact?174:220);
             var sidebar=(Border)body.Children[0];sidebar.Padding=compact?new Thickness(6,12,6,8):new Thickness(18,26,18,18);
-            string[] labels={"Каталог действий","История и откат","Подборки","Настройки","План изменений","Службы сейчас","Диагностика ПК","Сверить настройки","Ускорение Windows"};
-            for(int i=0;i<nav.Length;i++){var button=Get<Button>(nav[i]);button.Content=labels[i];button.ToolTip=labels[i];button.FontSize=compact?12:14;button.Padding=compact?new Thickness(8):new Thickness(14,12,14,12);}
-            var dock=(DockPanel)sidebar.Child;dock.Children[0].Visibility=compact?Visibility.Collapsed:Visibility.Visible;dock.Children[1].Visibility=compact?Visibility.Collapsed:Visibility.Visible;
+            string[] labels={"Каталог действий","История и откат","Подборки","Настройки","План изменений","Службы сейчас","Диагностика ПК","Сверить настройки","Ускорение Windows","Приложения"};
+            for(int i=0;i<nav.Length;i++){var button=Get<Button>(nav[i]);button.Content=labels[i];button.ToolTip=labels[i];button.FontSize=compact?12:14;button.Padding=compact?new Thickness(8,5,8,5):new Thickness(14,12,14,12);button.MinHeight=compact?32:40;button.Margin=compact?new Thickness(0,2,0,2):new Thickness(0,3,0,3);}
+            var dock=(DockPanel)sidebar.Child;dock.Children[0].Visibility=compact?Visibility.Collapsed:Visibility.Visible;dock.Children[1].Visibility=compact||Window.ActualHeight<950?Visibility.Collapsed:Visibility.Visible;
             var main=(Grid)body.Children[1];main.Margin=compact?new Thickness(12):new Thickness(24,22,24,14);
             if(collectionCards!=null)collectionCards.Columns=main.ActualWidth>=1500?3:main.ActualWidth>=1000?2:1;
             if(settingsCards!=null){bool wide=main.ActualWidth>=1000;settingsCards.ColumnDefinitions[0].Width=new GridLength(1,GridUnitType.Star);settingsCards.ColumnDefinitions[1].Width=wide?new GridLength(1,GridUnitType.Star):new GridLength(0);for(int i=0;i<settingsCards.Children.Count;i++){var card=(Border)settingsCards.Children[i];Grid.SetColumn(card,wide&&i>0?1:0);Grid.SetRow(card,wide?Math.Max(0,i-1):i);Grid.SetRowSpan(card,wide&&i==0?2:1);card.Padding=new Thickness(18);card.Margin=new Thickness(0,0,wide&&i==0?12:0,12);}}
