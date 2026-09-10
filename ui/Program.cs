@@ -20,6 +20,7 @@ namespace Wintools {
         private static int Main(string[] args) {
             try {
                 if (args.Length > 0 && args[0] == "--replace") return Updates.Replace(args);
+                if (args.Length > 0 && args[0] == "--startup-worker") return StartupActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--integrity-worker") return IntegrityActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--power-worker") return PowerActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--service-worker") return ServiceActions.Worker(args);
