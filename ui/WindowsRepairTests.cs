@@ -24,8 +24,8 @@ namespace Wintools {
         internal static void Native(){
             if(!Program.Hosted)throw new InvalidOperationException("Repair integration runs only on disposable hosted CI.");
             foreach(string action in new[]{"windows-repair","dism-repair","sfc-repair"}){string id=Guid.NewGuid().ToString("N");using(var cancelled=new EventWaitHandle(true,EventResetMode.ManualReset,IntegrityActions.CreateEventNameForTest(id))){int code=IntegrityActions.Worker(new[]{"--integrity-worker",action,id,System.Security.Principal.WindowsIdentity.GetCurrent().User.Value});Assert(code==2&&IntegrityActions.Read(id).State=="cancelled","Repair worker ignored pre-cancel");}}
-            var text=new System.Text.StringBuilder();using(var cancel=new EventWaitHandle(false,EventResetMode.ManualReset)){var components=WindowsIntegrity.RepairComponents(cancel,line=>text.AppendLine(line));Assert(components.State=="healthy"||components.State=="repaired","DISM maintenance failed: "+text);}
-            text.Clear();var files=WindowsIntegrity.RepairFiles(line=>text.AppendLine(line),true);Assert(files.State=="healthy"||files.State=="repaired","Native SFC single-file maintenance failed: "+text);
+            var text=new System.Text.StringBuilder();using(var cancel=new EventWaitHandle(false,EventResetMode.ManualReset)){var components=WindowsIntegrity.RepairComponents(cancel,line=>{text.AppendLine(line);SelfTests.Trace(line);});Assert(components.State=="healthy"||components.State=="repaired","DISM maintenance failed: "+text);}
+            text.Clear();var files=WindowsIntegrity.RepairFiles(line=>{text.AppendLine(line);SelfTests.Trace(line);},true);Assert(files.State=="healthy"||files.State=="repaired","Native SFC single-file maintenance failed: "+text);
         }
     }
     internal sealed partial class MainWindow {

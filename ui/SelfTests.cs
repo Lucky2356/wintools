@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace Wintools {
     internal static class SelfTests {
+        internal static void Trace(string message){if(!Program.Hosted)throw new InvalidOperationException("Hosted CI only.");File.AppendAllText(Path.Combine(Program.Home,"portable-integration-progress.txt"),DateTime.UtcNow.ToString("o")+" "+message+Environment.NewLine);}
+        private static void Step(string name,Action action){Trace("BEGIN "+name);action();Trace("PASS "+name);}
         private static void Assert(bool condition,string message){if(!condition)throw new Exception(message);}
         private static void Reject(Action action,string message){bool rejected=false;try{action();}catch{rejected=true;}Assert(rejected,message);}
         internal static int Run() {
@@ -36,7 +38,7 @@ namespace Wintools {
             asset.browser_download_url="https://github.com/Lucky2356/wintools/releases/download/v9.0.0-rc.1/WintoolsPortable.exe";asset.digest=null;
             Assert(Updates.Select(new[]{release},Program.Version,true)==null,"Missing checksum accepted.");
             Assert(Updates.Select(new Release[]{null,new Release{tag_name="v9999999999999999999999.0.0"}},Program.Version,true)==null,"Malformed release handling failed.");
-            StartupIntegrationTests.Run();IntegrityIntegrationTests.Run();WindowsRepairTests.Native();PowerIntegrationTests.Run();ServiceManagementTests.Run();ApplicationRegistryTests.Run();UpdateTests().GetAwaiter().GetResult();
+            Step("Processes",ProcessIntegrationTests.Run);Step("Startup",StartupIntegrationTests.Run);Step("Integrity",IntegrityIntegrationTests.Run);Step("Repair",WindowsRepairTests.Native);Step("Power",PowerIntegrationTests.Run);Step("Services",ServiceManagementTests.Run);Step("Applications",ApplicationRegistryTests.Run);Step("Updates",()=>UpdateTests().GetAwaiter().GetResult());Trace("BEGIN persistence and diagnostic worker");
             var marker=Path.Combine(Program.Data,"state","portable-test-marker.txt");Directory.CreateDirectory(Path.GetDirectoryName(marker));File.WriteAllText(marker,"preserve");
             Program.ExtractEngine();Assert(File.ReadAllText(marker)=="preserve","Extraction overwrote persistent state.");
             var preferences=new Preferences();preferences.AutoCheck=false;preferences.AutoInstall=false;preferences.Favorites.Add("UI-FILEEXT");preferences.Save();
@@ -50,7 +52,7 @@ namespace Wintools {
             Assert(result.Code==0,"Portable diagnostic worker failed: "+result.Output);
             Assert(Directory.GetFiles(Path.Combine(Program.Data,"reports"),"*.json").Length>0,"Diagnostic report missing.");
             File.WriteAllText(Path.Combine(Program.Home,"portable-tests.txt"),"Portable catalogue, worker, paths, persistent state, preferences and update policy passed.");
-            return 0;
+            Trace("PASS self-test");return 0;
         }
         private sealed class ResponseHandler:HttpMessageHandler {
             internal HttpStatusCode Status;
