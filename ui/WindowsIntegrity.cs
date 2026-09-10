@@ -9,7 +9,7 @@ namespace Wintools {
     internal sealed class IntegrityResult {
         internal string State,Summary;
     }
-    internal static class WindowsIntegrity {
+    internal static partial class WindowsIntegrity {
         [UnmanagedFunctionPointer(CallingConvention.Winapi)] private delegate void DismProgress(uint current,uint total,IntPtr data);
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32),DllImport("DismApi.dll",CharSet=CharSet.Unicode)] private static extern int DismInitialize(int level,string log,string scratch);
         [DefaultDllImportSearchPaths(DllImportSearchPath.System32),DllImport("DismApi.dll",CharSet=CharSet.Unicode)] private static extern int DismOpenSession(string image,string windows,string drive,out uint session);
@@ -39,12 +39,14 @@ namespace Wintools {
             if(text.Contains("found integrity violations")||text.Contains("обнаружила нарушения целостности")||text.Contains("found corrupt files")||text.Contains("обнаружила поврежденные файлы")||text.Contains("обнаружила повреждённые файлы"))return new IntegrityResult{State="issues",Summary="SFC сообщила о нарушениях целостности системных файлов. Режим проверки ничего не исправляет; подробности сохранены в отчёте и журнале CBS Windows."};
             return new IntegrityResult{State="review",Summary="SFC завершила команду. Автоматически определить итог по этому сообщению Windows не удалось — прочитайте результат ниже. Отсутствие повреждений не подтверждено."};
         }
-        internal static IntegrityResult CheckFiles(Action<string> output,bool fixture){
+        internal static IntegrityResult CheckFiles(Action<string> output,bool fixture){return RunFiles(output,fixture,false);}
+        internal static IntegrityResult RepairFiles(Action<string> output,bool fixture){return RunFiles(output,fixture,true);}
+        private static IntegrityResult RunFiles(Action<string> output,bool fixture,bool repair){
             if(fixture&&!Program.Hosted)throw new InvalidOperationException("SFC fixture is limited to hosted CI.");
-            string arguments=fixture?"/verifyfile=\""+Path.Combine(Environment.SystemDirectory,"kernel32.dll")+"\"":"/verifyonly";
+            string arguments=fixture?(repair?"/scanfile=\"":"/verifyfile=\"")+Path.Combine(Environment.SystemDirectory,"kernel32.dll")+"\"":repair?"/scannow":"/verifyonly";
             var info=new ProcessStartInfo(Path.Combine(Environment.SystemDirectory,"sfc.exe"),arguments){UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.Unicode,StandardErrorEncoding=Encoding.Unicode};
             var text=new StringBuilder();var sync=new object();Exception error=null;
-            using(var process=new Process{StartInfo=info}){DataReceivedEventHandler append=(sender,e)=>{if(e.Data==null)return;lock(sync){try{text.AppendLine(e.Data);if(text.Length>150000)text.Remove(0,text.Length-150000);output(e.Data);}catch(Exception ex){error=ex;}}};process.OutputDataReceived+=append;process.ErrorDataReceived+=append;process.Start();process.BeginOutputReadLine();process.BeginErrorReadLine();process.WaitForExit();if(error!=null)throw new IOException("Не удалось сохранить вывод SFC.",error);return DescribeSfc(text.ToString(),process.ExitCode);}
+            using(var process=new Process{StartInfo=info}){DataReceivedEventHandler append=(sender,e)=>{if(e.Data==null)return;lock(sync){try{text.AppendLine(e.Data);if(text.Length>150000)text.Remove(0,text.Length-150000);output(e.Data);}catch(Exception ex){error=ex;}}};process.OutputDataReceived+=append;process.ErrorDataReceived+=append;process.Start();process.BeginOutputReadLine();process.BeginErrorReadLine();process.WaitForExit();if(error!=null)throw new IOException("Не удалось сохранить вывод SFC.",error);return repair?DescribeSfcRepair(text.ToString(),process.ExitCode):DescribeSfc(text.ToString(),process.ExitCode);}
         }
     }
 }
