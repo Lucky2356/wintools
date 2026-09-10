@@ -36,7 +36,7 @@ namespace Wintools {
             asset.browser_download_url="https://github.com/Lucky2356/wintools/releases/download/v9.0.0-rc.1/WintoolsPortable.exe";asset.digest=null;
             Assert(Updates.Select(new[]{release},Program.Version,true)==null,"Missing checksum accepted.");
             Assert(Updates.Select(new Release[]{null,new Release{tag_name="v9999999999999999999999.0.0"}},Program.Version,true)==null,"Malformed release handling failed.");
-            PowerIntegrationTests.Run();ServiceManagementTests.Run();ApplicationRegistryTests.Run();UpdateTests().GetAwaiter().GetResult();
+            IntegrityIntegrationTests.Run();PowerIntegrationTests.Run();ServiceManagementTests.Run();ApplicationRegistryTests.Run();UpdateTests().GetAwaiter().GetResult();
             var marker=Path.Combine(Program.Data,"state","portable-test-marker.txt");Directory.CreateDirectory(Path.GetDirectoryName(marker));File.WriteAllText(marker,"preserve");
             Program.ExtractEngine();Assert(File.ReadAllText(marker)=="preserve","Extraction overwrote persistent state.");
             var preferences=new Preferences();preferences.AutoCheck=false;preferences.AutoInstall=false;preferences.Favorites.Add("UI-FILEEXT");preferences.Save();
