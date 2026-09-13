@@ -6,6 +6,11 @@
   <SolidColorBrush x:Key="Muted" Color="#9BAEAA"/><SolidColorBrush x:Key="Accent" Color="#B4E0C8"/>
   <SolidColorBrush x:Key="AccentText" Color="#132C21"/><SolidColorBrush x:Key="Selection" Color="#293F36"/>
   <SolidColorBrush x:Key="Danger" Color="#F3B6A5"/>
+  <Style x:Key="FlatMenuItem" TargetType="MenuItem">
+   <Setter Property="Foreground" Value="{DynamicResource Text}"/><Setter Property="Padding" Value="14,10"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="MenuItem"><Border x:Name="Chrome" Padding="{TemplateBinding Padding}" Background="Transparent" CornerRadius="6"><ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Selection}"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="FlatMenu" TargetType="ContextMenu"><Setter Property="ItemContainerStyle" Value="{StaticResource FlatMenuItem}"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu"><Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="9" Padding="6"><StackPanel IsItemsHost="True"/></Border></ControlTemplate></Setter.Value></Setter></Style>
   <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/></Style>
   <Style x:Key="MutedText" TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource Muted}"/><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="LineHeight" Value="21"/></Style>
   <Style TargetType="Button">

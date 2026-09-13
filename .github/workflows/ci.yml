@@ -35,6 +35,9 @@ jobs:
       - name: Diagnostics and cleanup boundaries
         shell: powershell
         run: .\tests\maintenance.ps1
+      - name: Store package integration (disposable signed fixture)
+        shell: powershell
+        run: .\tests\store.ps1
 
   package:
     needs: catalogue
