@@ -36,7 +36,7 @@ namespace Wintools {
             return 100.0*(1.0-(double)(idle-oldIdle)/(total-oldTotal));
         }
         internal static double? Rate(long value,long previous,double seconds) { return seconds>0 && value>=previous ? (double?)(value-previous)/seconds : null; }
-        internal ResourceSample Read(string adapter) {
+        internal ResourceSample Read(string adapter,bool includeProcesses=true) {
             var sample=new ResourceSample();var errors=new List<string>();ulong idle,kernel,user;ulong now=GetTickCount64();
             if(GetActiveProcessorCount(0xffff)<=64 && GetSystemTimes(out idle,out kernel,out user)) {
                 ulong total=kernel+user;if(hasCpu&&now-cpuStamp<=5000)sample.Cpu=CpuUsage(idle,total,priorIdle,priorTotal);priorIdle=idle;priorTotal=total;cpuStamp=now;hasCpu=true;
@@ -48,7 +48,7 @@ namespace Wintools {
                 if(nic!=null) {var stats=nic.GetIPv4Statistics();long stamp=Stopwatch.GetTimestamp();if(priorAdapter==adapter){double seconds=(double)(stamp-priorStamp)/Stopwatch.Frequency;if(seconds<=5){sample.Receive=Rate(stats.BytesReceived,priorReceived,seconds);sample.Send=Rate(stats.BytesSent,priorSent,seconds);}}priorAdapter=adapter;priorReceived=stats.BytesReceived;priorSent=stats.BytesSent;priorStamp=stamp;}
                 else {priorAdapter=null;errors.Add("Выберите подключённый сетевой адаптер.");}
             } catch(NetworkInformationException) {priorAdapter=null;errors.Add("Сетевой адаптер недоступен. Обновите список.");}
-            var rows=new List<Tuple<string,long>>();int inaccessible=0;
+            if(!includeProcesses){sample.Error=string.Join(" ",errors);return sample;}var rows=new List<Tuple<string,long>>();int inaccessible=0;
             foreach(var process in Process.GetProcesses()) {using(process){try{rows.Add(Tuple.Create(process.ProcessName+" · PID "+process.Id,process.WorkingSet64));}catch(InvalidOperationException){inaccessible++;}catch(System.ComponentModel.Win32Exception){inaccessible++;}}}
             sample.Processes=rows.OrderByDescending(r=>r.Item2).Take(8).Select(r=>r.Item1+"   —   "+(r.Item2/1048576.0).ToString("N0")+" МБ").ToArray();
             if(inaccessible>0)errors.Add("Недоступных или завершившихся процессов: "+inaccessible+".");sample.Error=string.Join(" ",errors);return sample;
@@ -86,7 +86,7 @@ namespace Wintools {
             InitializeGpu(panel);
             var adapterRow=new WrapPanel{Margin=new Thickness(0,0,0,8)};panel.Children.Add(adapterRow);networkAdapter=new ComboBox{Width=300,DisplayMemberPath="Value",SelectedValuePath="Key",Margin=new Thickness(0,0,10,8)};System.Windows.Automation.AutomationProperties.SetName(networkAdapter,"Сетевой адаптер для мониторинга");adapterRow.Children.Add(networkAdapter);var refresh=new Button{Content="Обновить адаптеры",Margin=new Thickness(0,0,0,8)};adapterRow.Children.Add(refresh);refresh.Click+=(s,e)=>ReadAdapters();networkAdapter.SelectionChanged+=(s,e)=>{networkGraph.Clear();networkValue.Text="Первый замер…";};
             resourceStatus=Paragraph("Показатели обновляются каждые 2 секунды, пока открыт этот раздел. Графики хранят последние 30 замеров.");resourceStatus.FontSize=12;panel.Children.Add(resourceStatus);
-            var processPanel=new StackPanel();processPanel.Children.Add(Paragraph("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ."));resourceProcesses=new ItemsControl();processPanel.Children.Add(resourceProcesses);var expander=new Expander{Header="Что сейчас занимает память",Content=processPanel,IsExpanded=true,Margin=new Thickness(0,0,0,18)};expander.SetResourceReference(Control.ForegroundProperty,"Text");panel.Children.Add(expander);
+            InitializeMeasurements(panel);var processPanel=new StackPanel();processPanel.Children.Add(Paragraph("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ."));resourceProcesses=new ItemsControl();processPanel.Children.Add(resourceProcesses);var expander=new Expander{Header="Что сейчас занимает память",Content=processPanel,IsExpanded=true,Margin=new Thickness(0,0,0,18)};expander.SetResourceReference(Control.ForegroundProperty,"Text");panel.Children.Add(expander);
             ReadAdapters();resourceTimer.Tick+=async(s,e)=>await SampleResources();Window.StateChanged+=(s,e)=>ResourceVisibility();Window.Closed+=(s,e)=>resourceTimer.Stop();panel.SizeChanged+=(s,e)=>resourceCards.Columns=panel.ActualWidth>=1200?4:panel.ActualWidth>=580?2:1;
         }
         private StackPanel ResourceCard(string title,out TextBlock value,out ResourceGraph graph){var panel=new StackPanel();panel.Children.Add(Paragraph(title));value=new TextBlock{Text="Первый замер…",MinHeight=64,FontSize=25,FontWeight=FontWeights.SemiBold,Margin=new Thickness(0,0,0,12)};panel.Children.Add(value);graph=new ResourceGraph{Height=58,Margin=new Thickness(0,0,0,12)};panel.Children.Add(graph);var border=new Border{Child=panel,CornerRadius=new CornerRadius(12),Padding=new Thickness(16),Margin=new Thickness(0,0,10,12)};border.SetResourceReference(Border.BackgroundProperty,"Surface");resourceCards.Children.Add(border);return panel;}
