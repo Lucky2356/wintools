@@ -20,6 +20,7 @@ namespace Wintools {
             using(var compiler=new CSharpCodeProvider()){var options=new CompilerParameters(new[]{"System.dll","System.ServiceProcess.dll"},exe){GenerateExecutable=true};var result=compiler.CompileAssemblyFromSource(options,"using System.ServiceProcess; public sealed class Fixture : ServiceBase { public Fixture(string name){ServiceName=name;CanStop=true;} public static void Main(string[] args){ServiceBase.Run(new Fixture(args[0]));} }");Assert(!result.Errors.HasErrors,"Service fixture compilation failed");}
             try{
                 Create(name,exe,null);Create(dependent,exe,name);
+                var parentLinks=ServiceDependencies.Read(name);var childLinks=ServiceDependencies.Read(dependent);Assert(parentLinks.Dependents.Any(n=>n.Name==dependent)&&childLinks.Requires.Any(n=>n.Name==name)&&parentLinks.RequiredError.Length==0&&childLinks.RequiredError.Length==0,"Native service dependency directions incorrect");
                 var before=ServiceActions.Inspect(name);Assert(before.Mode=="Manual"&&before.State=="Stopped","Fixture initial state incorrect");
                 var delayed=Change(name,"delayed",null,0);Assert(ServiceActions.Inspect(name).Mode=="Auto"&&ServiceActions.Inspect(name).Delayed,"Delayed automatic start was not applied");
                 Change(name,"restore",delayed,0);Assert(ServiceActions.Inspect(name).Mode=="Manual"&&ServiceActions.Read(delayed).Status=="REVERTED","Service mode restore failed");

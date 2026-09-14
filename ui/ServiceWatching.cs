@@ -39,7 +39,7 @@ namespace Wintools {
                 FilterServices(true);
                 serviceStatus.Text="Обновлено в "+DateTime.Now.ToString("HH:mm:ss")+" · Всего: "+services.Length+" · Работают: "+services.Count(r=>r.State=="Running")+" · Автозапуск: "+services.Count(r=>r.Mode=="Auto")+". Работа и запуск Windows показаны отдельно.";
                 if(!automatic)Filter();
-                if(serviceList.SelectedItem!=null)await ReadServiceSelection(true);
+                if(serviceList.SelectedItem!=null)await ReadServiceSelection(true);await ReadServiceDependencies();
             }catch(Exception ex){if(!closed&&!busy&&epoch==serviceEpoch){services=null;FilterServices();serviceStatus.Text="Не удалось прочитать службы. Их состояние неизвестно. "+ex.Message;Filter();}}
             finally{readingServices=false;if(!closed){serviceRefresh.IsEnabled=!busy;Enabled("RefreshCatalogueServices",!busy);if(!automatic)Filter();if(servicesPending&&!busy){servicesPending=false;var pendingRefresh=Window.Dispatcher.BeginInvoke(new Action(async()=>await RefreshServices()));}}}
         }
