@@ -7,6 +7,11 @@ namespace Wintools {
     internal static class ApplicationRegistryTests {
         internal static void Run(){
             if(!Program.Hosted)throw new InvalidOperationException("Hosted runner required.");
+            var shortcut=Path.Combine(Program.Data,"Wintools launch fixture "+Guid.NewGuid().ToString("N")+".lnk");
+            try{
+                DesktopLaunch.Fixture(shortcut,Path.Combine(Environment.SystemDirectory,"ping.exe"),"-n 1 127.0.0.1");var entry=DesktopLaunch.ReadShortcut(shortcut);var start=DesktopLaunch.StartInfo(entry,DesktopLaunch.ReadShortcut(shortcut));start.WindowStyle=System.Diagnostics.ProcessWindowStyle.Hidden;
+                using(var process=System.Diagnostics.Process.Start(start)){if(!process.WaitForExit(10000)){process.Kill();throw new Exception("Shortcut fixture launch timed out");}if(process.ExitCode!=0)throw new Exception("Shortcut fixture process failed");}
+            }finally{File.Delete(shortcut);}
             const string root=@"Software\Microsoft\Windows\CurrentVersion\Uninstall";
             var name="WintoolsFixture_"+Guid.NewGuid().ToString("N");
             using(var user=Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.CurrentUser,Microsoft.Win32.RegistryView.Registry64)){
