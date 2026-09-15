@@ -40,7 +40,7 @@ namespace Wintools {
         private ProgressBar healthProgress;
         private string priorMemory;
         private static TextBlock Paragraph(string text){return new TextBlock{Text=text,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,0,14)};}
-        private Button ToolButton(StackPanel panel,string caption,Action action){var button=new Button{Content=caption,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(0,0,0,14)};button.Click+=(s,e)=>action();panel.Children.Add(button);return button;}
+        private Button ToolButton(Panel panel,string caption,Action action){var button=new Button{Content=caption,HorizontalAlignment=HorizontalAlignment.Left,Margin=new Thickness(0,0,0,14)};button.Click+=(s,e)=>action();panel.Children.Add(button);return button;}
         private StackPanel ToolPage(string name){var panel=new StackPanel{Margin=new Thickness(4)};var scroll=new ScrollViewer{Content=panel,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,Visibility=Visibility.Collapsed};Window.RegisterName(name,scroll);((Grid)Get<FrameworkElement>("SettingsPage").Parent).Children.Add(scroll);return panel;}
         private void InitializeHealth(){
             InitializeServiceBrowser();

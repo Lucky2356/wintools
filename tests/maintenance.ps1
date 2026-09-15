@@ -34,6 +34,20 @@ try {
   foreach($file in @($old,$keep)){(Get-Item $file).LastWriteTime=(Get-Date).AddDays(-10)}
   $link=Join-Path $env:TEMP 'linked'
   $null=New-Item -ItemType Junction -Path $link -Target $outside
+  $scanner=[IO.File]::ReadAllText((Join-Path $root 'ui\CleanupPreview.cs'))
+  $probe=@"
+namespace Wintools {
+    public static class CleanupBoundaryProbe {
+        public static void Verify(string directory,string link,long bytes) {
+            var result=CleanupPreview.Scan(directory,System.DateTime.Now.AddDays(-3),System.Threading.CancellationToken.None,100);
+            if(result.Errors!=0||result.Files!=1||result.Bytes!=bytes||result.SkippedLinks!=1)throw new System.Exception("Preview and cleanup fixture boundaries differ");
+            if(CleanupPreview.Scan(link,System.DateTime.Now.AddDays(-3),System.Threading.CancellationToken.None,100).Errors==0)throw new System.Exception("Preview accepted a junction root");
+        }
+    }
+}
+"@
+  Add-Type -TypeDefinition ($scanner+[Environment]::NewLine+$probe)
+  [Wintools.CleanupBoundaryProbe]::Verify($env:TEMP,$link,(Get-Item $old).Length)
   $env:OPT_DRY='1'
   $null=Invoke-Helper @{Action='CleanupFiles';Name='CLN-USERTEMP'} 0
   Assert (Test-Path $old) 'Dry cleanup deleted a file'
