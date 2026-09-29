@@ -12,10 +12,11 @@ namespace Wintools {
         public string Name {get;set;}
         public string Command {get;set;}
         public string Error {get;set;}
-        internal string Approval,Identity;
+        internal string Approval,Identity,Restriction,Details;
+        internal bool CanChange {get{return Error==null&&Restriction==null&&Enabled.HasValue;}}
         public bool? Enabled {get{return Error==null?StartupEntries.Decode(Approval):null;}}
         public string State {get{return Enabled.HasValue?(Enabled.Value?"Включено":"Отключено"):"Неизвестно";}}
-        public string Location {get{return StartupEntries.Location(Source);}}
+        public string Location {get{return StartupEntries.Location(Source)+(Restriction==null?"":" · только просмотр");}}
         public string Key {get{return Source+"|"+Name;}}
         internal string Fingerprint {get{return StartupEntries.Hash(Identity+"|"+(Approval??"missing"));}}
     }
@@ -27,8 +28,8 @@ namespace Wintools {
         internal const string RunPath=@"Software\Microsoft\Windows\CurrentVersion\Run";
         internal const string ApprovedPath=@"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\";
         internal static readonly string[] Sources={"user-run","machine-run","machine-run32","user-folder","machine-folder"};
-        internal static void Validate(string source,string name){if(!Sources.Contains(source)||string.IsNullOrWhiteSpace(name)||name.Length>16383||name.Any(char.IsControl)||name.IndexOf('\0')>=0)throw new ArgumentException("Некорректная запись автозагрузки.");if(source.EndsWith("folder")&&(name!=Path.GetFileName(name)||name=="."||name==".."))throw new ArgumentException("Некорректное имя файла автозагрузки.");}
-        internal static string Location(string source){return source=="user-run"?"Мой вход · реестр":source=="machine-run"?"Все пользователи · реестр":source=="machine-run32"?"Все пользователи · реестр 32 бит":source=="user-folder"?"Мой вход · папка":"Все пользователи · папка";}
+        internal static void Validate(string source,string name){if(source==StartupTasks.Source){StartupTasks.ValidatePath(name);return;}if(!Sources.Contains(source)||string.IsNullOrWhiteSpace(name)||name.Length>16383||name.Any(char.IsControl)||name.IndexOf('\0')>=0)throw new ArgumentException("Некорректная запись автозагрузки.");if(source.EndsWith("folder")&&(name!=Path.GetFileName(name)||name=="."||name==".."))throw new ArgumentException("Некорректное имя файла автозагрузки.");}
+        internal static string Location(string source){return source==StartupTasks.Source?"Планировщик · вход в Windows":source=="user-run"?"Мой вход · реестр":source=="machine-run"?"Все пользователи · реестр":source=="machine-run32"?"Все пользователи · реестр 32 бит":source=="user-folder"?"Мой вход · папка":"Все пользователи · папка";}
         internal static string ApprovalKey(string source){return ApprovedPath+(source.EndsWith("folder")?"StartupFolder":source=="machine-run32"?"Run32":"Run");}
         internal static RegistryKey Root(string source,bool approval){return RegistryKey.OpenBaseKey(source.StartsWith("user-")?RegistryHive.CurrentUser:RegistryHive.LocalMachine,!approval&&source=="machine-run32"?RegistryView.Registry32:RegistryView.Registry64);}
         internal static string Folder(string source){return Environment.GetFolderPath(source=="user-folder"?Environment.SpecialFolder.Startup:Environment.SpecialFolder.CommonStartup);}
@@ -44,7 +45,7 @@ namespace Wintools {
             var bytes=new byte[12];byte family=previous!=null&&Convert.FromBase64String(previous)[0]>=6?(byte)6:(byte)2;bytes[0]=(byte)(family+(enabled?0:1));if(!enabled)Buffer.BlockCopy(BitConverter.GetBytes(DateTime.UtcNow.ToFileTimeUtc()),0,bytes,4,8);return Convert.ToBase64String(bytes);
         }
         internal static StartupEntry Inspect(string source,string name){
-            Validate(source,name);var row=new StartupEntry{Source=source,Name=name};
+            Validate(source,name);if(source==StartupTasks.Source)return StartupTasks.Inspect(name);var row=new StartupEntry{Source=source,Name=name};
             if(source.EndsWith("folder")){
                 string folder=Folder(source);if(string.IsNullOrEmpty(folder))throw new IOException("Папка автозагрузки недоступна.");string path=Path.Combine(folder,name);var info=new FileInfo(path);if(!info.Exists)throw new IOException("Запись больше не существует.");if((info.Attributes&(FileAttributes.Directory|FileAttributes.ReparsePoint))!=0||info.Length>2097152)throw new IOException("Файл автозагрузки нельзя надёжно проверить.");
                 row.Command=path;using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))using(var sha=SHA256.Create())row.Identity=Hash(source+"|"+name+"|"+Convert.ToBase64String(sha.ComputeHash(stream)));
@@ -63,10 +64,12 @@ namespace Wintools {
                 else using(var root=Root(source,false))using(var key=root.OpenSubKey(RunPath))names=key==null?new string[0]:key.GetValueNames();
                 foreach(string name in names)try{entries.Add(Inspect(source,name));}catch(Exception ex){entries.Add(new StartupEntry{Source=source,Name=name,Error=ex.Message,Command="Не удалось прочитать запись"});}
             }catch(Exception ex){errors.Add(Location(source)+": "+ex.Message);}}
+            var scheduled=StartupTasks.Read();entries.AddRange(scheduled.Entries);errors.AddRange(scheduled.Errors);
             return new StartupSnapshot{Entries=entries.OrderBy(e=>e.Name,StringComparer.CurrentCultureIgnoreCase).ToArray(),Errors=errors.ToArray()};
         }
-        internal static void WriteApproval(string source,string name,string value){
+        internal static void WriteApproval(string source,string name,string value,string expected=null){
             Validate(source,name);if(value!=null&&!Decode(value).HasValue)throw new IOException("Некорректное сохраняемое состояние.");
+            if(source==StartupTasks.Source){StartupTasks.Write(name,value,expected);return;}
             using(var root=Root(source,true))using(var key=root.CreateSubKey(ApprovalKey(source))){if(value==null)key.DeleteValue(name,false);else key.SetValue(name,Convert.FromBase64String(value),RegistryValueKind.Binary);key.Flush();}
         }
     }
