@@ -44,7 +44,7 @@ namespace Wintools {
             var columns=new StackPanel[hardwareColumns];
             for(int i=0;i<columns.Length;i++){hardwareCards.ColumnDefinitions.Add(new ColumnDefinition());columns[i]=new StackPanel();Grid.SetColumn(columns[i],i);hardwareCards.Children.Add(columns[i]);}
             int index=0;
-            foreach(var section in hardwareSnapshot){var content=new StackPanel();var title=Paragraph(section.Title);title.FontSize=16;title.FontWeight=FontWeights.SemiBold;content.Children.Add(title);var detail=Paragraph(section.Text);detail.Margin=new Thickness(0);content.Children.Add(detail);var card=new Border{Child=content,Padding=new Thickness(16),Margin=new Thickness(0,0,10,10),CornerRadius=new CornerRadius(12)};card.SetResourceReference(Border.BackgroundProperty,"Surface");columns[index++%columns.Length].Children.Add(card);}
+            foreach(var section in hardwareSnapshot){var content=new StackPanel();var title=Paragraph(section.Title);title.FontSize=16;title.FontWeight=FontWeights.SemiBold;content.Children.Add(title);var detail=Paragraph(section.Text);detail.Margin=new Thickness(0);content.Children.Add(detail);var card=new Border{Child=content,Padding=new Thickness(16),Margin=new Thickness(0,0,10,10),CornerRadius=new CornerRadius(12)};Card(card);columns[index++%columns.Length].Children.Add(card);}
         }
         private void ExportHardware() {
             if(hardwareReading||hardwareSnapshot==null)return;
