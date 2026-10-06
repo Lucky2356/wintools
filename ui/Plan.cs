@@ -31,7 +31,7 @@ namespace Wintools {
         }
         private void RefreshPlan() {
             var items=PlanItems();Get<ListBox>("PlanItems").ItemsSource=items.Select((t,i)=>new ActionRow{Item=t,DisplayTitle=(i+1)+". "+t.Title,Summary=Risk(t)+" · "+t.Description}).ToArray();
-            Get<Button>("NavPlan").Content=items.Length==0?"☷    План изменений":"☷    Мой план · "+items.Length;
+            Get<Button>("NavPlan").Content=items.Length==0?"План изменений":"План изменений · "+items.Length;
             Text("PlanStatus",items.Length==0?"План пуст. Откройте действие в каталоге и нажмите «В план». Список сохраняется между запусками.":"В плане: "+items.Length+". Сначала проверьте предпросмотр. Очистка файлов и удаление Edge выполняются отдельно.");
             RefreshEnabled();
         }

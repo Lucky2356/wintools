@@ -15,7 +15,7 @@ namespace Wintools {
         private Func<PowerSnapshot> powerRead=PowerPlans.Read;
         private Func<string,string,string,Task<EngineResult>> powerRun=PowerActions.Run;
         private void InitializePowerManagement(StackPanel parent){
-            var panel=new StackPanel();var card=new Border{Child=panel,Padding=new Thickness(18),CornerRadius=new CornerRadius(12),Margin=new Thickness(0,0,0,14)};card.SetResourceReference(Border.BackgroundProperty,"Surface");parent.Children.Add(card);
+            var panel=new StackPanel();var card=new Border{Child=panel,Padding=new Thickness(18),CornerRadius=new CornerRadius(12),Margin=new Thickness(0,0,0,14)};Card(card);parent.Children.Add(card);
             var heading=Paragraph("Схема питания");heading.FontSize=21;heading.FontWeight=FontWeights.SemiBold;panel.Children.Add(heading);
             powerCurrent=Paragraph("Нажмите «Обновить схемы», чтобы прочитать текущие настройки.");panel.Children.Add(powerCurrent);
             powerChoice=new ComboBox{DisplayMemberPath="Label",Margin=new Thickness(0,0,0,12)};System.Windows.Automation.AutomationProperties.SetName(powerChoice,"Схема питания Windows");panel.Children.Add(powerChoice);powerChoice.SelectionChanged+=(s,e)=>{var selected=powerChoice.SelectedItem as PowerPlan;powerDescription.Text=selected==null?"":selected.Description;RefreshPowerEnabled();};

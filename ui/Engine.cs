@@ -40,9 +40,11 @@ namespace Wintools {
             if(needsAdmin && !admin){info.UseShellExecute=true;info.Verb="runas";info.WindowStyle=ProcessWindowStyle.Hidden;}
             else {info.UseShellExecute=false;info.CreateNoWindow=true;}
             using(var process=Process.Start(info)) {
+                long shown=-1;
                 while(!process.HasExited) {
                     await Task.Delay(400);
-                    try{if(File.Exists(log))progress(ReadLog(log));}catch(IOException){}catch(UnauthorizedAccessException){}
+                    // Re-render only when the worker appended output; long logs made the window stutter.
+                    try{var current=new FileInfo(log);if(current.Exists&&current.Length!=shown){shown=current.Length;progress(ReadLog(log));}}catch(IOException){}catch(UnauthorizedAccessException){}
                 }
                 string result;
                 try{result=File.Exists(log)?ReadLog(log):"Операция завершилась без вывода.";}catch(IOException){result="Операция завершена. Вывод временно недоступен: "+log;}catch(UnauthorizedAccessException){result="Операция завершена. Нет доступа к выводу: "+log;}

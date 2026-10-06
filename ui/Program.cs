@@ -36,8 +36,11 @@ namespace Wintools {
                     if (!acquired) throw new InvalidOperationException("Этот portable-каталог уже открыт в другом экземпляре.");
                     try {
                         ExtractEngine();
+                        RemoveStaleWorkFiles();
                         if (test) return SelfTests.Run();
                         var application=new System.Windows.Application{ShutdownMode=System.Windows.ShutdownMode.OnMainWindowClose};
+                        // Keep the window alive after an unexpected handler failure; the smoke run must still fail loudly.
+                        if(!smoke)application.DispatcherUnhandledException+=(sender,e)=>{e.Handled=ReportUnhandled(e.Exception);};
                         var window=new MainWindow(smoke);
                         application.Run(window.Window);
                     } finally { gate.ReleaseMutex(); }
@@ -50,6 +53,12 @@ namespace Wintools {
             }
         }
 
+        private static bool ReportUnhandled(Exception ex) {
+            try { File.AppendAllText(Path.Combine(Data, "ui-error.txt"), DateTime.Now.ToString("o") + Environment.NewLine + ex + Environment.NewLine + Environment.NewLine); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            if (Hosted) return false;
+            MessageBox.Show("Непредвиденная ошибка интерфейса. Приложение продолжит работу; подробности сохранены в WintoolsData\\ui-error.txt.\n\n" + ex.Message, "Wintools", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return true;
+        }
         internal static string MutexName(string root) {
             using (var hash = SHA256.Create()) return "Local\\Wintools_" + BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(Path.GetFullPath(root).ToUpperInvariant()))).Replace("-", "");
         }
@@ -94,6 +103,24 @@ namespace Wintools {
                 }
             }
             } finally {engineLock.Dispose();File.Delete(lockPath);}
+        }
+        // Worker logs and update staging folders are only needed while an operation runs; history keeps its own records.
+        internal static void RemoveStaleWorkFiles() {
+            var now = DateTime.UtcNow;
+            try {
+                var runtime = Path.Combine(Data, "runtime");
+                if (Directory.Exists(runtime)) {
+                    SafeDirectory(runtime);
+                    foreach (var file in new DirectoryInfo(runtime).GetFiles("*.log", SearchOption.TopDirectoryOnly))
+                        if ((file.Attributes & FileAttributes.ReparsePoint) == 0 && now - file.LastWriteTimeUtc > TimeSpan.FromDays(14)) try { file.Delete(); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
+                var updates = Path.Combine(Data, "updates");
+                if (Directory.Exists(updates)) {
+                    SafeDirectory(updates);
+                    foreach (var folder in new DirectoryInfo(updates).GetDirectories())
+                        if ((folder.Attributes & FileAttributes.ReparsePoint) == 0 && System.Text.RegularExpressions.Regex.IsMatch(folder.Name, "^[a-f0-9]{32}$") && now - folder.LastWriteTimeUtc > TimeSpan.FromDays(2)) try { folder.Delete(true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
+            } catch (IOException) { } catch (UnauthorizedAccessException) { }
         }
         internal static string Quote(string value) { return "\"" + value.Replace("\"", "\\\"") + "\""; }
     }

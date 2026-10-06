@@ -23,6 +23,7 @@ namespace Wintools {
         public string Summary {get;set;}
         public string ServiceStatus {get;set;}
         public Visibility ServiceVisibility {get{return string.IsNullOrEmpty(ServiceStatus)?Visibility.Collapsed:Visibility.Visible;}}
+        public string RiskLevel {get{return Item==null?null:Item.Risk;}}
     }
     internal sealed class HistoryRow {
         public string Run {get;set;}
@@ -99,8 +100,8 @@ namespace Wintools {
             Window.PreviewKeyDown+=(s,e)=>{if(e.Key==System.Windows.Input.Key.Escape&&confirmation!=null){FinishConfirmation(false);e.Handled=true;}};
             Window.Closing+=(s,e)=>{if(busy||downloading){e.Cancel=true;Text("Status","Дождитесь завершения операции или загрузки обновления.");return;}FinishConfirmation(false);if(!replacing&&preferences.AutoInstall&&stagedDirectory!=null){try{Updates.LaunchReplacement(stagedDirectory,stagedUpdate.Asset.digest.Substring(7),false);replacing=true;}catch(Exception ex){Text("UpdateStatus",UpdateError(ex));Text("Status","Установка отложена. Можно закрыть приложение повторно.");DiscardStaged();e.Cancel=true;ShowPage(3);}}};
             Window.Closed+=(s,e)=>{closed=true;updateTimer.Stop();SystemEvents.UserPreferenceChanged-=SystemPreferenceChanged;};
-            Window.SourceInitialized+=(s,e)=>NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle,PaletteDark());
-            Window.SizeChanged+=(s,e)=>{Get<TextBox>("Output").Height=Window.ActualHeight<790?48:100;Window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>{if(!closed&&page==0){var list=Get<ListBox>("Items");list.UpdateLayout();if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}}));};
+            Window.SourceInitialized+=(s,e)=>NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle,PaletteDark(),CaptionColor());
+            Window.SizeChanged+=(s,e)=>{Window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,new Action(()=>{if(!closed&&page==0){var list=Get<ListBox>("Items");list.UpdateLayout();if(list.SelectedItem!=null)list.ScrollIntoView(list.SelectedItem);}}));};
             Window.Loaded+=async(s,e)=>{if(smoke){try{await Smoke();}catch(Exception ex){File.WriteAllText(Path.Combine(Program.Home,"portable-error.txt"),ex.ToString());Environment.ExitCode=4;}finally{busy=false;downloading=false;DiscardStaged();Window.Close();}return;}await RefreshServices();if(preferences.AutoCheck)await CheckUpdates(false);};
             updateTimer.Tick+=async(s,e)=>{if(preferences.AutoCheck&&!closed)await CheckUpdates(false);};if(!smoke)updateTimer.Start();
             InitializeResponsive();InitializePlan();InitializeProfiles();ready=true;ApplyTheme();Filter();ReadHistory();RefreshPlan();ShowPage(0);SystemEvents.UserPreferenceChanged+=SystemPreferenceChanged;
@@ -108,12 +109,13 @@ namespace Wintools {
         private bool PaletteDark(){return NativeTheme.IsDark(preferences.Theme);}
         private void ApplyTheme() {
             foreach(var pair in NativeTheme.Colors(PaletteDark()))Window.Resources[pair.Key]=new SolidColorBrush((Color)ColorConverter.ConvertFromString(pair.Value));
-            if(new WindowInteropHelper(Window).Handle!=IntPtr.Zero)NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle,PaletteDark());
+            if(new WindowInteropHelper(Window).Handle!=IntPtr.Zero)NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle,PaletteDark(),CaptionColor());
             ShowPage(page);
         }
+        private Color CaptionColor(){var brush=Window.Resources["Background"] as SolidColorBrush;return brush==null?Colors.Black:brush.Color;}
         private void SystemPreferenceChanged(object sender,UserPreferenceChangedEventArgs e){if(!closed)Window.Dispatcher.BeginInvoke(new Action(()=>{if(!closed)ApplyTheme();}));}
         private void ShowPage(int index) {
-            page=index;ResourceVisibility();ServiceVisibility();for(int i=0;i<pages.Length;i++){Visible(pages[i],i==index);Get<Button>(nav[i]).SetResourceReference(Control.BackgroundProperty,i==index?"Selection":"Sidebar");Get<Button>(nav[i]).SetResourceReference(Control.ForegroundProperty,i==index?"Text":"Muted");}
+            page=index;ResourceVisibility();ServiceVisibility();for(int i=0;i<pages.Length;i++){Visible(pages[i],i==index);var button=Get<Button>(nav[i]);if(i==index){button.SetResourceReference(Control.BackgroundProperty,"Selection");button.SetResourceReference(Control.ForegroundProperty,"Text");button.SetResourceReference(Control.BorderBrushProperty,"Accent");}else{button.ClearValue(Control.BackgroundProperty);button.ClearValue(Control.ForegroundProperty);button.ClearValue(Control.BorderBrushProperty);}}
             Text("PageTitle",new[]{"Windows под ваши задачи","История изменений","С чего начать","Настройки приложения","Ваш план изменений","Службы сейчас","Состояние вашего ПК","Сверка настроек","Ускорение Windows","Установленные приложения","Проверка соединения","Обслуживание Windows","Автозагрузка программ","Работающие процессы"}[index]);
             Text("PageEyebrow",new[]{"КАТАЛОГ ДЕЙСТВИЙ","ЖУРНАЛ ЭТОГО КОМПЬЮТЕРА","ПОДБОРКИ","ВАШИ ПРЕДПОЧТЕНИЯ","ПОДГОТОВКА И ВЫПОЛНЕНИЕ","РАБОТА И АВТОЗАПУСК","ПОНЯТНАЯ ДИАГНОСТИКА","ПРОВЕРКА БЕЗ ИЗМЕНЕНИЙ","ПРАКТИЧЕСКИЕ ШАГИ","ПРОГРАММЫ НА КОМПЬЮТЕРЕ","ДИАГНОСТИКА СЕТИ","ОБСЛУЖИВАНИЕ","ЗАПУСК ПРИ ВХОДЕ","РАСПРЕДЕЛЕНИЕ РЕСУРСОВ"}[index]);
             Text("PageHint",new[]{"Выберите раздел или найдите нужное действие.","Исходные состояния и откат сохранённых запусков.","Три подборки с настройкой под ваши задачи.","Автообновление, защита и данные приложения.","Соберите действия, проверьте и выполните по порядку.","Снимок установленных служб Windows.","Показатели и подсказки вместо технического лога.","Сохранились ли применённые настройки?","Выберите улучшение под свою задачу.","Поиск, запуск и управление установленными приложениями.","Задержка, ответы сервера и стабильность соединения.","Очистка файлов, проверка и восстановление Windows.","Выберите, какие программы нужны сразу после входа.","Приоритет и доступные процессоры для выбранного запуска."}[index]);
@@ -144,7 +146,7 @@ namespace Wintools {
             RefreshServiceControls();RefreshPowerEnabled();RefreshStartupEnabled();RefreshProcessEnabled();RefreshIntegrityEnabled();var historySelection=Get<ListBox>("History").SelectedItem as HistoryRow;Visible("HistoryReport",historySelection!=null&&(historySelection.IntegrityCheck||historySelection.StoreChange));Enabled("HistoryReport",!busy&&historySelection!=null&&(historySelection.IntegrityCheck||historySelection.StoreChange));if(applicationList!=null)ApplicationSelection();RefreshPlanEnabled();foreach(var button in collectionPlanButtons)button.IsEnabled=!busy;RefreshCollectionAssistant();Enabled("ProfileImport",!busy);Enabled("ProfileExport",!busy&&preferences.Plan.Count>0);
             if(healthStart!=null){healthStart.IsEnabled=!busy;verificationStart.IsEnabled=!busy;serviceRefresh.IsEnabled=!busy&&!readingServices;Enabled("RefreshCatalogueServices",!busy&&!readingServices);}
         }
-        private void SetBusy(bool value){busy=value;if(value){serviceEpoch++;startupEpoch++;}ServiceVisibility();RefreshEnabled();if(value)Text("Status","Выполняется операция…");}
+        private void SetBusy(bool value){busy=value;if(value){serviceEpoch++;startupEpoch++;}Get<System.Windows.Shapes.Ellipse>("StatusDot").SetResourceReference(System.Windows.Shapes.Shape.FillProperty,value?"Warning":"Success");ServiceVisibility();RefreshEnabled();if(value)Text("Status","Выполняется операция…");}
         internal static HistoryRow[] HistoryRows(string path,List<Tweak> catalogue) {
             if(!File.Exists(path))return new HistoryRow[0];var lines=File.ReadAllLines(path,Encoding.GetEncoding(28591)).Where(l=>!string.IsNullOrWhiteSpace(l)).Select(l=>l.Split('|')).ToArray();
             if(lines.Any(p=>p.Length!=11||p.Any(string.IsNullOrWhiteSpace)||!new[]{"OK","PENDING","FAILED","REVERTED","MANUAL"}.Contains(p[9])||!Regex.IsMatch(p[0],"^[A-Za-z0-9_.-]{1,100}$")||!Regex.IsMatch(p[1],"^[A-Z][A-Z0-9-]{1,63}$")))throw new IOException("Журнал содержит повреждённые записи. Откат из интерфейса отключён до проверки файла.");

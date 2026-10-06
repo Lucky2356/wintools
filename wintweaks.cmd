@@ -71,7 +71,7 @@ for %%C in (help menu status diagnose apply revert verify cleanup system-change)
 if "%_KNOWN%"=="0" (
     echo [ERROR] Unknown command: %CMDNAME%
     call :print_help
-    endlocal ^& exit /b 1
+    endlocal & exit /b 1
 )
 
 if /i "%CMDNAME%"=="help" goto do_help
