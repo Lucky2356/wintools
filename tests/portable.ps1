@@ -14,6 +14,8 @@ function Run-Portable($path,$arguments,$expected=0){
   if(-not $finished){throw "Portable test timed out: $arguments"}
   if($process.ExitCode -ne $expected){
     Get-ChildItem $fixture -Recurse -Filter '*error.txt' | ForEach-Object {Get-Content $_.FullName}
+    # Screenshots taken before the failure show the broken layout in the uploaded artifact.
+    Get-ChildItem $fixture -Filter 'portable-ui*.png' | Copy-Item -Destination (Split-Path $Executable -Parent) -Force
     throw "Portable exit $($process.ExitCode), expected $expected"
   }
 }

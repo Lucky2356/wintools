@@ -11,6 +11,8 @@ namespace Wintools
     {
         private async Task GlobalSearchSmoke()
         {
+            // Opening a catalogue hit switches the category to all actions; later layout checks expect the previous catalogue view.
+            int category = Get<ComboBox>("Category").SelectedIndex;
             Assert(SearchEverywhere("").Length == PageTitles.Length, "Empty search should list sections");
             var hits = SearchEverywhere("расширения файлов");
             Assert(hits.Any(h => h.Detail.StartsWith("Настройка") && h.Title.Contains("расширения")), "Catalogue setting not found");
@@ -37,6 +39,7 @@ namespace Wintools
             CloseGlobalSearch();
             Assert(searchOverlay.Visibility == Visibility.Collapsed, "Search overlay did not close");
             Get<TextBox>("Search").Clear();
+            Get<ComboBox>("Category").SelectedIndex = category;
             showAll = false;
             Filter();
             ShowPage(0);

@@ -1238,7 +1238,7 @@ namespace Wintools
             Window.UpdateLayout();
             await Task.Delay(100);
             Capture("portable-ui-compact.png");
-            Assert(IsVisibleInWindow("Apply") && IsVisibleInWindow("Star") && IsVisibleInWindow("ActionTitle") && IsVisibleInWindow("Metadata") && IsVisibleInWindow("Verify"), "Compact clipping: Apply=" + IsVisibleInWindow("Apply") + " Star=" + IsVisibleInWindow("Star") + " Title=" + IsVisibleInWindow("ActionTitle") + " Metadata=" + IsVisibleInWindow("Metadata") + " Verify=" + IsVisibleInWindow("Verify"));
+            Assert(IsVisibleInWindow("Apply") && IsVisibleInWindow("Star") && IsVisibleInWindow("ActionTitle") && IsVisibleInWindow("Metadata") && IsVisibleInWindow("Verify"), "Compact clipping: Apply=" + IsVisibleInWindow("Apply") + " Star=" + IsVisibleInWindow("Star") + " Title=" + IsVisibleInWindow("ActionTitle") + " Metadata=" + IsVisibleInWindow("Metadata") + " Verify=" + IsVisibleInWindow("Verify") + " Card=" + Get<FrameworkElement>("ActionCard").ActualWidth.ToString("0") + "x" + Get<FrameworkElement>("ActionCard").ActualHeight.ToString("0") + " Results=" + Get<FrameworkElement>("CatalogueResults").ActualWidth.ToString("0") + "x" + Get<FrameworkElement>("CatalogueResults").ActualHeight.ToString("0") + " Page=" + Get<FrameworkElement>("CataloguePage").ActualHeight.ToString("0") + " Window=" + Window.ActualWidth.ToString("0") + "x" + Window.ActualHeight.ToString("0"));
             Capture("portable-ui-compact.png");
             ExpandOutput(false);
             Get<ComboBox>("Theme").SelectedIndex = 0;
