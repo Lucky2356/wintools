@@ -426,6 +426,82 @@ namespace Wintools
             Assert(!masked.Contains(profile) && masked.Contains("%USERPROFILE%\\Desktop") && masked.Contains("<sid>") && !masked.Contains("S-1-5-21-1-2-3"), "Diagnostics masking incomplete: " + masked);
         }
 
+        // The English table must cover the interface without Russian leftovers, and descr.en must describe exactly the catalogue of descr.ru.
+        private static void Localization()
+        {
+            var table = Lang.Load();
+            Assert(table.Count > 1500, "English string table not embedded");
+            var cyrillic = new System.Text.RegularExpressions.Regex("[\\u0400-\\u04FF]");
+            var allowed = new[] { "Русский", "Язык интерфейса · Language" };
+            foreach (var pair in table)
+            {
+                Assert(!string.IsNullOrWhiteSpace(pair.Value), "Empty translation: " + pair.Key);
+                Assert(allowed.Contains(pair.Key) || !cyrillic.IsMatch(pair.Value), "Russian left in translation: " + pair.Value);
+                Assert(pair.Key.StartsWith("\n") == pair.Value.StartsWith("\n") && pair.Key.EndsWith(" ") == pair.Value.EndsWith(" "), "Translation changes spacing: " + pair.Key);
+            }
+
+            string russian, english;
+            using (var resource = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Engine.zip"))
+            using (var zip = new System.IO.Compression.ZipArchive(resource, System.IO.Compression.ZipArchiveMode.Read))
+            {
+                var ru = zip.GetEntry("data/descr.ru");
+                var en = zip.GetEntry("data/descr.en");
+                Assert(ru != null && en != null, "Catalogue descriptions missing from the engine");
+                using (var reader = new StreamReader(ru.Open(), Encoding.GetEncoding(866)))
+                    russian = reader.ReadToEnd();
+                using (var reader = new StreamReader(en.Open(), Encoding.UTF8))
+                    english = reader.ReadToEnd();
+            }
+
+            Func<string, string[][]> rows = text => text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).Where(l => !l.StartsWith("#")).Select(l => l.Split('|')).ToArray();
+            var source = rows(russian);
+            var translated = rows(english);
+            Assert(source.Length == translated.Length && source.Zip(translated, (a, b) => a[0] == b[0] && a[1] == b[1] && b.Length == 6).All(x => x), "English catalogue differs from descr.ru");
+            Assert(translated.All(r => !cyrillic.IsMatch(string.Join("|", r))), "Russian left in descr.en");
+            try
+            {
+                Lang.Initialize("en", false);
+                Assert(Lang.English && Lang.T("Сеть и DNS") != "Сеть и DNS" && Lang.T("no such text") == "no such text", "English lookup failed");
+                // Every visible text written in Shell.xaml must have a translation.
+                System.Windows.Window shell;
+                using (var stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Shell.xaml"))
+                    shell = (System.Windows.Window)System.Windows.Markup.XamlReader.Load(stream);
+                Lang.Translate(shell);
+                var left = new List<string>();
+                CollectTexts(shell, left);
+                left = left.Where(t => cyrillic.IsMatch(t) && !allowed.Contains(t)).Distinct().ToList();
+                Assert(left.Count == 0, "Shell texts without translation: " + string.Join(" | ", left.Take(10)));
+                Lang.Initialize("en", true);
+                Assert(!Lang.English && Lang.T("Сеть и DNS") == "Сеть и DNS", "Test mode not forced to Russian");
+            }
+            finally
+            {
+                Lang.Initialize("ru", true);
+            }
+        }
+
+        private static void CollectTexts(System.Windows.DependencyObject root, List<string> texts)
+        {
+            var text = root as System.Windows.Controls.TextBlock;
+            if (text != null)
+                texts.Add(text.Text);
+            var content = root as System.Windows.Controls.ContentControl;
+            if (content != null && content.Content is string)
+                texts.Add((string)content.Content);
+            var header = root as System.Windows.Controls.HeaderedContentControl;
+            if (header != null && header.Header is string)
+                texts.Add((string)header.Header);
+            var element = root as System.Windows.FrameworkElement;
+            if (element != null && element.ToolTip is string)
+                texts.Add((string)element.ToolTip);
+            foreach (var child in System.Windows.LogicalTreeHelper.GetChildren(root))
+            {
+                var dependency = child as System.Windows.DependencyObject;
+                if (dependency != null)
+                    CollectTexts(dependency, texts);
+            }
+        }
+
         internal static int Run()
         {
             CatalogueState();
@@ -438,6 +514,7 @@ namespace Wintools
             Records();
             Usage();
             Masking();
+            Localization();
             File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed.");
             return 0;
         }

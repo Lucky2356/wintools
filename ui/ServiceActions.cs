@@ -61,7 +61,7 @@ namespace Wintools
         private static ManagementObject Open(string name)
         {
             if (!ValidName(name))
-                throw new ArgumentException("Некорректное имя службы.");
+                throw new ArgumentException(Lang.T("Некорректное имя службы."));
             var service = new ManagementObject(null, new ManagementPath("Win32_Service.Name=\"" + name.Replace("\"", "\\\"") + "\""), new ObjectGetOptions { Timeout = TimeSpan.FromSeconds(15) });
             try
             {
@@ -149,7 +149,7 @@ namespace Wintools
                 {
                     uint code = Convert.ToUInt32(result["ReturnValue"]);
                     if (code != 0)
-                        throw new InvalidOperationException(code == 3 ? "Есть работающие зависимые службы. Они не были остановлены автоматически." : code == 2 ? "Windows не разрешила изменение этой службы." : "Windows отклонила действие службы: код " + code + ".");
+                        throw new InvalidOperationException(code == 3 ? Lang.T("Есть работающие зависимые службы. Они не были остановлены автоматически.") : code == 2 ? Lang.T("Windows не разрешила изменение этой службы.") : Lang.T("Windows отклонила действие службы: код ") + code + ".");
                 }
             }
         }
@@ -168,7 +168,7 @@ namespace Wintools
                 Thread.Sleep(250);
             }
 
-            throw new TimeoutException("Служба не перешла в ожидаемое состояние за 30 секунд. Обновите её состояние.");
+            throw new TimeoutException(Lang.T("Служба не перешла в ожидаемое состояние за 30 секунд. Обновите её состояние."));
         }
 
         private static void Start(string name)
@@ -177,7 +177,7 @@ namespace Wintools
             if (current.State == "Running")
                 return;
             if (current.State != "Stopped")
-                throw new IOException("Состояние службы изменилось. Для приостановленной службы используйте «Продолжить».");
+                throw new IOException(Lang.T("Состояние службы изменилось. Для приостановленной службы используйте «Продолжить»."));
             Invoke(name, "StartService", null);
             WaitState(name, "Running");
         }
@@ -188,7 +188,7 @@ namespace Wintools
             if (current.State == "Paused")
                 return;
             if (current.State != "Running" || !current.CanPause)
-                throw new IOException("Служба сейчас не поддерживает приостановку.");
+                throw new IOException(Lang.T("Служба сейчас не поддерживает приостановку."));
             Invoke(name, "PauseService", null);
             WaitState(name, "Paused");
         }
@@ -199,7 +199,7 @@ namespace Wintools
             if (current.State == "Running")
                 return;
             if (current.State != "Paused" || !current.CanPause)
-                throw new IOException("Служба сейчас не поддерживает продолжение работы.");
+                throw new IOException(Lang.T("Служба сейчас не поддерживает продолжение работы."));
             Invoke(name, "ResumeService", null);
             WaitState(name, "Running");
         }
@@ -220,13 +220,13 @@ namespace Wintools
                 "Manual",
                 "Disabled"
             }.Contains(mode))
-                throw new ArgumentException("Неподдерживаемый режим запуска.");
+                throw new ArgumentException(Lang.T("Неподдерживаемый режим запуска."));
             Invoke(name, "ChangeStartMode", mode == "Auto" ? "Automatic" : mode);
             if (mode == "Auto")
                 DelaySetting(name, delayed);
             var actual = Inspect(name);
             if (actual.Mode != mode || (mode == "Auto" && actual.Delayed != delayed))
-                throw new IOException("Windows не сохранила выбранный режим запуска.");
+                throw new IOException(Lang.T("Windows не сохранила выбранный режим запуска."));
         }
 
         private static void Restore(ServiceSnapshot before)
@@ -242,7 +242,7 @@ namespace Wintools
                 "Stopped",
                 "Paused"
             }.Contains(before.State))
-                throw new IOException("Некорректное исходное состояние службы.");
+                throw new IOException(Lang.T("Некорректное исходное состояние службы."));
             if (before.State == "Stopped")
                 Stop(before.Name);
             bool active = before.State != "Stopped";
@@ -266,7 +266,7 @@ namespace Wintools
                 Mode(before.Name, "Disabled", false);
         }
 
-        private static readonly RecordStore Store = new RecordStore("service-history", "службы", 65536);
+        private static readonly RecordStore Store = new RecordStore("service-history", Lang.T("службы"), 65536);
         private static string DirectoryPath
         {
             get
@@ -278,7 +278,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер изменения службы.");
+                throw new IOException(Lang.T("Некорректный номер изменения службы."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -310,17 +310,17 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out stamp))
-                    throw new IOException("Некорректная запись истории службы.");
+                    throw new IOException(Lang.T("Некорректная запись истории службы."));
                 Validate(record.Name, record.Action, record.Action == "restore" ? record.Id : null);
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Некорректная запись истории службы.", ex);
+                throw new IOException(Lang.T("Некорректная запись истории службы."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Некорректная запись истории службы.", ex);
+                throw new IOException(Lang.T("Некорректная запись истории службы."), ex);
             }
         }
 
@@ -356,7 +356,7 @@ namespace Wintools
                 return new EngineResult
                 {
                     Code = process.ExitCode,
-                    Output = File.Exists(log) ? File.ReadAllText(log) : "Действие службы завершилось без отчёта."
+                    Output = File.Exists(log) ? File.ReadAllText(log) : Lang.T("Действие службы завершилось без отчёта.")
                 };
             }
         }
@@ -376,22 +376,22 @@ namespace Wintools
                 "disabled",
                 "restore"
             }.Contains(action))
-                throw new ArgumentException("Недопустимое действие службы.");
+                throw new ArgumentException(Lang.T("Недопустимое действие службы."));
             if (action == "restore")
                 RecordPath(restoreId);
             else if (restoreId != null && restoreId != "-")
-                throw new ArgumentException("Неожиданный номер восстановления.");
+                throw new ArgumentException(Lang.T("Неожиданный номер восстановления."));
         }
 
         internal static int Worker(string[] args)
         {
             if (args.Length != 6 || !Regex.IsMatch(args[3], "^[a-f0-9]{32}$") || args[4] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос службы некорректен или повышение прав выполнено под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос службы некорректен или повышение прав выполнено под другим пользователем."));
             string name = new UTF8Encoding(false, true).GetString(Convert.FromBase64String(args[2]));
             string action = args[1], id = args[3];
             Validate(name, action, args[5]);
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             var runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -407,21 +407,21 @@ namespace Wintools
                     gate = new FileStream(lockPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     var before = Inspect(name);
                     if (!Manageable(before))
-                        throw new IOException("Дождитесь стабильного состояния службы. Драйверы этим инструментом не изменяются.");
+                        throw new IOException(Lang.T("Дождитесь стабильного состояния службы. Драйверы этим инструментом не изменяются."));
                     if ((action == "start" || action == "restart") && before.Mode == "Disabled")
-                        throw new IOException("Сначала разрешите запуск службы. Отключённая служба не была остановлена для перезапуска.");
+                        throw new IOException(Lang.T("Сначала разрешите запуск службы. Отключённая служба не была остановлена для перезапуска."));
                     if (action == "pause" && (before.State != "Running" || !before.CanPause))
-                        throw new IOException("Служба не поддерживает приостановку в текущем состоянии.");
+                        throw new IOException(Lang.T("Служба не поддерживает приостановку в текущем состоянии."));
                     if (action == "resume" && (before.State != "Paused" || !before.CanPause))
-                        throw new IOException("Служба не поддерживает продолжение в текущем состоянии.");
+                        throw new IOException(Lang.T("Служба не поддерживает продолжение в текущем состоянии."));
                     if (action == "start" && before.State == "Paused")
-                        throw new IOException("Служба приостановлена. Используйте «Продолжить».");
+                        throw new IOException(Lang.T("Служба приостановлена. Используйте «Продолжить»."));
                     ServiceChange original = null;
                     if (action == "restore")
                     {
                         original = Read(args[5]);
                         if (original.Name != name || original.Status == "REVERTED")
-                            throw new IOException("Запись восстановления не соответствует выбранной службе.");
+                            throw new IOException(Lang.T("Запись восстановления не соответствует выбранной службе."));
                     }
 
                     record = new ServiceChange
@@ -461,7 +461,7 @@ namespace Wintools
                         Save(original);
                     }
 
-                    log.WriteLine("Готово: " + record.After.Label + ". Состояние: " + record.After.State + ". Запуск: " + record.After.Mode + (record.After.Delayed ? " (отложенный)" : "") + ". История: " + id);
+                    log.WriteLine(Lang.T("Готово: ") + record.After.Label + Lang.T(". Состояние: ") + record.After.State + Lang.T(". Запуск: ") + record.After.Mode + (record.After.Delayed ? Lang.T(" (отложенный)") : "") + Lang.T(". История: ") + id);
                     return 0;
                 }
                 catch (Exception ex)
@@ -477,11 +477,11 @@ namespace Wintools
                         }
                         catch (Exception saveError)
                         {
-                            log.WriteLine("Не удалось обновить историю: " + saveError.Message);
+                            log.WriteLine(Lang.T("Не удалось обновить историю: ") + saveError.Message);
                         }
                     }
 
-                    log.WriteLine("Действие не завершено: " + ex.Message + " Проверьте текущее состояние службы; часть шагов могла выполниться.");
+                    log.WriteLine(Lang.T("Действие не завершено: ") + ex.Message + Lang.T(" Проверьте текущее состояние службы; часть шагов могла выполниться."));
                     return 4;
                 }
                 finally

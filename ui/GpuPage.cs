@@ -18,9 +18,9 @@ namespace Wintools
         private void InitializeGpu(StackPanel panel)
         {
             gpuRead = gpuReader.Read;
-            var card = ResourceCard("Видеокарта", out gpuValue, out gpuGraph);
+            var card = ResourceCard(Lang.T("Видеокарта"), out gpuValue, out gpuGraph);
             gpuGraph.Percent = true;
-            gpuMemory = Paragraph("Выберите GPU ниже");
+            gpuMemory = Paragraph(Lang.T("Выберите GPU ниже"));
             card.Children.Add(gpuMemory);
             var controls = new WrapPanel
             {
@@ -33,23 +33,23 @@ namespace Wintools
                 DisplayMemberPath = "Name",
                 Margin = new Thickness(0, 0, 10, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(gpuAdapter, "Видеокарта для мониторинга");
+            System.Windows.Automation.AutomationProperties.SetName(gpuAdapter, Lang.T("Видеокарта для мониторинга"));
             controls.Children.Add(gpuAdapter);
             var refresh = new Button
             {
-                Content = "Обновить видеокарты",
+                Content = Lang.T("Обновить видеокарты"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             controls.Children.Add(refresh);
             refresh.Click += async (s, e) => await ReadGpuAdapters();
-            gpuStatus = Paragraph("Нагрузка самого занятого блока выбранного GPU. Объём видеопамяти сообщает DXGI; общая память — доступный предел ОЗУ, а не дополнительно установленная видеопамять.");
+            gpuStatus = Paragraph(Lang.T("Нагрузка самого занятого блока выбранного GPU. Объём видеопамяти сообщает DXGI; общая память — доступный предел ОЗУ, а не дополнительно установленная видеопамять."));
             panel.Children.Add(gpuStatus);
             gpuAdapter.SelectionChanged += (s, e) =>
             {
                 gpuGraph.Clear();
-                gpuValue.Text = "Первый замер…";
+                gpuValue.Text = Lang.T("Первый замер…");
                 var row = gpuAdapter.SelectedItem as GpuAdapter;
-                gpuMemory.Text = row == null ? "Видеоадаптер не выбран" : "Выделенная видеопамять: " + (row.Dedicated / 1073741824.0).ToString("N1") + " ГиБ\nОбщая ОЗУ — предел: " + (row.SharedLimit / 1073741824.0).ToString("N1") + " ГиБ";
+                gpuMemory.Text = row == null ? Lang.T("Видеоадаптер не выбран") : Lang.T("Выделенная видеопамять: ") + (row.Dedicated / 1073741824.0).ToString("N1") + Lang.T(" ГиБ\nОбщая ОЗУ — предел: ") + (row.SharedLimit / 1073741824.0).ToString("N1") + Lang.T(" ГиБ");
             };
             resourceTimer.Tick += async (s, e) => await SampleGpu();
             panel.IsVisibleChanged += async (s, e) =>
@@ -74,13 +74,13 @@ namespace Wintools
                 gpuAdapter.SelectedItem = prior == null ? null : rows.FirstOrDefault(r => r.Id == prior.Id);
                 if (gpuAdapter.SelectedIndex < 0 && rows.Length > 0)
                     gpuAdapter.SelectedIndex = 0;
-                gpuStatus.Text = rows.Length == 0 ? "Аппаратные видеоадаптеры DXGI не найдены. В удалённой сессии или виртуальной машине данные могут быть недоступны." : "Видеокарт: " + rows.Length + ". Показывается нагрузка самого занятого блока GPU; нагрузки разных блоков не складываются.";
+                gpuStatus.Text = rows.Length == 0 ? Lang.T("Аппаратные видеоадаптеры DXGI не найдены. В удалённой сессии или виртуальной машине данные могут быть недоступны.") : Lang.T("Видеокарт: ") + rows.Length + Lang.T(". Показывается нагрузка самого занятого блока GPU; нагрузки разных блоков не складываются.");
             }
             catch (Exception ex)
             {
                 gpuAdapter.ItemsSource = new GpuAdapter[0];
-                gpuValue.Text = "Недоступно";
-                gpuStatus.Text = "Не удалось прочитать видеокарты: " + ex.Message;
+                gpuValue.Text = Lang.T("Недоступно");
+                gpuStatus.Text = Lang.T("Не удалось прочитать видеокарты: ") + ex.Message;
             }
             finally
             {
@@ -103,15 +103,15 @@ namespace Wintools
                     return;
                 double value;
                 bool known = sample.Usage.TryGetValue(selected.Id, out value);
-                gpuValue.Text = known ? value.ToString("N0") + " %" : "Нет замера";
+                gpuValue.Text = known ? value.ToString("N0") + " %" : Lang.T("Нет замера");
                 gpuGraph.Push(known ? (double? )value : null);
-                gpuStatus.Text = "GPU · " + DateTime.Now.ToString("HH:mm:ss") + " · Самый занятый блок. " + (known ? sample.Error : string.IsNullOrEmpty(sample.Error) ? "Счётчики выбранной видеокарты недоступны." : sample.Error);
+                gpuStatus.Text = "GPU · " + DateTime.Now.ToString("HH:mm:ss") + Lang.T(" · Самый занятый блок. ") + (known ? sample.Error : string.IsNullOrEmpty(sample.Error) ? Lang.T("Счётчики выбранной видеокарты недоступны.") : sample.Error);
             }
             catch (Exception ex)
             {
                 if (!closed && page == 6 && !resourcesPaused && gpuAdapter.SelectedItem == selected)
                 {
-                    gpuValue.Text = "Недоступно";
+                    gpuValue.Text = Lang.T("Недоступно");
                     gpuGraph.Push(null);
                     gpuStatus.Text = ex.Message;
                 }

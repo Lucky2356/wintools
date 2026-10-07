@@ -31,7 +31,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер изменения DNS.");
+                throw new IOException(Lang.T("Некорректный номер изменения DNS."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -71,16 +71,16 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись DNS.");
+                    throw new IOException(Lang.T("Некорректная запись DNS."));
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история DNS.", ex);
+                throw new IOException(Lang.T("Повреждена история DNS."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история DNS.", ex);
+                throw new IOException(Lang.T("Повреждена история DNS."), ex);
             }
         }
 
@@ -92,15 +92,15 @@ namespace Wintools
         internal static void Validate(string adapter, string target, string expected, string restore)
         {
             if (!DnsSettings.ValidAdapter(adapter) || !Regex.IsMatch(expected ?? "", "^[a-f0-9]{16}$"))
-                throw new ArgumentException("Некорректный запрос DNS.");
+                throw new ArgumentException(Lang.T("Некорректный запрос DNS."));
             if (target == "restore")
             {
                 if (restore == null || restore == "-")
-                    throw new ArgumentException("Не указана запись для возврата DNS.");
+                    throw new ArgumentException(Lang.T("Не указана запись для возврата DNS."));
                 RecordPath(restore);
             }
             else if (DnsSettings.Provider(target) == null || (restore != null && restore != "-"))
-                throw new ArgumentException("Неизвестный набор DNS-серверов.");
+                throw new ArgumentException(Lang.T("Неизвестный набор DNS-серверов."));
         }
 
         internal static async Task<EngineResult> Run(string adapter, string target, string expected, string restore)
@@ -122,7 +122,7 @@ namespace Wintools
                 return new EngineResult
                 {
                     Code = process.ExitCode,
-                    Output = File.Exists(path) ? File.ReadAllText(path) : "Изменение DNS завершилось без отчёта."
+                    Output = File.Exists(path) ? File.ReadAllText(path) : Lang.T("Изменение DNS завершилось без отчёта.")
                 };
             }
         }
@@ -130,11 +130,11 @@ namespace Wintools
         internal static int Worker(string[] args)
         {
             if (args.Length != 7 || !Regex.IsMatch(args[4], "^[a-f0-9]{32}$") || args[5] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос DNS некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос DNS некорректен или права повышены под другим пользователем."));
             Validate(args[1], args[2], args[3], args[6]);
             string adapterId = args[1], target = args[2], expected = args[3], id = args[4];
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -150,7 +150,7 @@ namespace Wintools
                     gate = new FileStream(lockPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     var adapter = DnsSettings.Find(adapterId);
                     if (adapter.Fingerprint != expected)
-                        throw new IOException("DNS этого адаптера изменился после чтения. Обновите состояние и повторите выбор.");
+                        throw new IOException(Lang.T("DNS этого адаптера изменился после чтения. Обновите состояние и повторите выбор."));
                     DnsChange original = null;
                     string[] v4, v6;
                     string name;
@@ -158,12 +158,12 @@ namespace Wintools
                     {
                         original = Read(args[6]);
                         if (original.Action != "select" || original.Status == "REVERTED" || !string.Equals(original.Adapter, adapter.Id, StringComparison.OrdinalIgnoreCase))
-                            throw new IOException("Запись не подходит для возврата DNS этого адаптера.");
+                            throw new IOException(Lang.T("Запись не подходит для возврата DNS этого адаптера."));
                         if (original.After4 == null || original.After6 == null || DnsSettings.Fingerprint(original.After4, original.After6) != adapter.Fingerprint)
-                            throw new IOException("DNS изменён после этой записи вручную или другой программой. Возврат отменён, чтобы не перезаписать более позднюю настройку.");
+                            throw new IOException(Lang.T("DNS изменён после этой записи вручную или другой программой. Возврат отменён, чтобы не перезаписать более позднюю настройку."));
                         v4 = original.Before4;
                         v6 = original.Before6;
-                        name = "прежние адреса";
+                        name = Lang.T("прежние адреса");
                     }
                     else
                     {
@@ -175,7 +175,7 @@ namespace Wintools
 
                     if (original == null && adapter.Static4.SequenceEqual(DnsSettings.Normalize(v4, AddressFamily.InterNetwork)) && (adapter.Index6 == 0 || adapter.Static6.SequenceEqual(DnsSettings.Normalize(v6, AddressFamily.InterNetworkV6))))
                     {
-                        log.WriteLine("Этот DNS уже используется. Изменений нет.");
+                        log.WriteLine(Lang.T("Этот DNS уже используется. Изменений нет."));
                         return 0;
                     }
 
@@ -206,7 +206,7 @@ namespace Wintools
                         Save(original);
                     }
 
-                    log.WriteLine("Адаптер " + adapter.Name + ": DNS " + after.Summary + ". Запись истории: " + id);
+                    log.WriteLine(Lang.T("Адаптер ") + adapter.Name + ": DNS " + after.Summary + Lang.T(". Запись истории: ") + id);
                     return 0;
                 }
                 catch (Exception ex)
@@ -231,11 +231,11 @@ namespace Wintools
                         }
                         catch (Exception saveError)
                         {
-                            log.WriteLine("История требует проверки: " + saveError.Message);
+                            log.WriteLine(Lang.T("История требует проверки: ") + saveError.Message);
                         }
                     }
 
-                    log.WriteLine("Не удалось изменить DNS: " + ex.Message + " Обновите текущее состояние.");
+                    log.WriteLine(Lang.T("Не удалось изменить DNS: ") + ex.Message + Lang.T(" Обновите текущее состояние."));
                     return 4;
                 }
                 finally

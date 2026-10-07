@@ -31,7 +31,7 @@ namespace Wintools
 
             )
                 pageRoot.RowDefinitions.Add(new RowDefinition { Height = height });
-            serviceStatus = Paragraph("Текущее состояние и способ запуска — разные свойства службы. Чтение ничего не отключает.");
+            serviceStatus = Paragraph(Lang.T("Текущее состояние и способ запуска — разные свойства службы. Чтение ничего не отключает."));
             pageRoot.Children.Add(serviceStatus);
             var searchRow = new Grid
             {
@@ -47,13 +47,13 @@ namespace Wintools
             };
             serviceSearch = new TextBox
             {
-                ToolTip = "Поиск по названию или системному имени службы"
+                ToolTip = Lang.T("Поиск по названию или системному имени службы")
             };
-            System.Windows.Automation.AutomationProperties.SetName(serviceSearch, "Поиск служб");
+            System.Windows.Automation.AutomationProperties.SetName(serviceSearch, Lang.T("Поиск служб"));
             searchBox.Children.Add(serviceSearch);
             var hint = new TextBlock
             {
-                Text = "Поиск службы по названию или имени",
+                Text = Lang.T("Поиск службы по названию или имени"),
                 IsHitTestVisible = false,
                 Margin = new Thickness(12, 0, 0, 0),
                 VerticalAlignment = VerticalAlignment.Center
@@ -68,7 +68,7 @@ namespace Wintools
             searchRow.Children.Add(searchBox);
             serviceRefresh = new Button
             {
-                Content = "↻ Обновить",
+                Content = Lang.T("↻ Обновить"),
                 Padding = new Thickness(14, 8, 14, 8)
             };
             serviceRefresh.Click += async (s, e) => await RefreshServices();
@@ -82,7 +82,7 @@ namespace Wintools
             pageRoot.Children.Add(filters);
             runningOnly = new CheckBox
             {
-                Content = "Только работающие",
+                Content = Lang.T("Только работающие"),
                 Margin = new Thickness(0, 0, 16, 0)
             };
             runningOnly.Click += (s, e) => FilterServices();
@@ -92,15 +92,15 @@ namespace Wintools
                 Width = 205,
                 ItemsSource = new[]
                 {
-                    "Все способы запуска",
-                    "Автоматический запуск",
-                    "Ручной запуск",
-                    "Запуск отключён",
-                    "Есть действие в каталоге"
+                    Lang.T("Все способы запуска"),
+                    Lang.T("Автоматический запуск"),
+                    Lang.T("Ручной запуск"),
+                    Lang.T("Запуск отключён"),
+                    Lang.T("Есть действие в каталоге")
                 },
                 SelectedIndex = 0
             };
-            System.Windows.Automation.AutomationProperties.SetName(serviceMode, "Фильтр служб");
+            System.Windows.Automation.AutomationProperties.SetName(serviceMode, Lang.T("Фильтр служб"));
             serviceMode.SelectionChanged += (s, e) => FilterServices();
             filters.Children.Add(serviceMode);
             InitializeServiceWatching(filters);
@@ -117,7 +117,7 @@ namespace Wintools
             rowStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 8, 10, 8)));
             rowStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0, 0, 0, 4)));
             serviceList.ItemContainerStyle = rowStyle;
-            serviceList.ItemTemplate = (DataTemplate)XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='120'/><ColumnDefinition Width='140'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,12,0'><TextBlock Text='{Binding Label}' FontWeight='SemiBold' TextWrapping='Wrap'/><TextBlock Text='{Binding Name}' FontSize='12' Foreground='{DynamicResource Muted}' Margin='0,3,0,0'/></StackPanel><StackPanel Grid.Column='1'><TextBlock Text='Сейчас' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding RunningLabel}' TextWrapping='Wrap' Margin='0,3,6,0'/></StackPanel><StackPanel Grid.Column='2'><TextBlock Text='Запуск Windows' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding StartLabel}' TextWrapping='Wrap' Margin='0,3,0,0'/></StackPanel></Grid></DataTemplate>");
+            serviceList.ItemTemplate = (DataTemplate)XamlReader.Parse(Lang.T("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='120'/><ColumnDefinition Width='140'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,12,0'><TextBlock Text='{Binding Label}' FontWeight='SemiBold' TextWrapping='Wrap'/><TextBlock Text='{Binding Name}' FontSize='12' Foreground='{DynamicResource Muted}' Margin='0,3,0,0'/></StackPanel><StackPanel Grid.Column='1'><TextBlock Text='Сейчас' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding RunningLabel}' TextWrapping='Wrap' Margin='0,3,6,0'/></StackPanel><StackPanel Grid.Column='2'><TextBlock Text='Запуск Windows' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding StartLabel}' TextWrapping='Wrap' Margin='0,3,0,0'/></StackPanel></Grid></DataTemplate>"));
             var footer = new Grid
             {
                 Margin = new Thickness(0, 10, 0, 0)
@@ -126,13 +126,13 @@ namespace Wintools
             footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             Grid.SetRow(footer, 4);
             pageRoot.Children.Add(footer);
-            serviceSelection = Paragraph("Выберите службу для описания и доступного действия.");
+            serviceSelection = Paragraph(Lang.T("Выберите службу для описания и доступного действия."));
             serviceSelection.Margin = new Thickness(0, 0, 12, 0);
             serviceSelection.FontSize = 12;
             footer.Children.Add(serviceSelection);
             serviceAction = new Button
             {
-                Content = "Описание и действие →",
+                Content = Lang.T("Описание и действие →"),
                 IsEnabled = false
             };
             Grid.SetColumn(serviceAction, 1);
@@ -142,7 +142,7 @@ namespace Wintools
                 var state = serviceList.SelectedItem as ServiceState;
                 var tweak = state == null ? null : catalogue.FirstOrDefault(t => t.Kind == "SVC" && string.Equals(t.Target, state.Name, StringComparison.OrdinalIgnoreCase));
                 serviceAction.IsEnabled = tweak != null;
-                serviceSelection.Text = state == null ? "Выберите службу для описания и доступного действия." : tweak == null ? state.Title + " · Служба не входит в каталог. Прочитайте описание перед изменением." : tweak.Caveat;
+                serviceSelection.Text = state == null ? Lang.T("Выберите службу для описания и доступного действия.") : tweak == null ? state.Title + Lang.T(" · Служба не входит в каталог. Прочитайте описание перед изменением.") : tweak.Caveat;
             };
             InitializeServiceManagement(footer);
             InitializeServiceDependencies(pageRoot, filters, footer);

@@ -39,7 +39,7 @@ namespace Wintools
 
             )
                 root.RowDefinitions.Add(new RowDefinition { Height = height });
-            var intro = Paragraph("Реестр Run, папки автозагрузки и задачи входа в Windows. «Включено» означает разрешение запуска, а не работающий процесс. У задач могут быть дополнительные условия; автозапуск Store пока не включён.");
+            var intro = Paragraph(Lang.T("Реестр Run, папки автозагрузки и задачи входа в Windows. «Включено» означает разрешение запуска, а не работающий процесс. У задач могут быть дополнительные условия; автозапуск Store пока не включён."));
             root.Children.Add(intro);
             var filters = new Grid
             {
@@ -53,13 +53,13 @@ namespace Wintools
             startupSearch = new TextBox
             {
                 Margin = new Thickness(0, 0, 10, 0),
-                ToolTip = "Поиск по имени, команде и источнику"
+                ToolTip = Lang.T("Поиск по имени, команде и источнику")
             };
-            System.Windows.Automation.AutomationProperties.SetName(startupSearch, "Поиск в автозагрузке");
+            System.Windows.Automation.AutomationProperties.SetName(startupSearch, Lang.T("Поиск в автозагрузке"));
             filters.Children.Add(startupSearch);
             var searchHint = new TextBlock
             {
-                Text = "Найти программу или команду…",
+                Text = Lang.T("Найти программу или команду…"),
                 IsHitTestVisible = false,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(12, 0, 10, 0)
@@ -76,14 +76,14 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 8, 0),
                 ItemsSource = new[]
                 {
-                    "Все записи",
-                    "Включённые",
-                    "Отключённые",
-                    "Неизвестно"
+                    Lang.T("Все записи"),
+                    Lang.T("Включённые"),
+                    Lang.T("Отключённые"),
+                    Lang.T("Неизвестно")
                 },
                 SelectedIndex = 0
             };
-            System.Windows.Automation.AutomationProperties.SetName(startupFilter, "Состояние автозагрузки");
+            System.Windows.Automation.AutomationProperties.SetName(startupFilter, Lang.T("Состояние автозагрузки"));
             Grid.SetColumn(startupFilter, 1);
             filters.Children.Add(startupFilter);
             startupFilter.SelectionChanged += (s, e) => FilterStartup();
@@ -91,18 +91,18 @@ namespace Wintools
             {
                 ItemsSource = new[]
                 {
-                    "Все источники",
-                    "Реестр Run",
-                    "Папки",
-                    "Задачи входа"
+                    Lang.T("Все источники"),
+                    Lang.T("Реестр Run"),
+                    Lang.T("Папки"),
+                    Lang.T("Задачи входа")
                 },
                 SelectedIndex = 0
             };
-            System.Windows.Automation.AutomationProperties.SetName(startupSource, "Источник автозагрузки");
+            System.Windows.Automation.AutomationProperties.SetName(startupSource, Lang.T("Источник автозагрузки"));
             Grid.SetColumn(startupSource, 2);
             filters.Children.Add(startupSource);
             startupSource.SelectionChanged += (s, e) => FilterStartup();
-            startupStatus = Paragraph("Нажмите «Обновить список», чтобы прочитать автозагрузку.");
+            startupStatus = Paragraph(Lang.T("Нажмите «Обновить список», чтобы прочитать автозагрузку."));
             Grid.SetRow(startupStatus, 2);
             root.Children.Add(startupStatus);
             startupList = new ListBox
@@ -122,11 +122,11 @@ namespace Wintools
             startupList.SelectionChanged += (s, e) =>
             {
                 var selected = startupList.SelectedItem as StartupEntry;
-                startupDetail.Text = selected == null ? "Выберите программу. Исходное состояние сохраняется в истории." : selected.Error ?? (selected.Source == StartupTasks.Source ? (selected.Restriction ?? "Можно изменить разрешение запуска всей задачи. Работающий экземпляр не останавливается.") + "\n" + selected.Details : ("«" + selected.Name + "» · " + selected.Location + ". Отключайте только программы, которые не нужны сразу после входа; например, мессенджер перестанет автоматически показывать сообщения."));
+                startupDetail.Text = selected == null ? Lang.T("Выберите программу. Исходное состояние сохраняется в истории.") : selected.Error ?? (selected.Source == StartupTasks.Source ? (selected.Restriction ?? Lang.T("Можно изменить разрешение запуска всей задачи. Работающий экземпляр не останавливается.")) + "\n" + selected.Details : ("«" + selected.Name + "» · " + selected.Location + Lang.T(". Отключайте только программы, которые не нужны сразу после входа; например, мессенджер перестанет автоматически показывать сообщения.")));
                 startupDetail.ToolTip = startupDetail.Text;
                 RefreshStartupEnabled();
             };
-            startupDetail = Paragraph("Выберите программу. Исходное состояние сохраняется в истории.");
+            startupDetail = Paragraph(Lang.T("Выберите программу. Исходное состояние сохраняется в истории."));
             startupDetail.FontSize = 12;
             startupDetail.Margin = new Thickness(0, 8, 0, 8);
             var detailScroll = new ScrollViewer
@@ -142,21 +142,21 @@ namespace Wintools
             root.Children.Add(buttons);
             startupDisable = new Button
             {
-                Content = "Отключить при входе",
+                Content = Lang.T("Отключить при входе"),
                 Margin = new Thickness(0, 0, 8, 4)
             };
             startupDisable.Click += async (s, e) => await ChangeStartup(false);
             buttons.Children.Add(startupDisable);
             startupEnable = new Button
             {
-                Content = "Включить при входе",
+                Content = Lang.T("Включить при входе"),
                 Margin = new Thickness(0, 0, 8, 4)
             };
             startupEnable.Click += async (s, e) => await ChangeStartup(true);
             buttons.Children.Add(startupEnable);
             startupRefresh = new Button
             {
-                Content = "Обновить список",
+                Content = Lang.T("Обновить список"),
                 Margin = new Thickness(0, 0, 0, 4)
             };
             startupRefresh.Click += async (s, e) => await ReadStartup();
@@ -176,8 +176,8 @@ namespace Wintools
             var selected = startupList.SelectedItem as StartupEntry;
             bool available = !busy && !readingStartup;
             bool task = selected != null && selected.Source == StartupTasks.Source;
-            startupEnable.Content = task ? "Включить задачу" : "Включить при входе";
-            startupDisable.Content = task ? "Отключить задачу" : "Отключить при входе";
+            startupEnable.Content = task ? Lang.T("Включить задачу") : Lang.T("Включить при входе");
+            startupDisable.Content = task ? Lang.T("Отключить задачу") : Lang.T("Отключить при входе");
             startupRefresh.IsEnabled = available;
             startupEnable.IsEnabled = available && selected != null && selected.CanChange && selected.Enabled == false;
             startupDisable.IsEnabled = available && selected != null && selected.CanChange && selected.Enabled == true;
@@ -193,7 +193,7 @@ namespace Wintools
             startupList.ItemsSource = rows;
             startupList.SelectedItem = rows.FirstOrDefault(r => r.Key == key);
             if (startupSnapshot != null)
-                startupStatus.Text = "Показано: " + rows.Length + " из " + startupSnapshot.Entries.Length + " · Всего включено: " + startupSnapshot.Entries.Count(r => r.Enabled == true) + " · Отключено: " + startupSnapshot.Entries.Count(r => r.Enabled == false) + " · Неизвестно: " + startupSnapshot.Entries.Count(r => !r.Enabled.HasValue) + (startupSnapshot.Errors.Length == 0 ? "" : ". Не все источники прочитаны: " + string.Join("; ", startupSnapshot.Errors));
+                startupStatus.Text = Lang.T("Показано: ") + rows.Length + Lang.T(" из ") + startupSnapshot.Entries.Length + Lang.T(" · Всего включено: ") + startupSnapshot.Entries.Count(r => r.Enabled == true) + Lang.T(" · Отключено: ") + startupSnapshot.Entries.Count(r => r.Enabled == false) + Lang.T(" · Неизвестно: ") + startupSnapshot.Entries.Count(r => !r.Enabled.HasValue) + (startupSnapshot.Errors.Length == 0 ? "" : Lang.T(". Не все источники прочитаны: ") + string.Join("; ", startupSnapshot.Errors));
             RefreshStartupEnabled();
         }
 
@@ -213,7 +213,7 @@ namespace Wintools
                 int epoch = startupEpoch;
                 readingStartup = true;
                 RefreshStartupEnabled();
-                startupStatus.Text = "Читаем записи и состояние Windows…";
+                startupStatus.Text = Lang.T("Читаем записи и состояние Windows…");
                 try
                 {
                     var read = startupRead;
@@ -236,7 +236,7 @@ namespace Wintools
                     {
                         startupSnapshot = null;
                         startupList.ItemsSource = null;
-                        startupStatus.Text = "Не удалось прочитать автозагрузку: " + ex.Message;
+                        startupStatus.Text = Lang.T("Не удалось прочитать автозагрузку: ") + ex.Message;
                     }
                 }
                 finally
@@ -254,7 +254,7 @@ namespace Wintools
             var entry = startupList.SelectedItem as StartupEntry;
             if (busy || readingStartup || entry == null || !entry.CanChange || entry.Enabled.Value == enabled)
                 return;
-            if (!await Confirm((enabled ? "Включить" : "Отключить") + " запуск «" + entry.Name + "» при входе в Windows?\n\n" + entry.Location + "\n" + entry.Command + "\n" + (entry.Details ?? "") + "\n\n" + (enabled ? "При следующем входе Windows сможет запустить эту команду." : "Программа не запустится через эту запись. Её уведомления, синхронизация и другие фоновые функции могут стать недоступны до ручного запуска.") + " Уже работающие процессы не изменятся. Прежнее состояние можно вернуть через историю."))
+            if (!await Confirm((enabled ? Lang.T("Включить") : Lang.T("Отключить")) + Lang.T(" запуск «") + entry.Name + Lang.T("» при входе в Windows?\n\n") + entry.Location + "\n" + entry.Command + "\n" + (entry.Details ?? "") + "\n\n" + (enabled ? Lang.T("При следующем входе Windows сможет запустить эту команду.") : Lang.T("Программа не запустится через эту запись. Её уведомления, синхронизация и другие фоновые функции могут стать недоступны до ручного запуска.")) + Lang.T(" Уже работающие процессы не изменятся. Прежнее состояние можно вернуть через историю.")))
                 return;
             await RunStartupChange(entry, enabled ? "enable" : "disable", null);
         }
@@ -268,13 +268,13 @@ namespace Wintools
             {
                 var result = await startupRun(entry, action, restore);
                 Get<TextBox>("Output").Text = result.Output;
-                Text("Status", result.Code == 0 ? "Состояние автозагрузки сохранено." : "Изменение требует внимания. Причина — в выводе.");
+                Text("Status", result.Code == 0 ? Lang.T("Состояние автозагрузки сохранено.") : Lang.T("Изменение требует внимания. Причина — в выводе."));
                 if (result.Code != 0)
                     ExpandOutput(true);
             }
             catch (Exception ex)
             {
-                Text("Status", "Автозагрузка не изменена: " + ex.Message);
+                Text("Status", Lang.T("Автозагрузка не изменена: ") + ex.Message);
             }
             finally
             {
@@ -293,23 +293,23 @@ namespace Wintools
             {
                 var record = StartupActions.Read(id);
                 if (record.Action == "restore" || record.Status == "REVERTED")
-                    throw new InvalidOperationException("Это изменение уже возвращено.");
+                    throw new InvalidOperationException(Lang.T("Это изменение уже возвращено."));
                 var entry = await Task.Run(() => StartupEntries.Inspect(record.Source, record.Name));
                 if (entry.Identity != record.Identity || entry.Approval != record.After)
-                    throw new InvalidOperationException("Запись изменилась. Сначала отмените более поздние изменения; прежнее состояние не будет записано поверх чужого изменения.");
-                if (!await Confirm("Вернуть прежнюю автозагрузку «" + record.Name + "»?\n\nБудет восстановлено состояние до выбранного изменения: " + (StartupEntries.Decode(record.Before) == true ? "включено" : "отключено") + ". Изменение относится к следующему входу в Windows."))
+                    throw new InvalidOperationException(Lang.T("Запись изменилась. Сначала отмените более поздние изменения; прежнее состояние не будет записано поверх чужого изменения."));
+                if (!await Confirm(Lang.T("Вернуть прежнюю автозагрузку «") + record.Name + Lang.T("»?\n\nБудет восстановлено состояние до выбранного изменения: ") + (StartupEntries.Decode(record.Before) == true ? Lang.T("включено") : Lang.T("отключено")) + Lang.T(". Изменение относится к следующему входу в Windows.")))
                     return;
                 await RunStartupChange(entry, "restore", id);
             }
             catch (Exception ex)
             {
-                Text("Status", "Не удалось вернуть автозагрузку: " + ex.Message);
+                Text("Status", Lang.T("Не удалось вернуть автозагрузку: ") + ex.Message);
             }
         }
 
         private static HistoryRow[] StartupHistoryRows()
         {
-            return StartupActions.History().Select(r => new HistoryRow { Run = r.Id, StartupChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Action == "restore" ? "Возврат автозагрузки: " : r.Action == "enable" ? "Автозагрузка включена: " : "Автозагрузка отключена: ") + r.Name, Status = r.Status == "OK" ? "Применено" : r.Status == "REVERTED" ? "Откат выполнен" : "Требует внимания", CanRevert = r.Action != "restore" && r.Status != "REVERTED" }).ToArray();
+            return StartupActions.History().Select(r => new HistoryRow { Run = r.Id, StartupChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Action == "restore" ? Lang.T("Возврат автозагрузки: ") : r.Action == "enable" ? Lang.T("Автозагрузка включена: ") : Lang.T("Автозагрузка отключена: ")) + r.Name, Status = r.Status == "OK" ? Lang.T("Применено") : r.Status == "REVERTED" ? Lang.T("Откат выполнен") : Lang.T("Требует внимания"), CanRevert = r.Action != "restore" && r.Status != "REVERTED" }).ToArray();
         }
     }
 }

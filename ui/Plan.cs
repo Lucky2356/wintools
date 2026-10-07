@@ -28,7 +28,7 @@ namespace Wintools
                     return;
                 if (preferences.Plan.Count >= 200)
                 {
-                    Text("Status", "В плане уже 200 действий. Выполните или сократите его.");
+                    Text("Status", Lang.T("В плане уже 200 действий. Выполните или сократите его."));
                     return;
                 }
 
@@ -38,7 +38,7 @@ namespace Wintools
                     preferences.Plan.Remove(item.Id);
                 RefreshPlan();
                 if (saved)
-                    Text("Status", "Добавлено в план: " + item.Title);
+                    Text("Status", Lang.T("Добавлено в план: ") + item.Title);
             });
             Get<ListBox>("PlanItems").SelectionChanged += (s, e) => RefreshEnabled();
             Click("PlanRemove", () => ChangePlan(0));
@@ -48,7 +48,7 @@ namespace Wintools
             {
                 stopPlan = true;
                 Enabled("PlanStop", false);
-                Text("PlanStatus", "Остановимся после текущего действия. Уже выполненные изменения сохранятся в истории.");
+                Text("PlanStatus", Lang.T("Остановимся после текущего действия. Уже выполненные изменения сохранятся в истории."));
             });
             ClickAsync("PlanPreview", () => RunPlan(true));
             ClickAsync("PlanApply", async () =>
@@ -56,7 +56,7 @@ namespace Wintools
                 if (busy || preferences.Plan.Count == 0)
                     return;
                 var items = PlanItems();
-                if (await Confirm("Выполнить по порядку " + items.Length + " действий?\n\n" + string.Join("\n\n", items.Select(t => t.Title + "\n" + Risk(t) + ". " + t.Caveat)) + "\n\nПри ошибке выполнение остановится. Выполненные действия останутся в истории для отдельного отката."))
+                if (await Confirm(Lang.T("Выполнить по порядку ") + items.Length + Lang.T(" действий?\n\n") + string.Join("\n\n", items.Select(t => t.Title + "\n" + Risk(t) + ". " + t.Caveat)) + Lang.T("\n\nПри ошибке выполнение остановится. Выполненные действия останутся в истории для отдельного отката.")))
                     await RunPlan(false);
             });
         }
@@ -98,8 +98,8 @@ namespace Wintools
         {
             var items = PlanItems();
             Get<ListBox>("PlanItems").ItemsSource = items.Select((t, i) => new ActionRow { Item = t, DisplayTitle = (i + 1) + ". " + t.Title, Summary = Risk(t) + " · " + t.Description }).ToArray();
-            Get<Button>("NavPlan").Content = items.Length == 0 ? "План изменений" : "План изменений · " + items.Length;
-            Text("PlanStatus", items.Length == 0 ? "План пуст. Откройте действие в каталоге и нажмите «В план». Список сохраняется между запусками." : "В плане: " + items.Length + ". Сначала проверьте предпросмотр. Очистка файлов и удаление Edge выполняются отдельно.");
+            Get<Button>("NavPlan").Content = items.Length == 0 ? Lang.T("План изменений") : Lang.T("План изменений · ") + items.Length;
+            Text("PlanStatus", items.Length == 0 ? Lang.T("План пуст. Откройте действие в каталоге и нажмите «В план». Список сохраняется между запусками.") : Lang.T("В плане: ") + items.Length + Lang.T(". Сначала проверьте предпросмотр. Очистка файлов и удаление Edge выполняются отдельно."));
             RefreshEnabled();
         }
 
@@ -137,7 +137,7 @@ namespace Wintools
                     if (stopPlan)
                         break;
                     string header = (completed + 1) + " / " + items.Length + " · " + item.Title;
-                    Text("PlanStatus", (dry ? "Предпросмотр: " : "Выполнение: ") + header);
+                    Text("PlanStatus", (dry ? Lang.T("Предпросмотр: ") : Lang.T("Выполнение: ")) + header);
                     string previous = output.ToString();
                     var result = await planAction(item, dry, value =>
                     {
@@ -166,7 +166,7 @@ namespace Wintools
                         catch (Exception ex)
                         {
                             preferences.Plan = previousPlan;
-                            saveFailure = "Действие выполнено, но обновлённый план не удалось сохранить. Оно осталось в списке. Проверьте историю перед повторным выполнением.";
+                            saveFailure = Lang.T("Действие выполнено, но обновлённый план не удалось сохранить. Оно осталось в списке. Проверьте историю перед повторным выполнением.");
                             throw new System.IO.IOException(saveFailure + " " + ex.Message, ex);
                         }
                     }
@@ -183,7 +183,7 @@ namespace Wintools
                 {
                     services = null;
                     FilterServices();
-                    serviceStatus.Text = "После выполнения плана обновите снимок служб.";
+                    serviceStatus.Text = Lang.T("После выполнения плана обновите снимок служб.");
                 }
 
                 runningPlan = false;
@@ -192,7 +192,7 @@ namespace Wintools
                 RefreshPlan();
             }
 
-            string message = (dry ? "Проверено: " : "Выполнено: ") + completed + " из " + items.Length + (failed ? (saveFailure == null ? ". Остановлено из-за ошибки; подробности в выводе." : ". " + saveFailure) : stopPlan ? ". Остановлено по вашему запросу." : ". Готово.");
+            string message = (dry ? Lang.T("Проверено: ") : Lang.T("Выполнено: ")) + completed + Lang.T(" из ") + items.Length + (failed ? (saveFailure == null ? Lang.T(". Остановлено из-за ошибки; подробности в выводе.") : ". " + saveFailure) : stopPlan ? Lang.T(". Остановлено по вашему запросу.") : Lang.T(". Готово."));
             Text("PlanStatus", message);
             Text("Status", message);
             if (!dry && !smoke)

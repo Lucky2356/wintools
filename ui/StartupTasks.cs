@@ -59,7 +59,7 @@ namespace Wintools
         internal static void ValidatePath(string path)
         {
             if (string.IsNullOrEmpty(path) || path.Length > 1024 || !path.StartsWith("\\") || path.EndsWith("\\") || path.Split('\\').Skip(1).Any(p => p.Length == 0 || p == "." || p == ".." || p.Any(char.IsControl)))
-                throw new ArgumentException("Некорректный путь задачи.");
+                throw new ArgumentException(Lang.T("Некорректный путь задачи."));
         }
 
         private static string Value(XmlNode node, string path, XmlNamespaceManager ns, string fallback = "")
@@ -85,7 +85,7 @@ namespace Wintools
             try
             {
                 var time = XmlConvert.ToTimeSpan(value);
-                return (time.Days > 0 ? time.Days + " д " : "") + (time.Hours > 0 ? time.Hours + " ч " : "") + (time.Minutes > 0 ? time.Minutes + " мин " : "") + time.Seconds + " с";
+                return (time.Days > 0 ? time.Days + Lang.T(" д ") : "") + (time.Hours > 0 ? time.Hours + Lang.T(" ч ") : "") + (time.Minutes > 0 ? time.Minutes + Lang.T(" мин ") : "") + time.Seconds + Lang.T(" с");
             }
             catch (FormatException)
             {
@@ -103,7 +103,7 @@ namespace Wintools
         {
             ValidatePath(path);
             if (xml == null || xml.Length > 1048576)
-                throw new IOException("Описание задачи слишком велико.");
+                throw new IOException(Lang.T("Описание задачи слишком велико."));
             var doc = new XmlDocument
             {
                 XmlResolver = null
@@ -114,7 +114,7 @@ namespace Wintools
             ns.AddNamespace("t", Ns);
             var task = doc.SelectSingleNode("/t:Task", ns);
             if (task == null)
-                throw new IOException("Формат задачи не распознан.");
+                throw new IOException(Lang.T("Формат задачи не распознан."));
             var triggers = task.SelectNodes("t:Triggers/*", ns).Cast<XmlNode>().ToArray();
             var logons = triggers.Where(t => t.LocalName == "LogonTrigger").ToArray();
             if (logons.Length == 0)
@@ -122,13 +122,13 @@ namespace Wintools
             var actions = task.SelectNodes("t:Actions/*", ns).Cast<XmlNode>().ToArray();
             string owner = Value(task, "t:Principals/t:Principal/t:UserId", ns), group = Value(task, "t:Principals/t:Principal/t:GroupId", ns);
             bool own = string.Equals(owner, sid, StringComparison.OrdinalIgnoreCase) || string.Equals(owner, user, StringComparison.OrdinalIgnoreCase);
-            string restriction = path.StartsWith("\\Microsoft\\", StringComparison.OrdinalIgnoreCase) ? "Системная задача Windows: только просмотр." : !own || group.Length > 0 ? "Задача другого пользователя или системной учётной записи: только просмотр." : triggers.Any(t => t.LocalName != "LogonTrigger") ? "Есть другие условия запуска. Отключение всей задачи затронет их: только просмотр." : actions.Length == 0 || actions.Any(a => a.LocalName != "Exec") ? "Неподдерживаемый тип действия: только просмотр." : !logons.Any(t => Flag(t, "t:Enabled", ns, true)) ? "Все условия входа отключены. Включение задачи не включит эти условия: только просмотр." : null;
+            string restriction = path.StartsWith("\\Microsoft\\", StringComparison.OrdinalIgnoreCase) ? Lang.T("Системная задача Windows: только просмотр.") : !own || group.Length > 0 ? Lang.T("Задача другого пользователя или системной учётной записи: только просмотр.") : triggers.Any(t => t.LocalName != "LogonTrigger") ? Lang.T("Есть другие условия запуска. Отключение всей задачи затронет их: только просмотр.") : actions.Length == 0 || actions.Any(a => a.LocalName != "Exec") ? Lang.T("Неподдерживаемый тип действия: только просмотр.") : !logons.Any(t => Flag(t, "t:Enabled", ns, true)) ? Lang.T("Все условия входа отключены. Включение задачи не включит эти условия: только просмотр.") : null;
             var bytes = new byte[12];
             bytes[0] = (byte)(enabled ? 2 : 3);
             var conditions = logons.Select(t =>
             {
-                string who = Value(t, "t:UserId", ns, "любой пользователь");
-                return "Вход: " + (who == sid || string.Equals(who, user, StringComparison.OrdinalIgnoreCase) ? "текущий пользователь" : who) + " · условие " + (Flag(t, "t:Enabled", ns, true) ? "включено" : "отключено") + (Value(t, "t:Delay", ns).Length > 0 ? " · задержка " + Duration(Value(t, "t:Delay", ns)) : "");
+                string who = Value(t, "t:UserId", ns, Lang.T("любой пользователь"));
+                return Lang.T("Вход: ") + (who == sid || string.Equals(who, user, StringComparison.OrdinalIgnoreCase) ? Lang.T("текущий пользователь") : who) + Lang.T(" · условие ") + (Flag(t, "t:Enabled", ns, true) ? Lang.T("включено") : Lang.T("отключено")) + (Value(t, "t:Delay", ns).Length > 0 ? Lang.T(" · задержка ") + Duration(Value(t, "t:Delay", ns)) : "");
             }).ToList();
             foreach (var trigger in logons)
             {
@@ -144,12 +144,12 @@ namespace Wintools
                 {
                     string value = Value(trigger, "t:" + field.Replace("/", "/t:"), ns);
                     if (value.Length > 0)
-                        conditions.Add((field == "StartBoundary" ? "Начало периода" : field == "EndBoundary" ? "Конец периода" : field == "Repetition/Interval" ? "Интервал повтора" : "Длительность повторов") + ": " + (field.Contains("Boundary") ? Boundary(value) : Duration(value)));
+                        conditions.Add((field == "StartBoundary" ? Lang.T("Начало периода") : field == "EndBoundary" ? Lang.T("Конец периода") : field == "Repetition/Interval" ? Lang.T("Интервал повтора") : Lang.T("Длительность повторов")) + ": " + (field.Contains("Boundary") ? Boundary(value) : Duration(value)));
                 }
             }
 
-            conditions.Add("От имени: " + (own ? "текущего пользователя" : owner.Length > 0 ? owner : group));
-            conditions.Add("Питание от сети: " + (Flag(task, "t:Settings/t:DisallowStartIfOnBatteries", ns, true) ? "требуется" : "не требуется") + " · подключение к сети: " + (Flag(task, "t:Settings/t:RunOnlyIfNetworkAvailable", ns, false) ? "требуется" : "не требуется") + " · простой ПК: " + (Flag(task, "t:Settings/t:RunOnlyIfIdle", ns, false) ? "требуется" : "не требуется"));
+            conditions.Add(Lang.T("От имени: ") + (own ? Lang.T("текущего пользователя") : owner.Length > 0 ? owner : group));
+            conditions.Add(Lang.T("Питание от сети: ") + (Flag(task, "t:Settings/t:DisallowStartIfOnBatteries", ns, true) ? Lang.T("требуется") : Lang.T("не требуется")) + Lang.T(" · подключение к сети: ") + (Flag(task, "t:Settings/t:RunOnlyIfNetworkAvailable", ns, false) ? Lang.T("требуется") : Lang.T("не требуется")) + Lang.T(" · простой ПК: ") + (Flag(task, "t:Settings/t:RunOnlyIfIdle", ns, false) ? Lang.T("требуется") : Lang.T("не требуется")));
             var state = task.SelectSingleNode("t:Settings/t:Enabled", ns);
             if (state != null)
                 state.ParentNode.RemoveChild(state);
@@ -157,7 +157,7 @@ namespace Wintools
             {
                 Source = Source,
                 Name = path,
-                Command = string.Join("; ", actions.Select(a => a.LocalName == "Exec" ? Value(a, "t:Command", ns) + " " + Value(a, "t:Arguments", ns) : "Действие: " + a.LocalName)),
+                Command = string.Join("; ", actions.Select(a => a.LocalName == "Exec" ? Value(a, "t:Command", ns) + " " + Value(a, "t:Arguments", ns) : Lang.T("Действие: ") + a.LocalName)),
                 Approval = Convert.ToBase64String(bytes),
                 Identity = StartupEntries.Hash(path + "|" + doc.OuterXml),
                 Restriction = restriction,
@@ -182,7 +182,7 @@ namespace Wintools
                 task = Call(folder, "GetTask", path);
                 var entry = ReadTask(task);
                 if (entry == null)
-                    throw new IOException("У задачи больше нет условия входа в Windows.");
+                    throw new IOException(Lang.T("У задачи больше нет условия входа в Windows."));
                 return entry;
             }
             finally
@@ -197,7 +197,7 @@ namespace Wintools
         {
             ValidatePath(path);
             if (value == null || !StartupEntries.Decode(value).HasValue)
-                throw new IOException("Некорректное состояние задачи.");
+                throw new IOException(Lang.T("Некорректное состояние задачи."));
             object service = null, folder = null, task = null;
             try
             {
@@ -206,9 +206,9 @@ namespace Wintools
                 task = Call(folder, "GetTask", path);
                 var entry = ReadTask(task);
                 if (entry == null || entry.Restriction != null)
-                    throw new IOException(entry == null ? "Условие входа не найдено." : entry.Restriction);
+                    throw new IOException(entry == null ? Lang.T("Условие входа не найдено.") : entry.Restriction);
                 if (expected == null || entry.Fingerprint != expected)
-                    throw new IOException("Задача изменилась после чтения.");
+                    throw new IOException(Lang.T("Задача изменилась после чтения."));
                 Invoke(task, "Enabled", BindingFlags.SetProperty, new object[] { StartupEntries.Decode(value).Value });
             }
             finally
@@ -242,7 +242,7 @@ namespace Wintools
                         for (int i = 1; i <= size; i++)
                         {
                             if (++count > 5000)
-                                throw new IOException("Достигнут предел чтения задач.");
+                                throw new IOException(Lang.T("Достигнут предел чтения задач."));
                             object task = null;
                             try
                             {
@@ -253,7 +253,7 @@ namespace Wintools
                             }
                             catch (Exception)
                             {
-                                errors.Add("Не удалось прочитать задачу в " + path);
+                                errors.Add(Lang.T("Не удалось прочитать задачу в ") + path);
                             }
                             finally
                             {
@@ -278,7 +278,7 @@ namespace Wintools
                     }
                     catch (Exception ex)
                     {
-                        errors.Add("Планировщик " + path + ": " + ex.Message);
+                        errors.Add(Lang.T("Планировщик ") + path + ": " + ex.Message);
                         if (count > 5000)
                             break;
                     }
@@ -292,7 +292,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                errors.Add("Планировщик недоступен: " + ex.Message);
+                errors.Add(Lang.T("Планировщик недоступен: ") + ex.Message);
             }
             finally
             {

@@ -136,7 +136,7 @@ namespace Wintools
                 var list = releases ?? new Release[0];
                 var result = Select(list, current, preview);
                 if (result == null && list.Any(r => r != null && !r.draft && (preview || !r.prerelease && !((r.tag_name ?? "").Contains("-"))) && VersionParts(r.tag_name) != null && Compare(r.tag_name, current) > 0))
-                    throw new IOException("Новый выпуск найден, но его EXE или контрольная сумма отсутствуют либо не прошли проверку. Откройте GitHub Releases или повторите позже.");
+                    throw new IOException(Lang.T("Новый выпуск найден, но его EXE или контрольная сумма отсутствуют либо не прошли проверку. Откройте GitHub Releases или повторите позже."));
                 return result;
             }
         }
@@ -148,14 +148,14 @@ namespace Wintools
             switch ((int)response.StatusCode)
             {
                 case 404:
-                    throw new IOException("GitHub не нашёл публичный репозиторий или файл (404). Повторите проверку позже или откройте страницу выпусков.");
+                    throw new IOException(Lang.T("GitHub не нашёл публичный репозиторий или файл (404). Повторите проверку позже или откройте страницу выпусков."));
                 case 401:
-                    throw new IOException("GitHub отклонил запрос (401). Повторите позже или откройте страницу выпусков. Для публичного репозитория токен не требуется.");
+                    throw new IOException(Lang.T("GitHub отклонил запрос (401). Повторите позже или откройте страницу выпусков. Для публичного репозитория токен не требуется."));
                 case 403:
                 case 429:
-                    throw new IOException("GitHub ограничил запрос (" + (int)response.StatusCode + "). Повторите позже: возможно, достигнут лимит запросов с вашего адреса.");
+                    throw new IOException(Lang.T("GitHub ограничил запрос (") + (int)response.StatusCode + Lang.T("). Повторите позже: возможно, достигнут лимит запросов с вашего адреса."));
                 default:
-                    throw new IOException("GitHub временно недоступен: HTTP " + (int)response.StatusCode + ". Повторите проверку позже.");
+                    throw new IOException(Lang.T("GitHub временно недоступен: HTTP ") + (int)response.StatusCode + Lang.T(". Повторите проверку позже."));
             }
         }
 
@@ -181,7 +181,7 @@ namespace Wintools
         {
             var validated = Select(new[] { update.Release }, current, true);
             if (validated == null || !object.ReferenceEquals(validated.Asset, update.Asset))
-                throw new IOException("Метаданные обновления не прошли проверку.");
+                throw new IOException(Lang.T("Метаданные обновления не прошли проверку."));
             var directory = Path.Combine(Program.Data, "updates", Guid.NewGuid().ToString("N"));
             Program.SafeDirectory(directory);
             Directory.CreateDirectory(directory);
@@ -190,7 +190,7 @@ namespace Wintools
             {
                 var url = update.Asset.id > 0 ? "https://api.github.com/repos/Lucky2356/wintools/releases/assets/" + update.Asset.id : update.Asset.browser_download_url;
                 if (update.Asset.id <= 0 && client.DefaultRequestHeaders.Authorization != null)
-                    throw new IOException("В релизе отсутствует идентификатор файла для авторизованного скачивания.");
+                    throw new IOException(Lang.T("В релизе отсутствует идентификатор файла для авторизованного скачивания."));
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url))
                 {
                     request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
@@ -223,7 +223,7 @@ namespace Wintools
                 }
 
                 if (!HashMatches(path, update.Asset.digest.Substring(7)))
-                    throw new IOException("SHA-256 обновления не совпадает. Текущая версия сохранена.");
+                    throw new IOException(Lang.T("SHA-256 обновления не совпадает. Текущая версия сохранена."));
                 return directory;
             }
             catch
@@ -237,9 +237,9 @@ namespace Wintools
         internal static void LaunchReplacement(string directory, string digest, bool relaunch = true)
         {
             if (!ValidExecutableName(Path.GetFileName(Program.Exe)))
-                throw new IOException("Недопустимое имя EXE для обновления.");
+                throw new IOException(Lang.T("Недопустимое имя EXE для обновления."));
             if (File.Exists(Path.Combine(Program.Data, "state", "run.lock")))
-                throw new IOException("Дождитесь завершения операции движка перед обновлением.");
+                throw new IOException(Lang.T("Дождитесь завершения операции движка перед обновлением."));
             var updater = Path.Combine(directory, "updater.exe");
             File.Copy(Program.Exe, updater, false);
             var args = "--replace " + Program.Quote(Path.GetFileName(Program.Exe)) + " " + Process.GetCurrentProcess().Id + " " + digest + (relaunch ? "" : " --no-relaunch");
@@ -270,7 +270,7 @@ namespace Wintools
                         if (!parent.HasExited && !string.Equals(parent.MainModule.FileName, destination, StringComparison.OrdinalIgnoreCase))
                             throw new IOException("Unexpected parent executable.");
                         if (!parent.WaitForExit(60000))
-                            throw new IOException("Приложение ещё работает; обновление не установлено.");
+                            throw new IOException(Lang.T("Приложение ещё работает; обновление не установлено."));
                     }
                 }
                 catch (ArgumentException)
@@ -290,7 +290,7 @@ namespace Wintools
                     }
 
                     if (!acquired)
-                        throw new IOException("Приложение снова запущено; обновление отложено.");
+                        throw new IOException(Lang.T("Приложение снова запущено; обновление отложено."));
                     try
                     {
                         if (File.Exists(Path.Combine(home, "WintoolsData", "state", "run.lock")))
@@ -327,7 +327,7 @@ namespace Wintools
             {
                 File.WriteAllText(Path.Combine(home, "WintoolsData", "update-error.txt"), ex.ToString());
                 if (!Program.Hosted)
-                    System.Windows.Forms.MessageBox.Show("Не удалось обновить программу. Подробности: WintoolsData\\update-error.txt\n" + ex.Message, "Wintools");
+                    System.Windows.Forms.MessageBox.Show(Lang.T("Не удалось обновить программу. Подробности: WintoolsData\\update-error.txt\n") + ex.Message, "Wintools");
                 return 4;
             }
         }

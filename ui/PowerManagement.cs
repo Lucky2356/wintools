@@ -28,18 +28,18 @@ namespace Wintools
             };
             Card(card);
             parent.Children.Add(card);
-            var heading = Paragraph("Схема питания");
+            var heading = Paragraph(Lang.T("Схема питания"));
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
-            powerCurrent = Paragraph("Нажмите «Обновить схемы», чтобы прочитать текущие настройки.");
+            powerCurrent = Paragraph(Lang.T("Нажмите «Обновить схемы», чтобы прочитать текущие настройки."));
             panel.Children.Add(powerCurrent);
             powerChoice = new ComboBox
             {
                 DisplayMemberPath = "Label",
                 Margin = new Thickness(0, 0, 0, 12)
             };
-            System.Windows.Automation.AutomationProperties.SetName(powerChoice, "Схема питания Windows");
+            System.Windows.Automation.AutomationProperties.SetName(powerChoice, Lang.T("Схема питания Windows"));
             panel.Children.Add(powerChoice);
             powerChoice.SelectionChanged += (s, e) =>
             {
@@ -49,12 +49,12 @@ namespace Wintools
             };
             powerDescription = Paragraph("");
             panel.Children.Add(powerDescription);
-            panel.Children.Add(Paragraph("Схема определяет используемые настройки питания, сна и производительности. Высокая производительность может увеличить нагрев и расход батареи. Показываем только схемы, доступные Windows на этом ПК; режим питания в параметрах Windows может настраиваться отдельно."));
+            panel.Children.Add(Paragraph(Lang.T("Схема определяет используемые настройки питания, сна и производительности. Высокая производительность может увеличить нагрев и расход батареи. Показываем только схемы, доступные Windows на этом ПК; режим питания в параметрах Windows может настраиваться отдельно.")));
             var buttons = new WrapPanel();
             panel.Children.Add(buttons);
             powerApply = new Button
             {
-                Content = "Использовать схему",
+                Content = Lang.T("Использовать схему"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             powerApply.Style = (Style)Window.FindResource("Primary");
@@ -62,14 +62,14 @@ namespace Wintools
             buttons.Children.Add(powerApply);
             powerRefresh = new Button
             {
-                Content = "Обновить схемы",
+                Content = Lang.T("Обновить схемы"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             powerRefresh.Click += async (s, e) => await RefreshPowerPlans();
             buttons.Children.Add(powerRefresh);
             powerRestore = new Button
             {
-                Content = "Вернуть прежнюю схему",
+                Content = Lang.T("Вернуть прежнюю схему"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             powerRestore.Click += async (s, e) =>
@@ -78,7 +78,7 @@ namespace Wintools
                     await RestorePowerHistory(powerRestoreRecord.Id);
             };
             buttons.Children.Add(powerRestore);
-            powerStatus = Paragraph("Переключение сохраняется в истории. Возврат выбирает прежнюю схему, но не отменяет последующие изменения её параметров.");
+            powerStatus = Paragraph(Lang.T("Переключение сохраняется в истории. Возврат выбирает прежнюю схему, но не отменяет последующие изменения её параметров."));
             powerStatus.FontSize = 12;
             panel.Children.Add(powerStatus);
             Get<ScrollViewer>("OptimizationPage").IsVisibleChanged += async (s, e) =>
@@ -105,7 +105,7 @@ namespace Wintools
                 return;
             readingPower = true;
             RefreshPowerEnabled();
-            powerStatus.Text = "Читаем схемы питания…";
+            powerStatus.Text = Lang.T("Читаем схемы питания…");
             try
             {
                 var read = powerRead;
@@ -117,8 +117,8 @@ namespace Wintools
                 powerChoice.ItemsSource = snapshot.Plans;
                 powerChoice.SelectedItem = snapshot.Plans.FirstOrDefault(p => p.Id == selected) ?? snapshot.Plans.FirstOrDefault(p => p.Id == snapshot.Active) ?? snapshot.Plans.FirstOrDefault();
                 var active = snapshot.Plans.FirstOrDefault(p => p.Id == snapshot.Active);
-                powerCurrent.Text = "Используется сейчас: " + (active == null ? snapshot.Active : active.Name);
-                powerStatus.Text = snapshot.Plans.Length == 1 ? "Windows предоставляет одну схему. Дополнительные режимы могут быть доступны в параметрах питания Windows." : "Доступно схем: " + snapshot.Plans.Length + ". Выберите подходящую и подтвердите переключение.";
+                powerCurrent.Text = Lang.T("Используется сейчас: ") + (active == null ? snapshot.Active : active.Name);
+                powerStatus.Text = snapshot.Plans.Length == 1 ? Lang.T("Windows предоставляет одну схему. Дополнительные режимы могут быть доступны в параметрах питания Windows.") : Lang.T("Доступно схем: ") + snapshot.Plans.Length + Lang.T(". Выберите подходящую и подтвердите переключение.");
                 try
                 {
                     powerRestoreRecord = PowerActions.History().FirstOrDefault(r => r.Action == "select" && r.Status != "REVERTED");
@@ -126,7 +126,7 @@ namespace Wintools
                 catch (Exception ex)
                 {
                     powerRestoreRecord = null;
-                    powerStatus.Text = "Схемы прочитаны, история недоступна: " + ex.Message;
+                    powerStatus.Text = Lang.T("Схемы прочитаны, история недоступна: ") + ex.Message;
                 }
             }
             catch (Exception ex)
@@ -134,8 +134,8 @@ namespace Wintools
                 powerSnapshot = null;
                 powerRestoreRecord = null;
                 powerChoice.ItemsSource = null;
-                powerCurrent.Text = "Текущая схема неизвестна.";
-                powerStatus.Text = "Не удалось прочитать схемы: " + ex.Message;
+                powerCurrent.Text = Lang.T("Текущая схема неизвестна.");
+                powerStatus.Text = Lang.T("Не удалось прочитать схемы: ") + ex.Message;
             }
             finally
             {
@@ -151,7 +151,7 @@ namespace Wintools
             var snapshot = powerSnapshot;
             if (busy || readingPower || selected == null || snapshot == null || selected.Id == snapshot.Active)
                 return;
-            if (!await Confirm("Использовать схему «" + selected.Name + "»?\n\n" + selected.Description + "\n\nИзменятся настройки питания, сна и производительности согласно этой схеме. Это может повлиять на нагрев и расход батареи. Сохраним прежнюю схему для возврата через историю."))
+            if (!await Confirm(Lang.T("Использовать схему «") + selected.Name + "»?\n\n" + selected.Description + Lang.T("\n\nИзменятся настройки питания, сна и производительности согласно этой схеме. Это может повлиять на нагрев и расход батареи. Сохраним прежнюю схему для возврата через историю.")))
                 return;
             await RunPowerChange(selected.Id, snapshot.Active, null);
         }
@@ -161,18 +161,18 @@ namespace Wintools
             if (busy)
                 return;
             SetBusy(true);
-            powerStatus.Text = "Переключаем схему питания…";
+            powerStatus.Text = Lang.T("Переключаем схему питания…");
             try
             {
                 var result = await powerRun(target, expected, restore);
                 Get<TextBox>("Output").Text = result.Output;
-                Text("Status", result.Code == 0 ? "Схема питания переключена или уже используется." : "Переключение требует внимания. Подробности — в выводе.");
+                Text("Status", result.Code == 0 ? Lang.T("Схема питания переключена или уже используется.") : Lang.T("Переключение требует внимания. Подробности — в выводе."));
                 if (result.Code != 0)
                     ExpandOutput(true);
             }
             catch (Exception ex)
             {
-                Text("Status", "Схема питания не переключена: " + ex.Message);
+                Text("Status", Lang.T("Схема питания не переключена: ") + ex.Message);
             }
             finally
             {
@@ -191,24 +191,24 @@ namespace Wintools
             {
                 var record = PowerActions.Read(id);
                 if (record.Action != "select" || record.Status == "REVERTED")
-                    throw new InvalidOperationException("Это изменение уже восстановлено или не поддерживает повторный откат.");
+                    throw new InvalidOperationException(Lang.T("Это изменение уже восстановлено или не поддерживает повторный откат."));
                 var read = powerRead;
                 var snapshot = await Task.Run(() => read());
                 if (!snapshot.Plans.Any(p => p.Id == record.Before))
-                    throw new InvalidOperationException("Прежняя схема удалена или недоступна. Создавать её заново по одному названию нельзя.");
-                if (!await Confirm("Вернуть схему «" + record.BeforeName + "»?\n\nБудет выбрана прежняя схема питания. Более поздний выбор другой программы будет заменён. Изменения параметров внутри схемы этим действием не отменяются."))
+                    throw new InvalidOperationException(Lang.T("Прежняя схема удалена или недоступна. Создавать её заново по одному названию нельзя."));
+                if (!await Confirm(Lang.T("Вернуть схему «") + record.BeforeName + Lang.T("»?\n\nБудет выбрана прежняя схема питания. Более поздний выбор другой программы будет заменён. Изменения параметров внутри схемы этим действием не отменяются.")))
                     return;
                 await RunPowerChange(record.Before, snapshot.Active, id);
             }
             catch (Exception ex)
             {
-                Text("Status", "Не удалось вернуть схему: " + ex.Message);
+                Text("Status", Lang.T("Не удалось вернуть схему: ") + ex.Message);
             }
         }
 
         private static HistoryRow[] PowerHistoryRows()
         {
-            return PowerActions.History().Select(r => new HistoryRow { Run = r.Id, PowerChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Action == "restore" ? "Возврат схемы: " : "Схема питания: ") + r.TargetName, Status = r.Status == "OK" ? "Применено" : r.Status == "REVERTED" ? "Откат выполнен" : "Требует внимания", CanRevert = r.Action == "select" && r.Status != "REVERTED" }).ToArray();
+            return PowerActions.History().Select(r => new HistoryRow { Run = r.Id, PowerChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Action == "restore" ? Lang.T("Возврат схемы: ") : Lang.T("Схема питания: ")) + r.TargetName, Status = r.Status == "OK" ? Lang.T("Применено") : r.Status == "REVERTED" ? Lang.T("Откат выполнен") : Lang.T("Требует внимания"), CanRevert = r.Action == "select" && r.Status != "REVERTED" }).ToArray();
         }
     }
 }

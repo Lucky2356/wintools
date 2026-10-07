@@ -58,7 +58,7 @@ namespace Wintools
         {
             get
             {
-                return TimeUtc == DateTime.MinValue ? Run : TimeUtc.ToLocalTime().ToString("g") + " · " + (PackageChange ? "Установка программ" : StoreChange ? "Приложение" : ProcessChange ? "Процесс" : StartupChange ? "Автозагрузка" : IntegrityCheck ? "Обслуживание Windows" : PowerChange ? "Питание" : DnsChange ? "DNS" : HostsChange ? "Файл hosts" : UpdateChange ? "Обновления Windows" : ServiceName == null ? "Запуск" : ServiceName);
+                return TimeUtc == DateTime.MinValue ? Run : TimeUtc.ToLocalTime().ToString("g") + " · " + (PackageChange ? Lang.T("Установка программ") : StoreChange ? Lang.T("Приложение") : ProcessChange ? Lang.T("Процесс") : StartupChange ? Lang.T("Автозагрузка") : IntegrityCheck ? Lang.T("Обслуживание Windows") : PowerChange ? Lang.T("Питание") : DnsChange ? "DNS" : HostsChange ? Lang.T("Файл hosts") : UpdateChange ? Lang.T("Обновления Windows") : ServiceName == null ? Lang.T("Запуск") : ServiceName);
             }
         }
     }
@@ -85,21 +85,21 @@ namespace Wintools
         private int page;
         private static readonly string[] PageTitles =
         {
-            "Windows под ваши задачи",
-            "История изменений",
-            "С чего начать",
-            "Настройки приложения",
-            "Ваш план изменений",
-            "Службы сейчас",
-            "Состояние вашего ПК",
-            "Сверка настроек",
-            "Ускорение Windows",
-            "Установленные приложения",
-            "Сеть и DNS",
-            "Обслуживание Windows",
-            "Автозагрузка программ",
-            "Работающие процессы",
-            "Установка программ"
+            Lang.T("Windows под ваши задачи"),
+            Lang.T("История изменений"),
+            Lang.T("С чего начать"),
+            Lang.T("Настройки приложения"),
+            Lang.T("Ваш план изменений"),
+            Lang.T("Службы сейчас"),
+            Lang.T("Состояние вашего ПК"),
+            Lang.T("Сверка настроек"),
+            Lang.T("Ускорение Windows"),
+            Lang.T("Установленные приложения"),
+            Lang.T("Сеть и DNS"),
+            Lang.T("Обслуживание Windows"),
+            Lang.T("Автозагрузка программ"),
+            Lang.T("Работающие процессы"),
+            Lang.T("Установка программ")
         };
         private readonly string[] pages =
         {
@@ -187,16 +187,29 @@ namespace Wintools
             smoke = smokeMode;
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Shell.xaml"))
                 Window = (Window)XamlReader.Load(stream);
+            Lang.Translate(Window);
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Icon.ico"))
             {
                 Window.Icon = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             }
 
-            Text("VersionLabel", "Версия " + Program.Version + " · x64");
-            Text("UpdateStatus", "Установлена версия " + Program.Version + ". Проверьте наличие обновления.");
+            Text("VersionLabel", Lang.T("Версия ") + Program.Version + " · x64");
+            Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Проверьте наличие обновления."));
             Get<ComboBox>("Category").ItemsSource = Catalogue.Categories;
             Get<ComboBox>("Category").SelectedIndex = 0;
             Get<ComboBox>("Theme").SelectedIndex = preferences.Theme == "dark" ? 2 : preferences.Theme == "light" ? 1 : 0;
+            Get<ComboBox>("Language").SelectedIndex = preferences.Language == "ru" ? 1 : preferences.Language == "en" ? 2 : 0;
+            Get<ComboBox>("Language").SelectionChanged += (s, e) =>
+            {
+                preferences.Language = new[]
+                {
+                    "system",
+                    "ru",
+                    "en"
+                }[Math.Max(0, Get<ComboBox>("Language").SelectedIndex)];
+                if (SavePreferences())
+                    Text("Status", Lang.T("Язык применится после перезапуска Wintools."));
+            };
             Get<CheckBox>("AutoCheck").IsChecked = preferences.AutoCheck;
             Get<CheckBox>("RestorePoint").IsChecked = preferences.RestorePoint;
             Get<CheckBox>("VerifyAfterUpdates").IsChecked = preferences.VerifyAfterUpdates;
@@ -284,12 +297,12 @@ namespace Wintools
                 if (preferences.AutoInstall)
                 {
                     if (stagedDirectory != null)
-                        Text("UpdateStatus", "Обновление готово и установится при закрытии приложения.");
+                        Text("UpdateStatus", Lang.T("Обновление готово и установится при закрытии приложения."));
                     else
                         await PrepareAutomaticUpdate();
                 }
                 else
-                    Text("UpdateStatus", "Автоматическая установка выключена. Можно обновить вручную.");
+                    Text("UpdateStatus", Lang.T("Автоматическая установка выключена. Можно обновить вручную."));
             };
             Get<CheckBox>("RestorePoint").Click += (s, e) =>
             {
@@ -340,13 +353,13 @@ namespace Wintools
             ClickAsync("Apply", async () =>
             {
                 var item = Selected();
-                if (item != null && await Confirm(item.Title + "\n\n" + item.Description + "\n\n" + item.Caveat + "\n\nОткат: " + item.Rollback))
+                if (item != null && await Confirm(item.Title + "\n\n" + item.Description + "\n\n" + item.Caveat + Lang.T("\n\nОткат: ") + item.Rollback))
                     await Run(item.Verb, item.Id, null, false);
             });
             ClickAsync("Revert", async () =>
             {
                 var item = Selected();
-                if (item != null && await Confirm("Восстановить сохранённое состояние для «" + item.Title + "»?"))
+                if (item != null && await Confirm(Lang.T("Восстановить сохранённое состояние для «") + item.Title + "»?"))
                     await Run("revert", item.Id, null, false);
             });
             Click("Star", () =>
@@ -413,7 +426,7 @@ namespace Wintools
                     return;
                 }
 
-                if (row != null && row.CanRevert && await Confirm("Откатить запуск " + row.Run + "?\n\nСначала откатывайте более новые изменения."))
+                if (row != null && row.CanRevert && await Confirm(Lang.T("Откатить запуск ") + row.Run + Lang.T("?\n\nСначала откатывайте более новые изменения.")))
                     await Run("revert", null, row.Run, false);
             });
             Click("OpenLogs", () => OpenFolder("logs"));
@@ -439,7 +452,7 @@ namespace Wintools
                 if (busy || downloading)
                 {
                     e.Cancel = true;
-                    Text("Status", "Дождитесь завершения операции или загрузки обновления.");
+                    Text("Status", Lang.T("Дождитесь завершения операции или загрузки обновления."));
                     return;
                 }
 
@@ -454,7 +467,7 @@ namespace Wintools
                     catch (Exception ex)
                     {
                         Text("UpdateStatus", UpdateError(ex));
-                        Text("Status", "Установка отложена. Можно закрыть приложение повторно.");
+                        Text("Status", Lang.T("Установка отложена. Можно закрыть приложение повторно."));
                         DiscardStaged();
                         e.Cancel = true;
                         ShowPage(3);
@@ -588,8 +601,8 @@ namespace Wintools
             }
 
             Text("PageTitle", PageTitles[index]);
-            Text("PageEyebrow", new[] { "КАТАЛОГ ДЕЙСТВИЙ", "ЖУРНАЛ ЭТОГО КОМПЬЮТЕРА", "ПОДБОРКИ", "ВАШИ ПРЕДПОЧТЕНИЯ", "ПОДГОТОВКА И ВЫПОЛНЕНИЕ", "РАБОТА И АВТОЗАПУСК", "ПОНЯТНАЯ ДИАГНОСТИКА", "ПРОВЕРКА БЕЗ ИЗМЕНЕНИЙ", "ПРАКТИЧЕСКИЕ ШАГИ", "ПРОГРАММЫ НА КОМПЬЮТЕРЕ", "СОЕДИНЕНИЕ И DNS", "ОБСЛУЖИВАНИЕ", "ЗАПУСК ПРИ ВХОДЕ", "РАСПРЕДЕЛЕНИЕ РЕСУРСОВ", "WINGET · КАТАЛОГ MICROSOFT" }[index]);
-            Text("PageHint", new[] { "Выберите раздел или найдите нужное действие.", "Исходные состояния и откат сохранённых запусков.", "Три подборки с настройкой под ваши задачи.", "Автообновление, защита и данные приложения.", "Соберите действия, проверьте и выполните по порядку.", "Снимок установленных служб Windows.", "Показатели и подсказки вместо технического лога.", "Сохранились ли применённые настройки?", "Выберите улучшение под свою задачу.", "Поиск, запуск и управление установленными приложениями.", "Задержка, ответы сервера и стабильность соединения.", "Очистка файлов, проверка и восстановление Windows.", "Выберите, какие программы нужны сразу после входа.", "Приоритет и доступные процессоры для выбранного запуска.", "Популярные программы из каталога winget: установка и обновление по очереди." }[index]);
+            Text("PageEyebrow", new[] { Lang.T("КАТАЛОГ ДЕЙСТВИЙ"), Lang.T("ЖУРНАЛ ЭТОГО КОМПЬЮТЕРА"), Lang.T("ПОДБОРКИ"), Lang.T("ВАШИ ПРЕДПОЧТЕНИЯ"), Lang.T("ПОДГОТОВКА И ВЫПОЛНЕНИЕ"), Lang.T("РАБОТА И АВТОЗАПУСК"), Lang.T("ПОНЯТНАЯ ДИАГНОСТИКА"), Lang.T("ПРОВЕРКА БЕЗ ИЗМЕНЕНИЙ"), Lang.T("ПРАКТИЧЕСКИЕ ШАГИ"), Lang.T("ПРОГРАММЫ НА КОМПЬЮТЕРЕ"), Lang.T("СОЕДИНЕНИЕ И DNS"), Lang.T("ОБСЛУЖИВАНИЕ"), Lang.T("ЗАПУСК ПРИ ВХОДЕ"), Lang.T("РАСПРЕДЕЛЕНИЕ РЕСУРСОВ"), Lang.T("WINGET · КАТАЛОГ MICROSOFT") }[index]);
+            Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди.") }[index]);
             if (index == 9 && ready && !smoke && !applicationsLoaded && !readingApplications)
             {
                 var read = ReadApplications();
@@ -626,7 +639,7 @@ namespace Wintools
 
         private static string Risk(Tweak item)
         {
-            return item.Risk == "high" ? "Высокий риск" : item.Risk == "med" ? "Средний риск" : "Низкий риск";
+            return item.Risk == "high" ? Lang.T("Высокий риск") : item.Risk == "med" ? Lang.T("Средний риск") : Lang.T("Низкий риск");
         }
 
         private void Filter()
@@ -639,13 +652,13 @@ namespace Wintools
             var category = Get<ComboBox>("Category").SelectedItem;
             string group = category is KeyValuePair<string, string> ? ((KeyValuePair<string, string>)category).Key : "ALL", query = Get<TextBox>("Search").Text.Trim();
             var scope = catalogue.Where(t => (collection == null || collection.Contains(t.Id)) && (group == "ALL" || t.Category == group) && (!Checked("Favorites") || preferences.Favorites.Contains(t.Id)) && (Checked("Risky") || t.Risk != "high") && (!Checked("HideApplied") || !KnownApplied(t)) && (selectedGroup == null || Groups.For(t) == selectedGroup) && (t.Title + " " + t.Description + " " + t.Caveat + " " + t.Id).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToArray();
-            var groups = scope.GroupBy(t => group == "ALL" ? t.Category : Groups.For(t)).Select(g => new BrowseGroup { Key = group == "ALL" ? "category:" + g.Key : g.Key, Title = group == "ALL" ? Catalogue.Categories[g.Key] : g.Key, Detail = g.Count() + " действий · открыть →" }).ToArray();
+            var groups = scope.GroupBy(t => group == "ALL" ? t.Category : Groups.For(t)).Select(g => new BrowseGroup { Key = group == "ALL" ? "category:" + g.Key : g.Key, Title = group == "ALL" ? Catalogue.Categories[g.Key] : g.Key, Detail = g.Count() + Lang.T(" действий · открыть →") }).ToArray();
             bool browsing = !showAll && collection == null && selectedGroup == null && query.Length == 0 && !Checked("Favorites") && (group == "ALL" || groups.Length > 1);
             Get<ItemsControl>("BrowseGroups").ItemsSource = groups;
             Visible("CatalogueGroups", browsing);
             Visible("CatalogueResults", !browsing);
             Visible("ShowAll", browsing);
-            Text("BrowseTitle", group == "ALL" ? "Выберите раздел" : Catalogue.Categories[group]);
+            Text("BrowseTitle", group == "ALL" ? Lang.T("Выберите раздел") : Catalogue.Categories[group]);
             Visible("RefreshCatalogueServices", !browsing && scope.Any(t => t.Kind == "SVC" || TweakStates.Supported(t)));
             var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
             var list = Get<ListBox>("Items");
@@ -655,7 +668,7 @@ namespace Wintools
                 list.ScrollIntoView(list.SelectedItem);
             Visible("EmptyCatalogue", !browsing && rows.Length == 0);
             Visible("SearchHint", Get<TextBox>("Search").Text.Length == 0);
-            Text("Count", scope.Length + " действий");
+            Text("Count", scope.Length + Lang.T(" действий"));
             SelectItem();
         }
 
@@ -667,9 +680,9 @@ namespace Wintools
             if (!ready)
                 return;
             var item = Selected();
-            Text("ActionTitle", item == null ? "Выберите действие" : item.Title);
+            Text("ActionTitle", item == null ? Lang.T("Выберите действие") : item.Title);
             Text("Metadata", item == null ? "" : Risk(item) + "  ·  Windows " + (item.Os == "any" ? "10 / 11" : item.Os == "win11" ? "11" : "10"));
-            Text("Description", item == null ? "Результаты поиска появятся слева. Выберите действие, чтобы прочитать его описание." : item.Description + StateDetail(item));
+            Text("Description", item == null ? Lang.T("Результаты поиска появятся слева. Выберите действие, чтобы прочитать его описание.") : item.Description + StateDetail(item));
             Text("Rollback", item == null ? "—" : item.Rollback);
             Get<Button>("Star").Content = item != null && preferences.Favorites.Contains(item.Id) ? "★" : "☆";
             RefreshEnabled();
@@ -751,7 +764,7 @@ namespace Wintools
             ServiceVisibility();
             RefreshEnabled();
             if (value)
-                Text("Status", "Выполняется операция…");
+                Text("Status", Lang.T("Выполняется операция…"));
         }
 
         internal static HistoryRow[] HistoryRows(string path, List<Tweak> catalogue)
@@ -760,7 +773,7 @@ namespace Wintools
                 return new HistoryRow[0];
             var lines = File.ReadAllLines(path, Encoding.GetEncoding(28591)).Where(l => !string.IsNullOrWhiteSpace(l)).Select(l => l.Split('|')).ToArray();
             if (lines.Any(p => p.Length != 11 || p.Any(string.IsNullOrWhiteSpace) || !new[] { "OK", "PENDING", "FAILED", "REVERTED", "MANUAL" }.Contains(p[9]) || !Regex.IsMatch(p[0], "^[A-Za-z0-9_.-]{1,100}$") || !Regex.IsMatch(p[1], "^[A-Z][A-Z0-9-]{1,63}$")))
-                throw new IOException("Журнал содержит повреждённые записи. Откат из интерфейса отключён до проверки файла.");
+                throw new IOException(Lang.T("Журнал содержит повреждённые записи. Откат из интерфейса отключён до проверки файла."));
             return lines.Reverse().GroupBy(p => p[0]).Select(g =>
             {
                 var entries = g.ToArray();
@@ -771,8 +784,8 @@ namespace Wintools
                 {
                     Run = g.Key,
                     TimeUtc = HistoryTime(g.Key),
-                    Title = entries.Length > 1 ? entries.Length + " действий" : item == null ? entries[0][1] : item.Title,
-                    Status = pending ? "Требует внимания" : active ? "Применено" : entries.All(p => p[9] == "REVERTED") ? "Откат выполнен" : "Ручной откат",
+                    Title = entries.Length > 1 ? entries.Length + Lang.T(" действий") : item == null ? entries[0][1] : item.Title,
+                    Status = pending ? Lang.T("Требует внимания") : active ? Lang.T("Применено") : entries.All(p => p[9] == "REVERTED") ? Lang.T("Откат выполнен") : Lang.T("Ручной откат"),
                     CanRevert = pending || active
                 };
             }).ToArray();
@@ -804,7 +817,7 @@ namespace Wintools
         private void ExpandOutput(bool value)
         {
             Visible("Output", value);
-            Get<Button>("LogToggle").Content = value ? "Вывод операции  ▴" : "Вывод операции  ▾";
+            Get<Button>("LogToggle").Content = value ? Lang.T("Вывод операции  ▴") : Lang.T("Вывод операции  ▾");
         }
 
         private async Task Run(string verb, string id, string run, bool dry)
@@ -813,7 +826,7 @@ namespace Wintools
                 return;
             SetBusy(true);
             ExpandOutput(true);
-            Get<TextBox>("Output").Text = "Запуск " + verb + "…";
+            Get<TextBox>("Output").Text = Lang.T("Запуск ") + verb + "…";
             try
             {
                 var result = await Engine.Run(verb, id ?? "-", run ?? "-", dry, preferences.RestorePoint, value =>
@@ -822,17 +835,17 @@ namespace Wintools
                     Get<TextBox>("Output").ScrollToEnd();
                 });
                 Get<TextBox>("Output").Text = result.Output;
-                Text("Status", result.Code == 0 ? (dry ? "Предпросмотр завершён" : "Операция завершена. Результат — в выводе.") : "Операция требует внимания: код " + result.Code + ". Подробности — в выводе.");
+                Text("Status", result.Code == 0 ? (dry ? Lang.T("Предпросмотр завершён") : Lang.T("Операция завершена. Результат — в выводе.")) : Lang.T("Операция требует внимания: код ") + result.Code + Lang.T(". Подробности — в выводе."));
                 ReadHistory();
             }
             catch (Win32Exception ex)
             {
-                Text("Status", ex.NativeErrorCode == 1223 ? "Запрос администратора отменён. Действие не запускалось." : ex.Message);
+                Text("Status", ex.NativeErrorCode == 1223 ? Lang.T("Запрос администратора отменён. Действие не запускалось.") : ex.Message);
                 Get<TextBox>("Output").Text = ex.Message;
             }
             catch (Exception ex)
             {
-                Text("Status", "Не удалось выполнить операцию");
+                Text("Status", Lang.T("Не удалось выполнить операцию"));
                 Get<TextBox>("Output").Text = ex.Message;
             }
             finally
@@ -842,7 +855,7 @@ namespace Wintools
                 {
                     services = null;
                     FilterServices();
-                    serviceStatus.Text = "После изменений обновите снимок служб.";
+                    serviceStatus.Text = Lang.T("После изменений обновите снимок служб.");
                     SelectItem();
                 }
             }
@@ -858,30 +871,30 @@ namespace Wintools
                 return;
             if (stagedDirectory != null)
             {
-                Text("UpdateStatus", "Версия " + stagedUpdate.Release.tag_name + " готова. Установится при закрытии, если включена автоматическая установка.");
+                Text("UpdateStatus", Lang.T("Версия ") + stagedUpdate.Release.tag_name + Lang.T(" готова. Установится при закрытии, если включена автоматическая установка."));
                 return;
             }
 
             checking = true;
             available = null;
             RefreshEnabled();
-            Text("UpdateStatus", "Проверяем новые версии…");
-            Text("Status", "Проверка обновлений…");
+            Text("UpdateStatus", Lang.T("Проверяем новые версии…"));
+            Text("Status", Lang.T("Проверка обновлений…"));
             try
             {
                 available = await Updates.Check(preferences.IncludePreview);
                 if (closed)
                     return;
-                string message = available == null ? "Новых совместимых версий в выбранном канале нет. Установлена " + Program.Version + "." : "Доступна " + available.Release.tag_name + ". Установлена " + Program.Version + ". Ваши данные сохранятся.";
+                string message = available == null ? Lang.T("Новых совместимых версий в выбранном канале нет. Установлена ") + Program.Version + "." : Lang.T("Доступна ") + available.Release.tag_name + Lang.T(". Установлена ") + Program.Version + Lang.T(". Ваши данные сохранятся.");
                 Text("UpdateStatus", message);
-                Text("Status", available == null ? "Проверка завершена: обновлений нет" : "Доступно обновление " + available.Release.tag_name);
+                Text("Status", available == null ? Lang.T("Проверка завершена: обновлений нет") : Lang.T("Доступно обновление ") + available.Release.tag_name);
             }
             catch (Exception ex)
             {
                 if (!closed)
                 {
                     Text("UpdateStatus", UpdateError(ex));
-                    Text("Status", "Не удалось проверить обновления — подробности в настройках.");
+                    Text("Status", Lang.T("Не удалось проверить обновления — подробности в настройках."));
                     if (manual)
                         ShowPage(3);
                 }
@@ -899,9 +912,9 @@ namespace Wintools
         private static string UpdateError(Exception ex)
         {
             if (ex is TaskCanceledException)
-                return "Истекло время ожидания GitHub. Проверьте соединение и повторите запрос.";
+                return Lang.T("Истекло время ожидания GitHub. Проверьте соединение и повторите запрос.");
             if (ex is System.Net.Http.HttpRequestException)
-                return "Не удалось соединиться с GitHub. Проверьте сеть, прокси и доступ к api.github.com. " + ex.GetBaseException().Message;
+                return Lang.T("Не удалось соединиться с GitHub. Проверьте сеть, прокси и доступ к api.github.com. ") + ex.GetBaseException().Message;
             return ex.Message;
         }
 
@@ -911,13 +924,13 @@ namespace Wintools
                 return;
             SetBusy(true);
             Visible("DownloadProgress", true);
-            Text("UpdateStatus", "Загружаем обновление и проверяем SHA-256…");
+            Text("UpdateStatus", Lang.T("Загружаем обновление и проверяем SHA-256…"));
             try
             {
                 var directory = stagedDirectory ?? await Updates.Download(available, value =>
                 {
                     Get<ProgressBar>("DownloadProgress").Value = value;
-                    Text("UpdateStatus", "Загрузка обновления: " + value + "%");
+                    Text("UpdateStatus", Lang.T("Загрузка обновления: ") + value + "%");
                 });
                 Updates.LaunchReplacement(directory, available.Asset.digest.Substring(7));
                 replacing = true;
@@ -927,7 +940,7 @@ namespace Wintools
             catch (Exception ex)
             {
                 Text("UpdateStatus", UpdateError(ex));
-                Text("Status", "Обновление не установлено. Текущая версия сохранена.");
+                Text("Status", Lang.T("Обновление не установлено. Текущая версия сохранена."));
                 SetBusy(false);
             }
             finally
@@ -956,16 +969,16 @@ namespace Wintools
                 stagedDirectory = await download(update, value =>
                 {
                     Get<ProgressBar>("DownloadProgress").Value = value;
-                    Text("UpdateStatus", "Загрузка обновления: " + value + "%");
+                    Text("UpdateStatus", Lang.T("Загрузка обновления: ") + value + "%");
                 });
                 stagedUpdate = update;
-                Text("UpdateStatus", "Версия " + update.Release.tag_name + " проверена и готова. Установится при закрытии приложения.");
-                Text("Status", "Обновление готово — установится при закрытии.");
+                Text("UpdateStatus", Lang.T("Версия ") + update.Release.tag_name + Lang.T(" проверена и готова. Установится при закрытии приложения."));
+                Text("Status", Lang.T("Обновление готово — установится при закрытии."));
             }
             catch (Exception ex)
             {
                 Text("UpdateStatus", UpdateError(ex));
-                Text("Status", "Автообновление отложено. Повторная проверка будет позже.");
+                Text("Status", Lang.T("Автообновление отложено. Повторная проверка будет позже."));
             }
             finally
             {
@@ -984,7 +997,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                Text("Status", "Настройки не сохранены: " + ex.Message);
+                Text("Status", Lang.T("Настройки не сохранены: ") + ex.Message);
                 return false;
             }
         }
@@ -1052,8 +1065,8 @@ namespace Wintools
             available = null;
             preferences.AutoInstall = true;
             download = Updates.Download;
-            Text("UpdateStatus", "Установлена версия " + Program.Version + ". Автообновление включено.");
-            Text("Status", "Готово к работе");
+            Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Автообновление включено."));
+            Text("Status", Lang.T("Готово к работе"));
             await RefreshTweakStates();
             await Task.Delay(100);
             Assert(Get<ScrollViewer>("CatalogueGroups").Visibility == Visibility.Visible, "Catalogue did not start with sections");
@@ -1061,7 +1074,7 @@ namespace Wintools
             await InvokeGroup("category:SVC");
             Assert((string)Get<ComboBox>("Category").SelectedValue == "SVC", "Category card click did not navigate");
             Assert(Get<ItemsControl>("BrowseGroups").Items.Count > 4, "Service subgroups missing");
-            await InvokeGroup("Bluetooth и камера");
+            await InvokeGroup(Lang.T("Bluetooth и камера"));
             Assert(Get<ListBox>("Items").Items.Count == 5, "Subgroup card click did not navigate");
             Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert(Selected() == null, "Back to sections retained hidden selection");
@@ -1121,7 +1134,7 @@ namespace Wintools
             RefreshPlan();
             planAction = realPlanAction;
             ExpandOutput(false);
-            Get<TextBox>("Output").Text = "Результаты предпросмотра и выполнения появятся здесь.";
+            Get<TextBox>("Output").Text = Lang.T("Результаты предпросмотра и выполнения появятся здесь.");
             Get<TextBox>("Search").Clear();
             Get<ComboBox>("Category").SelectedIndex = 0;
             showAll = true;
@@ -1139,7 +1152,7 @@ namespace Wintools
             Get<ComboBox>("Theme").SelectedIndex = 1;
             Assert(!Get<Button>("Apply").IsEnabled, "Theme lost operation lock");
             SetBusy(false);
-            Text("Status", "Готово к работе");
+            Text("Status", Lang.T("Готово к работе"));
             Get<TextBox>("Search").Text = "__not_found__";
             Assert(Selected() == null && !Get<Button>("Apply").IsEnabled, "Empty search actions");
             Get<TextBox>("Search").Clear();
@@ -1179,7 +1192,7 @@ namespace Wintools
             await Task.Delay(100);
             Capture("portable-ui-collections.png");
             ShowPage(3);
-            Text("UpdateStatus", "Установлена актуальная версия " + Program.Version + ". Обновления загружаются автоматически.");
+            Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + Lang.T(". Обновления загружаются автоматически."));
             await Task.Delay(100);
             Capture("portable-ui-updates.png");
             await HealthSmoke();
@@ -1295,7 +1308,7 @@ namespace Wintools
             ChooseCollection(new[] { "UI-FILEEXT", "UI-LAUNCHTO" });
             Get<ComboBox>("Category").SelectedValue = "SVC";
             Assert(collection == null && Get<ScrollViewer>("CatalogueGroups").Visibility == Visibility.Visible, "Collection restricted another category");
-            await InvokeGroup("Bluetooth и камера");
+            await InvokeGroup(Lang.T("Bluetooth и камера"));
             Assert(Get<ListBox>("Items").Items.Count == 5, "Collection leaked into subgroup");
             Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }

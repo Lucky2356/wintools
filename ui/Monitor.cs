@@ -73,7 +73,7 @@ namespace Wintools
             else
             {
                 hasCpu = false;
-                errors.Add("Общая загрузка CPU недоступна для этой конфигурации.");
+                errors.Add(Lang.T("Общая загрузка CPU недоступна для этой конфигурации."));
             }
 
             var memory = new MemoryStatus();
@@ -84,7 +84,7 @@ namespace Wintools
                 sample.Memory = 100.0 * (1.0 - (double)memory.AvailablePhysical / memory.TotalPhysical);
             }
             else
-                errors.Add("Не удалось прочитать память.");
+                errors.Add(Lang.T("Не удалось прочитать память."));
             sample.Uptime = GetTickCount64();
             try
             {
@@ -111,13 +111,13 @@ namespace Wintools
                 else
                 {
                     priorAdapter = null;
-                    errors.Add("Выберите подключённый сетевой адаптер.");
+                    errors.Add(Lang.T("Выберите подключённый сетевой адаптер."));
                 }
             }
             catch (NetworkInformationException)
             {
                 priorAdapter = null;
-                errors.Add("Сетевой адаптер недоступен. Обновите список.");
+                errors.Add(Lang.T("Сетевой адаптер недоступен. Обновите список."));
             }
 
             if (!includeProcesses)
@@ -147,9 +147,9 @@ namespace Wintools
                 }
             }
 
-            sample.Processes = rows.OrderByDescending(r => r.Item2).Take(8).Select(r => r.Item1 + "   —   " + (r.Item2 / 1048576.0).ToString("N0") + " МБ").ToArray();
+            sample.Processes = rows.OrderByDescending(r => r.Item2).Take(8).Select(r => r.Item1 + "   —   " + (r.Item2 / 1048576.0).ToString("N0") + Lang.T(" МБ")).ToArray();
             if (inaccessible > 0)
-                errors.Add("Недоступных или завершившихся процессов: " + inaccessible + ".");
+                errors.Add(Lang.T("Недоступных или завершившихся процессов: ") + inaccessible + ".");
             sample.Error = string.Join(" ", errors);
             return sample;
         }
@@ -272,17 +272,17 @@ namespace Wintools
             panel.Children.Add(controls);
             var pause = new Button
             {
-                Content = "Приостановить показатели",
+                Content = Lang.T("Приостановить показатели"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             controls.Children.Add(pause);
             pause.Click += (s, e) =>
             {
                 resourcesPaused = !resourcesPaused;
-                pause.Content = resourcesPaused ? "Продолжить показатели" : "Приостановить показатели";
+                pause.Content = resourcesPaused ? Lang.T("Продолжить показатели") : Lang.T("Приостановить показатели");
                 ResourceVisibility();
             };
-            uptimeValue = Paragraph("Читаем показатели…");
+            uptimeValue = Paragraph(Lang.T("Читаем показатели…"));
             uptimeValue.VerticalAlignment = VerticalAlignment.Center;
             controls.Children.Add(uptimeValue);
             resourceCards = new UniformGrid
@@ -290,15 +290,15 @@ namespace Wintools
                 Columns = 3
             };
             panel.Children.Add(resourceCards);
-            var cpu = ResourceCard("Процессор", out cpuValue, out cpuGraph);
+            var cpu = ResourceCard(Lang.T("Процессор"), out cpuValue, out cpuGraph);
             cpuGraph.Percent = true;
-            cpu.Children.Add(Paragraph("Загрузка за интервал · шкала 0–100%"));
-            var ram = ResourceCard("Оперативная память", out memoryValue, out memoryGraph);
+            cpu.Children.Add(Paragraph(Lang.T("Загрузка за интервал · шкала 0–100%")));
+            var ram = ResourceCard(Lang.T("Оперативная память"), out memoryValue, out memoryGraph);
             memoryGraph.Percent = true;
-            memoryDetail = Paragraph("Доступная память и общий объём");
+            memoryDetail = Paragraph(Lang.T("Доступная память и общий объём"));
             ram.Children.Add(memoryDetail);
-            var network = ResourceCard("Сеть · приём и отправка", out networkValue, out networkGraph);
-            network.Children.Add(Paragraph("График приёма · масштаб по максимуму"));
+            var network = ResourceCard(Lang.T("Сеть · приём и отправка"), out networkValue, out networkGraph);
+            network.Children.Add(Paragraph(Lang.T("График приёма · масштаб по максимуму")));
             InitializeGpu(panel);
             var adapterRow = new WrapPanel
             {
@@ -312,11 +312,11 @@ namespace Wintools
                 SelectedValuePath = "Key",
                 Margin = new Thickness(0, 0, 10, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(networkAdapter, "Сетевой адаптер для мониторинга");
+            System.Windows.Automation.AutomationProperties.SetName(networkAdapter, Lang.T("Сетевой адаптер для мониторинга"));
             adapterRow.Children.Add(networkAdapter);
             var refresh = new Button
             {
-                Content = "Обновить адаптеры",
+                Content = Lang.T("Обновить адаптеры"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             adapterRow.Children.Add(refresh);
@@ -324,20 +324,20 @@ namespace Wintools
             networkAdapter.SelectionChanged += (s, e) =>
             {
                 networkGraph.Clear();
-                networkValue.Text = "Первый замер…";
+                networkValue.Text = Lang.T("Первый замер…");
             };
-            resourceStatus = Paragraph("Показатели обновляются каждые 2 секунды, пока открыт этот раздел. Графики хранят последние 30 замеров.");
+            resourceStatus = Paragraph(Lang.T("Показатели обновляются каждые 2 секунды, пока открыт этот раздел. Графики хранят последние 30 замеров."));
             resourceStatus.FontSize = 12;
             panel.Children.Add(resourceStatus);
             InitializeTemperatures(panel);
             InitializeMeasurements(panel);
             var processPanel = new StackPanel();
-            processPanel.Children.Add(Paragraph("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ."));
+            processPanel.Children.Add(Paragraph(Lang.T("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ.")));
             resourceProcesses = new ItemsControl();
             processPanel.Children.Add(resourceProcesses);
             var expander = new Expander
             {
-                Header = "Что сейчас занимает память",
+                Header = Lang.T("Что сейчас занимает память"),
                 Content = processPanel,
                 IsExpanded = true,
                 Margin = new Thickness(0, 0, 0, 18)
@@ -362,7 +362,7 @@ namespace Wintools
             panel.Children.Add(label);
             value = new TextBlock
             {
-                Text = "Первый замер…",
+                Text = Lang.T("Первый замер…"),
                 MinHeight = 64,
                 FontSize = 25,
                 FontWeight = FontWeights.SemiBold,
@@ -400,7 +400,7 @@ namespace Wintools
             }
             catch (NetworkInformationException ex)
             {
-                resourceStatus.Text = "Не удалось прочитать адаптеры: " + ex.Message;
+                resourceStatus.Text = Lang.T("Не удалось прочитать адаптеры: ") + ex.Message;
             }
         }
 
@@ -416,13 +416,13 @@ namespace Wintools
             {
                 resourceTimer.Stop();
                 if (resourceStatus != null)
-                    resourceStatus.Text = "Мониторинг приостановлен. На экране последний замер.";
+                    resourceStatus.Text = Lang.T("Мониторинг приостановлен. На экране последний замер.");
             }
         }
 
         private static string ResourceRate(double? value)
         {
-            return !value.HasValue ? "—" : value.Value >= 1048576 ? (value.Value / 1048576).ToString("N1") + " МБ/с" : (value.Value / 1024).ToString("N1") + " КБ/с";
+            return !value.HasValue ? "—" : value.Value >= 1048576 ? (value.Value / 1048576).ToString("N1") + Lang.T(" МБ/с") : (value.Value / 1024).ToString("N1") + Lang.T(" КБ/с");
         }
 
         private async Task SampleResources()
@@ -436,9 +436,9 @@ namespace Wintools
                 var sample = await Task.Run(() => resourceReader.Read(adapter));
                 if (closed || page != 6 || resourcesPaused)
                     return;
-                cpuValue.Text = sample.Cpu.HasValue ? sample.Cpu.Value.ToString("N0") + " %" : "Нет замера";
-                memoryValue.Text = sample.Memory.HasValue ? sample.Memory.Value.ToString("N0") + " %" : "Недоступно";
-                memoryDetail.Text = sample.Memory.HasValue ? "Свободно " + (sample.AvailableMemory / 1073741824.0).ToString("N1") + " из " + (sample.TotalMemory / 1073741824.0).ToString("N1") + " ГБ" : "Не удалось прочитать память";
+                cpuValue.Text = sample.Cpu.HasValue ? sample.Cpu.Value.ToString("N0") + " %" : Lang.T("Нет замера");
+                memoryValue.Text = sample.Memory.HasValue ? sample.Memory.Value.ToString("N0") + " %" : Lang.T("Недоступно");
+                memoryDetail.Text = sample.Memory.HasValue ? Lang.T("Свободно ") + (sample.AvailableMemory / 1073741824.0).ToString("N1") + Lang.T(" из ") + (sample.TotalMemory / 1073741824.0).ToString("N1") + Lang.T(" ГБ") : Lang.T("Не удалось прочитать память");
                 cpuGraph.Push(sample.Cpu);
                 memoryGraph.Push(sample.Memory);
                 if (adapter == networkAdapter.SelectedValue as string)
@@ -448,19 +448,19 @@ namespace Wintools
                 }
 
                 var uptime = TimeSpan.FromMilliseconds(sample.Uptime);
-                uptimeValue.Text = "Windows работает: " + (int)uptime.TotalDays + " д. " + uptime.Hours + " ч. " + uptime.Minutes + " мин.";
+                uptimeValue.Text = Lang.T("Windows работает: ") + (int)uptime.TotalDays + Lang.T(" д. ") + uptime.Hours + Lang.T(" ч. ") + uptime.Minutes + Lang.T(" мин.");
                 resourceProcesses.ItemsSource = sample.Processes;
-                resourceStatus.Text = "Замер в " + DateTime.Now.ToString("HH:mm:ss") + " · Обновление каждые 2 с · Последние 30 замеров. " + sample.Error;
+                resourceStatus.Text = Lang.T("Замер в ") + DateTime.Now.ToString("HH:mm:ss") + Lang.T(" · Обновление каждые 2 с · Последние 30 замеров. ") + sample.Error;
             }
             catch (Exception ex)
             {
                 if (!closed)
                 {
-                    cpuValue.Text = memoryValue.Text = networkValue.Text = "Недоступно";
+                    cpuValue.Text = memoryValue.Text = networkValue.Text = Lang.T("Недоступно");
                     cpuGraph.Push(null);
                     memoryGraph.Push(null);
                     networkGraph.Push(null);
-                    resourceStatus.Text = "Не удалось обновить показатели: " + ex.Message;
+                    resourceStatus.Text = Lang.T("Не удалось обновить показатели: ") + ex.Message;
                 }
             }
             finally

@@ -16,10 +16,10 @@ namespace Wintools
         {
             get
             {
-                return Label + " (" + Name + ")\n" + (Error.Length > 0 ? "Состояние недоступно: " + Error : new ServiceState
+                return Label + " (" + Name + ")\n" + (Error.Length > 0 ? Lang.T("Состояние недоступно: ") + Error : new ServiceState
                 {
                     State = State
-                }.RunningLabel) + (Driver ? " · Драйвер" : "");
+                }.RunningLabel) + (Driver ? Lang.T(" · Драйвер") : "");
             }
         }
     }
@@ -62,12 +62,12 @@ namespace Wintools
                         return names.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
                     var name = new string (data, start, i - start);
                     if (name.Length > 257 || !ServiceActions.ValidName(name[0] == '+' ? name.Substring(1) : name))
-                        throw new IOException("Некорректная зависимость службы.");
+                        throw new IOException(Lang.T("Некорректная зависимость службы."));
                     names.Add(name);
                     start = i + 1;
                 }
 
-            throw new IOException("Список зависимостей Windows не завершён.");
+            throw new IOException(Lang.T("Список зависимостей Windows не завершён."));
         }
 
         private static string[] RequiredNames(string name)
@@ -88,7 +88,7 @@ namespace Wintools
                     if (error != 122)
                         throw new Win32Exception(error);
                     if (needed < Marshal.SizeOf(typeof(Configuration)) || needed > 65536)
-                        throw new IOException("Неожиданный размер конфигурации службы.");
+                        throw new IOException(Lang.T("Неожиданный размер конфигурации службы."));
                     var buffer = Marshal.AllocHGlobal((int)needed);
                     try
                     {
@@ -100,7 +100,7 @@ namespace Wintools
                             return new string[0];
                         long offset = config.Dependencies.ToInt64() - buffer.ToInt64();
                         if (offset < Marshal.SizeOf(typeof(Configuration)) || offset >= needed || (offset & 1) != 0)
-                            throw new IOException("Некорректный указатель зависимостей.");
+                            throw new IOException(Lang.T("Некорректный указатель зависимостей."));
                         var chars = new char[(needed - (int)offset) / 2];
                         Marshal.Copy(config.Dependencies, chars, 0, chars.Length);
                         return ParseNames(chars);
@@ -146,7 +146,7 @@ namespace Wintools
         internal static ServiceDependencySnapshot Read(string name)
         {
             if (!ServiceActions.ValidName(name))
-                throw new ArgumentException("Некорректное имя службы.");
+                throw new ArgumentException(Lang.T("Некорректное имя службы."));
             var result = new ServiceDependencySnapshot();
             using (var root = new ServiceController(name))
             {
@@ -176,7 +176,7 @@ namespace Wintools
                     {
                         result.Dependents = dependents.Take(200).Select(Node).ToArray();
                         if (dependents.Length > 200)
-                            result.DependentError = "Показаны первые 200 из " + dependents.Length + " связей.";
+                            result.DependentError = Lang.T("Показаны первые 200 из ") + dependents.Length + Lang.T(" связей.");
                     }
                     finally
                     {

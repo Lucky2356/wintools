@@ -20,7 +20,7 @@ namespace Wintools
         {
             string text = Convert.ToString(value, CultureInfo.InvariantCulture).Trim();
             if (string.IsNullOrWhiteSpace(text) || text.Equals("To be filled by O.E.M.", StringComparison.OrdinalIgnoreCase) || text.Equals("Default string", StringComparison.OrdinalIgnoreCase))
-                return "нет данных";
+                return Lang.T("нет данных");
             return text;
         }
 
@@ -28,14 +28,14 @@ namespace Wintools
         {
             ulong bytes;
             if (!ulong.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out bytes) || bytes == 0)
-                return "нет данных";
-            return (bytes / 1073741824.0).ToString("N1") + " ГиБ";
+                return Lang.T("нет данных");
+            return (bytes / 1073741824.0).ToString("N1") + Lang.T(" ГиБ");
         }
 
         internal static string Positive(object value, string unit)
         {
             ulong number;
-            return ulong.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out number) && number > 0 ? number.ToString() + unit : "нет данных";
+            return ulong.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out number) && number > 0 ? number.ToString() + unit : Lang.T("нет данных");
         }
 
         private static IEnumerable<IDictionary<string, object>> Query(string query)
@@ -62,20 +62,20 @@ namespace Wintools
                 {
                     string line = describe(row);
                     lines.Add(line);
-                    if (line.Contains("нет данных"))
+                    if (line.Contains(Lang.T("нет данных")))
                         unavailable = true;
                 }
 
                 if (lines.Count == 0)
                 {
                     unavailable = true;
-                    lines.Add("Windows не предоставила сведения об устройствах этой группы.");
+                    lines.Add(Lang.T("Windows не предоставила сведения об устройствах этой группы."));
                 }
             }
             catch (Exception ex)
             {
                 unavailable = true;
-                lines.Add("Часть сведений недоступна: " + ex.Message);
+                lines.Add(Lang.T("Часть сведений недоступна: ") + ex.Message);
             }
 
             return new HardwareSection
@@ -88,12 +88,12 @@ namespace Wintools
 
         internal static Task<HardwareSection[]> Read()
         {
-            return Task.WhenAll(Task.Run(() => Section("Процессор", "SELECT Name,NumberOfCores,NumberOfLogicalProcessors FROM Win32_Processor", r => Value(r["Name"]) + "\nЯдер: " + Positive(r["NumberOfCores"], "") + " · Логических процессоров: " + Positive(r["NumberOfLogicalProcessors"], ""), Query)), Task.Run(() => Section("Видеокарты", "SELECT Name,DriverVersion FROM Win32_VideoController", r => Value(r["Name"]) + "\nДрайвер: " + Value(r["DriverVersion"]), Query)), Task.Run(() => Section("Модули памяти", "SELECT DeviceLocator,Manufacturer,PartNumber,Capacity,ConfiguredClockSpeed FROM Win32_PhysicalMemory", r => Value(r["DeviceLocator"]) + " · " + Size(r["Capacity"]) + "\n" + Value(r["Manufacturer"]) + " · " + Value(r["PartNumber"]) + "\nНастроенная частота по данным Windows: " + Positive(r["ConfiguredClockSpeed"], " МГц"), Query)), Task.Run(() => Section("Материнская плата", "SELECT Manufacturer,Product FROM Win32_BaseBoard", r => Value(r["Manufacturer"]) + "\n" + Value(r["Product"]), Query)), Task.Run(() => Section("BIOS / прошивка", "SELECT Manufacturer,SMBIOSBIOSVersion FROM Win32_BIOS", r => Value(r["Manufacturer"]) + "\nВерсия: " + Value(r["SMBIOSBIOSVersion"]), Query)), Task.Run(() => Section("Физические диски", "SELECT Model,Size FROM Win32_DiskDrive", r => Value(r["Model"]) + "\nЁмкость: " + Size(r["Size"]), Query)));
+            return Task.WhenAll(Task.Run(() => Section(Lang.T("Процессор"), "SELECT Name,NumberOfCores,NumberOfLogicalProcessors FROM Win32_Processor", r => Value(r["Name"]) + Lang.T("\nЯдер: ") + Positive(r["NumberOfCores"], "") + Lang.T(" · Логических процессоров: ") + Positive(r["NumberOfLogicalProcessors"], ""), Query)), Task.Run(() => Section(Lang.T("Видеокарты"), "SELECT Name,DriverVersion FROM Win32_VideoController", r => Value(r["Name"]) + Lang.T("\nДрайвер: ") + Value(r["DriverVersion"]), Query)), Task.Run(() => Section(Lang.T("Модули памяти"), "SELECT DeviceLocator,Manufacturer,PartNumber,Capacity,ConfiguredClockSpeed FROM Win32_PhysicalMemory", r => Value(r["DeviceLocator"]) + " · " + Size(r["Capacity"]) + "\n" + Value(r["Manufacturer"]) + " · " + Value(r["PartNumber"]) + Lang.T("\nНастроенная частота по данным Windows: ") + Positive(r["ConfiguredClockSpeed"], Lang.T(" МГц")), Query)), Task.Run(() => Section(Lang.T("Материнская плата"), "SELECT Manufacturer,Product FROM Win32_BaseBoard", r => Value(r["Manufacturer"]) + "\n" + Value(r["Product"]), Query)), Task.Run(() => Section(Lang.T("BIOS / прошивка"), "SELECT Manufacturer,SMBIOSBIOSVersion FROM Win32_BIOS", r => Value(r["Manufacturer"]) + Lang.T("\nВерсия: ") + Value(r["SMBIOSBIOSVersion"]), Query)), Task.Run(() => Section(Lang.T("Физические диски"), "SELECT Model,Size FROM Win32_DiskDrive", r => Value(r["Model"]) + Lang.T("\nЁмкость: ") + Size(r["Size"]), Query)));
         }
 
         internal static string Report(HardwareSection[] sections, DateTime captured)
         {
-            var text = new StringBuilder("Характеристики ПК · Wintools\nСнимок: " + captured.ToString("yyyy-MM-dd HH:mm:ss zzz") + "\nИсточник: сведения Windows. ГиБ = 1024³ байт.\n");
+            var text = new StringBuilder(Lang.T("Характеристики ПК · Wintools\nСнимок: ") + captured.ToString("yyyy-MM-dd HH:mm:ss zzz") + Lang.T("\nИсточник: сведения Windows. ГиБ = 1024³ байт.\n"));
             foreach (var section in sections)
                 text.Append("\n").AppendLine(section.Title).AppendLine(section.Text);
             return text.ToString();

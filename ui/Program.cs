@@ -57,6 +57,9 @@ namespace Wintools
         {
             try
             {
+                // Tests compare Russian texts, so test modes always run in the source language.
+                bool testMode = args.Length == 1 && (args[0] == "--ui-smoke" || args[0] == "--self-test" || args[0] == "--unit-test");
+                Lang.Initialize(testMode ? "ru" : Preferences.Load().Language, testMode);
                 if (args.Length > 0 && args[0] == "--replace")
                     return Updates.Replace(args);
                 if (args.Length > 0 && args[0] == "--startup-worker")
@@ -102,7 +105,7 @@ namespace Wintools
                     }
 
                     if (!acquired)
-                        throw new InvalidOperationException("Этот portable-каталог уже открыт в другом экземпляре.");
+                        throw new InvalidOperationException(Lang.T("Этот portable-каталог уже открыт в другом экземпляре."));
                     try
                     {
                         ExtractEngine();
@@ -157,7 +160,7 @@ namespace Wintools
 
             if (Hosted)
                 return false;
-            MessageBox.Show("Непредвиденная ошибка интерфейса. Приложение продолжит работу; подробности сохранены в WintoolsData\\ui-error.txt.\n\n" + ex.Message, "Wintools", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(Lang.T("Непредвиденная ошибка интерфейса. Приложение продолжит работу; подробности сохранены в WintoolsData\\ui-error.txt.\n\n") + ex.Message, "Wintools", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return true;
         }
 
@@ -171,11 +174,11 @@ namespace Wintools
         {
             var path = Path.GetFullPath(directory);
             if (path.IndexOfAny("!%&\"^<>|\r\n".ToCharArray()) >= 0)
-                throw new IOException("Переместите программу в каталог без символов ! % & \" ^ < > |.");
+                throw new IOException(Lang.T("Переместите программу в каталог без символов ! % & \" ^ < > |."));
             for (var item = new DirectoryInfo(path); item != null; item = item.Parent)
             {
                 if (item.Exists && (item.Attributes & FileAttributes.ReparsePoint) != 0)
-                    throw new IOException("Каталог portable-программы не должен проходить через junction или symlink.");
+                    throw new IOException(Lang.T("Каталог portable-программы не должен проходить через junction или symlink."));
             }
         }
 
@@ -202,7 +205,7 @@ namespace Wintools
             }
             catch (IOException)
             {
-                throw new IOException("Движок занят или остался state\\run.lock. Проверьте, завершён ли предыдущий запуск, прежде чем удалять блокировку.");
+                throw new IOException(Lang.T("Движок занят или остался state\\run.lock. Проверьте, завершён ли предыдущий запуск, прежде чем удалять блокировку."));
             }
 
             try

@@ -30,14 +30,14 @@ namespace Wintools
             serviceBody.Children.Add(serviceList);
             serviceDependencyToggle = new CheckBox
             {
-                Content = "Связи выбранной службы",
+                Content = Lang.T("Связи выбранной службы"),
                 Margin = new Thickness(12, 6, 0, 6)
             };
             filters.Children.Add(serviceDependencyToggle);
             var panel = new StackPanel();
             var back = new Button
             {
-                Content = "← К списку служб",
+                Content = Lang.T("← К списку служб"),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Margin = new Thickness(0, 0, 0, 8)
             };
@@ -47,7 +47,7 @@ namespace Wintools
                 serviceDependencyToggle.IsChecked = false;
                 LayoutServiceDependencies();
             };
-            serviceDependencyStatus = Paragraph("Выберите службу в списке.");
+            serviceDependencyStatus = Paragraph(Lang.T("Выберите службу в списке."));
             panel.Children.Add(serviceDependencyStatus);
             serviceDependencyContent = new StackPanel();
             panel.Children.Add(serviceDependencyContent);
@@ -98,7 +98,7 @@ namespace Wintools
             if (row == null)
             {
                 serviceDependencyContent.Children.Clear();
-                serviceDependencyStatus.Text = "Выберите службу в списке. Кнопка выше возвращает список.";
+                serviceDependencyStatus.Text = Lang.T("Выберите службу в списке. Кнопка выше возвращает список.");
                 return;
             }
 
@@ -113,7 +113,7 @@ namespace Wintools
                     if (row == null)
                         return;
                     int epoch = dependencyEpoch;
-                    serviceDependencyStatus.Text = "Читаем связи «" + row.Label + "»…";
+                    serviceDependencyStatus.Text = Lang.T("Читаем связи «") + row.Label + "»…";
                     try
                     {
                         var snapshot = await dependencyRead(row.Name);
@@ -122,7 +122,7 @@ namespace Wintools
                         if (closed || busy || serviceDependencyToggle.IsChecked != true)
                             return;
                         if (snapshot == null || snapshot.Root == null || !string.Equals(snapshot.Root.Name, row.Name, StringComparison.OrdinalIgnoreCase))
-                            throw new InvalidOperationException("Ответ не соответствует выбранной службе.");
+                            throw new InvalidOperationException(Lang.T("Ответ не соответствует выбранной службе."));
                         RenderServiceDependencies(snapshot);
                     }
                     catch (Exception ex)
@@ -131,7 +131,7 @@ namespace Wintools
                             continue;
                         dependencySignature = null;
                         serviceDependencyContent.Children.Clear();
-                        serviceDependencyStatus.Text = "Связи недоступны: " + ex.Message;
+                        serviceDependencyStatus.Text = Lang.T("Связи недоступны: ") + ex.Message;
                     }
 
                     return;
@@ -145,40 +145,40 @@ namespace Wintools
 
         private void RenderServiceDependencies(ServiceDependencySnapshot snapshot)
         {
-            serviceDependencyStatus.Text = "Снимок связей · " + DateTime.Now.ToString("HH:mm:ss") + " · Нажмите связанную службу для перехода.";
+            serviceDependencyStatus.Text = Lang.T("Снимок связей · ") + DateTime.Now.ToString("HH:mm:ss") + Lang.T(" · Нажмите связанную службу для перехода.");
             string signature = snapshot.Root.Description + string.Join("|", snapshot.Requires.Select(n => n.Description)) + string.Join("|", snapshot.Groups) + string.Join("|", snapshot.Dependents.Select(n => n.Description)) + snapshot.RequiredError + snapshot.DependentError;
             if (signature == dependencySignature)
                 return;
             dependencySignature = signature;
             serviceDependencyContent.Children.Clear();
             serviceDependencyView.ScrollToTop();
-            var upper = Paragraph("Для её запуска нужны ↓");
+            var upper = Paragraph(Lang.T("Для её запуска нужны ↓"));
             upper.FontWeight = FontWeights.SemiBold;
             serviceDependencyContent.Children.Add(upper);
             if (snapshot.RequiredError.Length > 0)
-                serviceDependencyContent.Children.Add(Paragraph("Список зависимостей неполон: " + snapshot.RequiredError));
+                serviceDependencyContent.Children.Add(Paragraph(Lang.T("Список зависимостей неполон: ") + snapshot.RequiredError));
             foreach (var node in snapshot.Requires.OrderBy(n => n.Label))
                 DependencyNode(node, false);
             foreach (var group in snapshot.Groups)
-                serviceDependencyContent.Children.Add(Paragraph("Группа загрузки: " + group + "\nWindows пытается запустить участников группы; достаточно хотя бы одного работающего участника."));
+                serviceDependencyContent.Children.Add(Paragraph(Lang.T("Группа загрузки: ") + group + Lang.T("\nWindows пытается запустить участников группы; достаточно хотя бы одного работающего участника.")));
             if (snapshot.Requires.Length == 0 && snapshot.Groups.Length == 0 && snapshot.RequiredError.Length == 0)
-                serviceDependencyContent.Children.Add(Paragraph("Зависимости в конфигурации Windows не указаны."));
+                serviceDependencyContent.Children.Add(Paragraph(Lang.T("Зависимости в конфигурации Windows не указаны.")));
             DependencyNode(snapshot.Root, true);
-            var lower = Paragraph("От неё зависят ↓");
+            var lower = Paragraph(Lang.T("От неё зависят ↓"));
             lower.FontWeight = FontWeights.SemiBold;
             serviceDependencyContent.Children.Add(lower);
             if (snapshot.DependentError.Length > 0)
-                serviceDependencyContent.Children.Add(Paragraph("Список зависимых служб неполон: " + snapshot.DependentError));
+                serviceDependencyContent.Children.Add(Paragraph(Lang.T("Список зависимых служб неполон: ") + snapshot.DependentError));
             foreach (var node in snapshot.Dependents.OrderBy(n => n.Label))
                 DependencyNode(node, false);
             if (snapshot.Dependents.Length == 0 && snapshot.DependentError.Length == 0)
-                serviceDependencyContent.Children.Add(Paragraph("Зависимые службы Windows не указаны."));
-            serviceDependencyContent.Children.Add(Paragraph("Это зарегистрированные связи служб, а не полный список программ, использующих их. Остановка может нарушить их работу. Wintools не останавливает зависимые службы автоматически."));
+                serviceDependencyContent.Children.Add(Paragraph(Lang.T("Зависимые службы Windows не указаны.")));
+            serviceDependencyContent.Children.Add(Paragraph(Lang.T("Это зарегистрированные связи служб, а не полный список программ, использующих их. Остановка может нарушить их работу. Wintools не останавливает зависимые службы автоматически.")));
         }
 
         private void DependencyNode(ServiceDependencyNode node, bool selected)
         {
-            var text = Paragraph((selected ? "Выбранная служба\n" : "") + node.Description);
+            var text = Paragraph((selected ? Lang.T("Выбранная служба\n") : "") + node.Description);
             text.Margin = new Thickness(0);
             text.FontSize = 12;
             var button = new Button
@@ -191,7 +191,7 @@ namespace Wintools
             };
             bool exists = !node.Driver && (services ?? new ServiceState[0]).Any(s => string.Equals(s.Name, node.Name, StringComparison.OrdinalIgnoreCase));
             button.IsEnabled = !selected && exists;
-            button.ToolTip = selected ? "Выбранная служба" : exists ? "Перейти к службе" : node.Driver ? "Драйвер показан для сведения; управление драйверами здесь недоступно." : "Служба не найдена в текущем списке. Обновите службы.";
+            button.ToolTip = selected ? Lang.T("Выбранная служба") : exists ? Lang.T("Перейти к службе") : node.Driver ? Lang.T("Драйвер показан для сведения; управление драйверами здесь недоступно.") : Lang.T("Служба не найдена в текущем списке. Обновите службы.");
             if (selected || !exists)
             {
                 button.Content = null;
@@ -218,7 +218,7 @@ namespace Wintools
             var row = (services ?? new ServiceState[0]).FirstOrDefault(s => string.Equals(s.Name, name, StringComparison.OrdinalIgnoreCase));
             if (row == null)
             {
-                serviceDependencyStatus.Text = "Служба больше не найдена. Обновите список.";
+                serviceDependencyStatus.Text = Lang.T("Служба больше не найдена. Обновите список.");
                 return;
             }
 

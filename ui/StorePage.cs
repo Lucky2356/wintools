@@ -30,12 +30,12 @@ namespace Wintools
                 DisplayMemberPath = "Name",
                 Margin = new Thickness(0, 0, 10, 0)
             };
-            System.Windows.Automation.AutomationProperties.SetName(applicationLaunchEntry, "Ярлык или приложение для запуска");
+            System.Windows.Automation.AutomationProperties.SetName(applicationLaunchEntry, Lang.T("Ярлык или приложение для запуска"));
             launchRow.Children.Add(applicationLaunchEntry);
             applicationLaunchEntry.SelectionChanged += (s, e) => DesktopLaunchTooltip();
             applicationLaunch = new Button
             {
-                Content = "Запустить",
+                Content = Lang.T("Запустить"),
                 IsEnabled = false
             };
             launchRow.Children.Add(applicationLaunch);
@@ -54,7 +54,7 @@ namespace Wintools
             menu.Resources.MergedDictionaries.Add(Window.Resources);
             applicationStoreMore = new Button
             {
-                Content = "Действия приложения",
+                Content = Lang.T("Действия приложения"),
                 ContextMenu = menu,
                 Margin = new Thickness(10, 0, 0, 0)
             };
@@ -66,25 +66,25 @@ namespace Wintools
             };
             applicationStoreFolder = new MenuItem
             {
-                Header = "Открыть папку программы"
+                Header = Lang.T("Открыть папку программы")
             };
             menu.Items.Add(applicationStoreFolder);
             applicationStoreFolder.Click += (s, e) => applicationFolder.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             applicationStoreRemove = new MenuItem
             {
-                Header = "Удалить для текущего пользователя…"
+                Header = Lang.T("Удалить для текущего пользователя…")
             };
             menu.Items.Add(applicationStoreRemove);
             applicationStoreRemove.Click += async (s, e) => await RemoveApplication();
             applicationRegister = new MenuItem
             {
-                Header = "Исправить регистрацию…"
+                Header = Lang.T("Исправить регистрацию…")
             };
             menu.Items.Add(applicationRegister);
             applicationRegister.Click += async (s, e) => await ChangeStoreApplication("register");
             applicationReset = new MenuItem
             {
-                Header = "Сбросить данные…"
+                Header = Lang.T("Сбросить данные…")
             };
             menu.Items.Add(applicationReset);
             applicationReset.Click += async (s, e) => await ChangeStoreApplication("reset");
@@ -112,7 +112,7 @@ namespace Wintools
             applicationStoreMore.IsEnabled = !busy && !readingApplications;
             applicationFolder.Visibility = applicationRemove.Visibility = Visibility.Collapsed;
             applicationStoreRemove.IsEnabled = package == null ? applicationRemove.IsEnabled : !busy && !readingApplications && !package.Protected;
-            applicationStoreRemove.Header = package == null ? "Удалить программу…" : "Удалить для текущего пользователя…";
+            applicationStoreRemove.Header = package == null ? Lang.T("Удалить программу…") : Lang.T("Удалить для текущего пользователя…");
             applicationRegister.Visibility = applicationReset.Visibility = package == null ? Visibility.Collapsed : Visibility.Visible;
             applicationStoreFolder.IsEnabled = applicationFolder.IsEnabled;
             if (package == null)
@@ -122,7 +122,7 @@ namespace Wintools
             if (package != null)
             {
                 applicationRemove.IsEnabled = !busy && !readingApplications && !package.Protected;
-                applicationDetail.Text = package.Name + " · Store / MSIX · Текущий пользователь\n" + (package.Protected ? "Системный или защищённый пакет. Изменение недоступно." : "Откат удаления, сброса и исправления регистрации недоступен.") + (!package.ResetSupported ? " Сброс этим способом не поддерживается в этой Windows." : "");
+                applicationDetail.Text = package.Name + Lang.T(" · Store / MSIX · Текущий пользователь\n") + (package.Protected ? Lang.T("Системный или защищённый пакет. Изменение недоступно.") : Lang.T("Откат удаления, сброса и исправления регистрации недоступен.")) + (!package.ResetSupported ? Lang.T(" Сброс этим способом не поддерживается в этой Windows.") : "");
             }
         }
 
@@ -137,13 +137,13 @@ namespace Wintools
             {
                 var current = (await storeRead()).Rows.FirstOrDefault(p => p.FullName == row.Package.FullName);
                 if (current == null || !current.Entries.Any(e => e.Id == entry.Id) || !StorePackages.EntryValid(current, entry))
-                    throw new IOException("Команда запуска изменилась. Обновите список.");
+                    throw new IOException(Lang.T("Команда запуска изменилась. Обновите список."));
                 storeLaunch(entry.Id);
-                applicationStatus.Text = "Запрос запуска «" + entry.Name + "» передан Windows.";
+                applicationStatus.Text = Lang.T("Запрос запуска «") + entry.Name + Lang.T("» передан Windows.");
             }
             catch (Exception ex)
             {
-                applicationStatus.Text = "Не удалось передать запрос запуска: " + ex.Message;
+                applicationStatus.Text = Lang.T("Не удалось передать запрос запуска: ") + ex.Message;
             }
             finally
             {
@@ -160,20 +160,20 @@ namespace Wintools
             try
             {
                 StorePackages.Validate(package, action);
-                string details = action == "reset" ? "Будут удалены локальные настройки и данные этого приложения. Может потребоваться повторный вход. Сохраните нужные данные до сброса." : action == "register" ? "Повторно зарегистрируем пакет из установленных файлов. Это может помочь при проблемах запуска, но не скачивает недостающие файлы и не проверяет их целостность. Сначала закройте приложение." : "Приложение будет удалено для текущего пользователя. Его локальные данные могут быть потеряны.";
-                if (!await Confirm(StoreActions.Title(action) + ": «" + package.Name + "»?\n\n" + details + "\n\nАвтоматический откат Wintools для этой операции недоступен."))
+                string details = action == "reset" ? Lang.T("Будут удалены локальные настройки и данные этого приложения. Может потребоваться повторный вход. Сохраните нужные данные до сброса.") : action == "register" ? Lang.T("Повторно зарегистрируем пакет из установленных файлов. Это может помочь при проблемах запуска, но не скачивает недостающие файлы и не проверяет их целостность. Сначала закройте приложение.") : Lang.T("Приложение будет удалено для текущего пользователя. Его локальные данные могут быть потеряны.");
+                if (!await Confirm(StoreActions.Title(action) + ": «" + package.Name + "»?\n\n" + details + Lang.T("\n\nАвтоматический откат Wintools для этой операции недоступен.")))
                     return;
                 SetBusy(true);
-                applicationStatus.Text = "Windows выполняет операцию… Дождитесь результата.";
+                applicationStatus.Text = Lang.T("Windows выполняет операцию… Дождитесь результата.");
                 var result = await storeRun(package, action);
                 applicationStatus.Text = result.Output;
                 Get<TextBox>("Output").Text = result.Output;
-                Text("Status", result.Code == 0 ? "Операция приложения завершена. Обновите список и проверьте приложение." : "Операция приложения не подтверждена. Подробности в выводе.");
+                Text("Status", result.Code == 0 ? Lang.T("Операция приложения завершена. Обновите список и проверьте приложение.") : Lang.T("Операция приложения не подтверждена. Подробности в выводе."));
                 ReadHistory();
             }
             catch (Exception ex)
             {
-                applicationStatus.Text = "Операция не завершена: " + ex.Message;
+                applicationStatus.Text = Lang.T("Операция не завершена: ") + ex.Message;
             }
             finally
             {
@@ -183,7 +183,7 @@ namespace Wintools
 
         private static HistoryRow[] StoreHistoryRows()
         {
-            return StoreActions.History().Select(r => new HistoryRow { Run = r.Id, StoreChange = true, Title = StoreActions.Title(r.Action) + " · " + r.Name, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Status = r.Status == "OK" ? "Команда выполнена · без отката" : r.Status == "PENDING" ? "Итог неизвестен · проверьте приложение" : "Не подтверждено · " + r.Summary, CanRevert = false }).ToArray();
+            return StoreActions.History().Select(r => new HistoryRow { Run = r.Id, StoreChange = true, Title = StoreActions.Title(r.Action) + " · " + r.Name, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Status = r.Status == "OK" ? Lang.T("Команда выполнена · без отката") : r.Status == "PENDING" ? Lang.T("Итог неизвестен · проверьте приложение") : Lang.T("Не подтверждено · ") + r.Summary, CanRevert = false }).ToArray();
         }
 
         private void ShowStoreReport(string id)
@@ -191,7 +191,7 @@ namespace Wintools
             try
             {
                 var record = StoreActions.Read(id);
-                Get<TextBox>("Output").Text = StoreActions.Title(record.Action) + " · " + record.Name + "\n" + record.Package + "\n\n" + record.Summary + "\n\nАвтоматический откат недоступен.";
+                Get<TextBox>("Output").Text = StoreActions.Title(record.Action) + " · " + record.Name + "\n" + record.Package + "\n\n" + record.Summary + Lang.T("\n\nАвтоматический откат недоступен.");
                 ExpandOutput(true);
             }
             catch (IOException ex)

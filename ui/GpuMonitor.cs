@@ -70,7 +70,7 @@ namespace Wintools
                     }
                 }
 
-                throw new IOException("Windows вернула слишком много видеоадаптеров.");
+                throw new IOException(Lang.T("Windows вернула слишком много видеоадаптеров."));
             }
             finally
             {
@@ -132,7 +132,7 @@ namespace Wintools
                     var counters = category.ReadCategory();
                     var utilization = counters["Utilization Percentage"];
                     if (utilization == null)
-                        throw new IOException("Счётчик загрузки GPU недоступен.");
+                        throw new IOException(Lang.T("Счётчик загрузки GPU недоступен."));
                     foreach (InstanceData data in utilization.Values)
                     {
                         var current = data.Sample;
@@ -145,11 +145,11 @@ namespace Wintools
 
                 result.Usage = Aggregate(values);
                 if (result.Usage.Count == 0)
-                    result.Error = consecutive ? "Драйвер не предоставил подходящих счётчиков нагрузки GPU." : "Первый замер GPU; нужен следующий интервал.";
+                    result.Error = consecutive ? Lang.T("Драйвер не предоставил подходящих счётчиков нагрузки GPU.") : Lang.T("Первый замер GPU; нужен следующий интервал.");
             }
             catch (Exception ex)
             {
-                result.Error = "Загрузка GPU недоступна: " + ex.Message;
+                result.Error = Lang.T("Загрузка GPU недоступна: ") + ex.Message;
                 next.Clear();
             }
 

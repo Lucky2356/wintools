@@ -24,8 +24,8 @@ namespace Wintools
         private void InitializePackages()
         {
             var panel = ToolPage("PackagesPage");
-            panel.Children.Add(Paragraph("Устанавливает и обновляет программы из официального каталога winget от Microsoft. Установщики скачиваются с сайтов издателей, winget проверяет их контрольные суммы. Отметьте нужные программы и нажмите «Установить выбранные». Удалить программу можно в разделе «Приложения»."));
-            packageStatus = Paragraph("Нажмите «Проверить установленные», чтобы узнать, какие программы уже есть.");
+            panel.Children.Add(Paragraph(Lang.T("Устанавливает и обновляет программы из официального каталога winget от Microsoft. Установщики скачиваются с сайтов издателей, winget проверяет их контрольные суммы. Отметьте нужные программы и нажмите «Установить выбранные». Удалить программу можно в разделе «Приложения».")));
+            packageStatus = Paragraph(Lang.T("Нажмите «Проверить установленные», чтобы узнать, какие программы уже есть."));
             panel.Children.Add(packageStatus);
             var buttons = new WrapPanel
             {
@@ -34,7 +34,7 @@ namespace Wintools
             panel.Children.Add(buttons);
             packageInstall = new Button
             {
-                Content = "Установить выбранные",
+                Content = Lang.T("Установить выбранные"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             packageInstall.Style = (Style)Window.FindResource("Primary");
@@ -42,28 +42,28 @@ namespace Wintools
             buttons.Children.Add(packageInstall);
             packageUpgrade = new Button
             {
-                Content = "Обновить выбранные",
+                Content = Lang.T("Обновить выбранные"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             packageUpgrade.Click += async (s, e) => await RunPackages("upgrade");
             buttons.Children.Add(packageUpgrade);
             packageUpgradeAll = new Button
             {
-                Content = "Обновить все программы…",
+                Content = Lang.T("Обновить все программы…"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             packageUpgradeAll.Click += async (s, e) => await RunPackages("upgrade-all");
             buttons.Children.Add(packageUpgradeAll);
             packageCheck = new Button
             {
-                Content = "Проверить установленные",
+                Content = Lang.T("Проверить установленные"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             packageCheck.Click += async (s, e) => await RefreshPackages();
             buttons.Children.Add(packageCheck);
             packageStop = new Button
             {
-                Content = "Остановить после текущей",
+                Content = Lang.T("Остановить после текущей"),
                 Margin = new Thickness(0, 0, 10, 8),
                 Visibility = Visibility.Collapsed
             };
@@ -75,7 +75,7 @@ namespace Wintools
             buttons.Children.Add(packageStop);
             packageStore = new Button
             {
-                Content = "Установить winget из Store ↗",
+                Content = Lang.T("Установить winget из Store ↗"),
                 Margin = new Thickness(0, 0, 0, 8),
                 Visibility = Visibility.Collapsed
             };
@@ -153,7 +153,7 @@ namespace Wintools
         private void RefreshPackageStates()
         {
             foreach (var package in Packages.Catalog)
-                packageStates[package.Id].Text = installedPackages == null ? "Не проверено" : installedPackages.Contains(package.Id) ? "✓ Установлено" : "Не установлено";
+                packageStates[package.Id].Text = installedPackages == null ? Lang.T("Не проверено") : installedPackages.Contains(package.Id) ? Lang.T("✓ Установлено") : Lang.T("Не установлено");
         }
 
         private void RefreshPackagesEnabled()
@@ -176,7 +176,7 @@ namespace Wintools
                 return;
             readingPackages = true;
             RefreshPackagesEnabled();
-            packageStatus.Text = "Ищем winget и установленные программы…";
+            packageStatus.Text = Lang.T("Ищем winget и установленные программы…");
             try
             {
                 var locate = wingetLocate;
@@ -185,18 +185,18 @@ namespace Wintools
                 if (wingetVersion == null)
                 {
                     installedPackages = null;
-                    packageStatus.Text = "winget не найден. Он входит в «Установщик приложений» Microsoft Store; установите или обновите его и повторите проверку.";
+                    packageStatus.Text = Lang.T("winget не найден. Он входит в «Установщик приложений» Microsoft Store; установите или обновите его и повторите проверку.");
                     return;
                 }
 
-                packageStatus.Text = "winget " + wingetVersion + ". Читаем установленные программы… Первый запуск может обновить каталог winget.";
+                packageStatus.Text = "winget " + wingetVersion + Lang.T(". Читаем установленные программы… Первый запуск может обновить каталог winget.");
                 installedPackages = await packageInventory();
-                packageStatus.Text = "winget " + wingetVersion + ". Установлено из списка: " + Packages.Catalog.Count(p => installedPackages.Contains(p.Id)) + " из " + Packages.Catalog.Length + ".";
+                packageStatus.Text = "winget " + wingetVersion + Lang.T(". Установлено из списка: ") + Packages.Catalog.Count(p => installedPackages.Contains(p.Id)) + Lang.T(" из ") + Packages.Catalog.Length + ".";
             }
             catch (Exception ex)
             {
                 installedPackages = null;
-                packageStatus.Text = "Не удалось проверить программы: " + ex.Message;
+                packageStatus.Text = Lang.T("Не удалось проверить программы: ") + ex.Message;
             }
             finally
             {
@@ -221,8 +221,8 @@ namespace Wintools
             : SelectedPackages();
             if (ids.Length == 0)
                 return;
-            string names = action == "upgrade-all" ? "все программы, для которых winget знает новую версию" : string.Join(", ", ids.Select(id => Packages.Find(id).Name));
-            if (!await Confirm((action == "install" ? "Установить" : "Обновить") + ": " + names + "?\n\nУстановщики скачаются с сайтов издателей и запустятся без вопросов; Windows может запросить права администратора. Продолжая, вы принимаете лицензионные соглашения этих программ и условия источника winget." + (action == "upgrade-all" ? " Обновление затронет и программы, установленные не через Wintools." : "") + "\n\nАвтоматического отката нет: удалить программу можно в разделе «Приложения»."))
+            string names = action == "upgrade-all" ? Lang.T("все программы, для которых winget знает новую версию") : string.Join(", ", ids.Select(id => Packages.Find(id).Name));
+            if (!await Confirm((action == "install" ? Lang.T("Установить") : Lang.T("Обновить")) + ": " + names + Lang.T("?\n\nУстановщики скачаются с сайтов издателей и запустятся без вопросов; Windows может запросить права администратора. Продолжая, вы принимаете лицензионные соглашения этих программ и условия источника winget.") + (action == "upgrade-all" ? Lang.T(" Обновление затронет и программы, установленные не через Wintools.") : "") + Lang.T("\n\nАвтоматического отката нет: удалить программу можно в разделе «Приложения».")))
                 return;
             SetBusy(true);
             stopPackages = false;
@@ -238,8 +238,8 @@ namespace Wintools
                 {
                     if (stopPackages)
                         break;
-                    string name = id == null ? "Все программы" : Packages.Find(id).Name;
-                    Text("Status", (action == "install" ? "Устанавливаем " : "Обновляем ") + name + "…");
+                    string name = id == null ? Lang.T("Все программы") : Packages.Find(id).Name;
+                    Text("Status", (action == "install" ? Lang.T("Устанавливаем ") : Lang.T("Обновляем ")) + name + "…");
                     output.AppendText("▶ " + name + Environment.NewLine);
                     var record = new PackageChange
                     {
@@ -277,11 +277,11 @@ namespace Wintools
                     output.AppendText("■ " + name + ": " + Packages.Describe(code, action) + Environment.NewLine + Environment.NewLine);
                 }
 
-                Text("Status", (stopPackages ? "Остановлено. " : "") + "Готово: " + done + (failed > 0 ? ", с ошибкой: " + failed + ". Подробности — в выводе." : "."));
+                Text("Status", (stopPackages ? Lang.T("Остановлено. ") : "") + Lang.T("Готово: ") + done + (failed > 0 ? Lang.T(", с ошибкой: ") + failed + Lang.T(". Подробности — в выводе.") : "."));
             }
             catch (Exception ex)
             {
-                Text("Status", "winget не завершил работу: " + ex.Message);
+                Text("Status", Lang.T("winget не завершил работу: ") + ex.Message);
             }
             finally
             {
@@ -302,12 +302,12 @@ namespace Wintools
             {
                 var record = Packages.Read(id);
                 if (record.Action != "install" || record.Status != "OK")
-                    throw new InvalidOperationException("Удалить можно только программу, успешно установленную через Wintools.");
+                    throw new InvalidOperationException(Lang.T("Удалить можно только программу, успешно установленную через Wintools."));
                 if (wingetVersion == null)
                     wingetVersion = await Task.Run(() => wingetLocate());
                 if (wingetVersion == null)
-                    throw new InvalidOperationException("winget не найден.");
-                if (!await Confirm("Удалить «" + record.Name + "»?\n\nWinget запустит штатный деинсталлятор издателя без вопросов. Настройки и данные программы могут быть удалены. Вернуть программу можно повторной установкой."))
+                    throw new InvalidOperationException(Lang.T("winget не найден."));
+                if (!await Confirm(Lang.T("Удалить «") + record.Name + Lang.T("»?\n\nWinget запустит штатный деинсталлятор издателя без вопросов. Настройки и данные программы могут быть удалены. Вернуть программу можно повторной установкой.")))
                     return;
                 SetBusy(true);
                 ExpandOutput(true);
@@ -362,13 +362,13 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                Text("Status", "Удаление невозможно: " + ex.Message);
+                Text("Status", Lang.T("Удаление невозможно: ") + ex.Message);
             }
         }
 
         private static HistoryRow[] PackageHistoryRows()
         {
-            return Packages.History().Select(r => new HistoryRow { Run = r.Id, PackageChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), Title = (r.Action == "install" ? "Установка: " : r.Action == "uninstall" ? "Удаление: " : "Обновление: ") + r.Name, Status = r.Status == "PENDING" ? "Прервано" : r.Status == "REVERTED" ? "Удалено из истории" : Packages.Describe(r.Code, r.Action) + (r.Action == "install" && r.Status == "OK" ? " · откат удалит программу" : ""), CanRevert = r.Action == "install" && r.Status == "OK" }).ToArray();
+            return Packages.History().Select(r => new HistoryRow { Run = r.Id, PackageChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), Title = (r.Action == "install" ? Lang.T("Установка: ") : r.Action == "uninstall" ? Lang.T("Удаление: ") : Lang.T("Обновление: ")) + r.Name, Status = r.Status == "PENDING" ? Lang.T("Прервано") : r.Status == "REVERTED" ? Lang.T("Удалено из истории") : Packages.Describe(r.Code, r.Action) + (r.Action == "install" && r.Status == "OK" ? Lang.T(" · откат удалит программу") : ""), CanRevert = r.Action == "install" && r.Status == "OK" }).ToArray();
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Wintools
         {
             get
             {
-                return Enabled.HasValue ? (Enabled.Value ? "Включено" : "Отключено") : "Неизвестно";
+                return Enabled.HasValue ? (Enabled.Value ? Lang.T("Включено") : Lang.T("Отключено")) : Lang.T("Неизвестно");
             }
         }
 
@@ -44,7 +44,7 @@ namespace Wintools
         {
             get
             {
-                return StartupEntries.Location(Source) + (Restriction == null ? "" : " · только просмотр");
+                return StartupEntries.Location(Source) + (Restriction == null ? "" : Lang.T(" · только просмотр"));
             }
         }
 
@@ -92,14 +92,14 @@ namespace Wintools
             }
 
             if (!Sources.Contains(source) || string.IsNullOrWhiteSpace(name) || name.Length > 16383 || name.Any(char.IsControl) || name.IndexOf('\0') >= 0)
-                throw new ArgumentException("Некорректная запись автозагрузки.");
+                throw new ArgumentException(Lang.T("Некорректная запись автозагрузки."));
             if (source.EndsWith("folder") && (name != Path.GetFileName(name) || name == "." || name == ".."))
-                throw new ArgumentException("Некорректное имя файла автозагрузки.");
+                throw new ArgumentException(Lang.T("Некорректное имя файла автозагрузки."));
         }
 
         internal static string Location(string source)
         {
-            return source == StartupTasks.Source ? "Планировщик · вход в Windows" : source == "user-run" ? "Мой вход · реестр" : source == "machine-run" ? "Все пользователи · реестр" : source == "machine-run32" ? "Все пользователи · реестр 32 бит" : source == "user-folder" ? "Мой вход · папка" : "Все пользователи · папка";
+            return source == StartupTasks.Source ? Lang.T("Планировщик · вход в Windows") : source == "user-run" ? Lang.T("Мой вход · реестр") : source == "machine-run" ? Lang.T("Все пользователи · реестр") : source == "machine-run32" ? Lang.T("Все пользователи · реестр 32 бит") : source == "user-folder" ? Lang.T("Мой вход · папка") : Lang.T("Все пользователи · папка");
         }
 
         internal static string ApprovalKey(string source)
@@ -149,7 +149,7 @@ namespace Wintools
         internal static string Encode(string previous, bool enabled)
         {
             if (!Decode(previous).HasValue)
-                throw new IOException("Формат состояния Windows не распознан. Изменение недоступно.");
+                throw new IOException(Lang.T("Формат состояния Windows не распознан. Изменение недоступно."));
             var bytes = new byte[12];
             byte family = previous != null && Convert.FromBase64String(previous)[0] >= 6 ? (byte)6 : (byte)2;
             bytes[0] = (byte)(family + (enabled ? 0 : 1));
@@ -172,13 +172,13 @@ namespace Wintools
             {
                 string folder = Folder(source);
                 if (string.IsNullOrEmpty(folder))
-                    throw new IOException("Папка автозагрузки недоступна.");
+                    throw new IOException(Lang.T("Папка автозагрузки недоступна."));
                 string path = Path.Combine(folder, name);
                 var info = new FileInfo(path);
                 if (!info.Exists)
-                    throw new IOException("Запись больше не существует.");
+                    throw new IOException(Lang.T("Запись больше не существует."));
                 if ((info.Attributes & (FileAttributes.Directory | FileAttributes.ReparsePoint)) != 0 || info.Length > 2097152)
-                    throw new IOException("Файл автозагрузки нельзя надёжно проверить.");
+                    throw new IOException(Lang.T("Файл автозагрузки нельзя надёжно проверить."));
                 row.Command = path;
                 using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 using (var sha = SHA256.Create())
@@ -189,10 +189,10 @@ namespace Wintools
                 using (var key = root.OpenSubKey(RunPath))
                 {
                     if (key == null || !key.GetValueNames().Contains(name, StringComparer.OrdinalIgnoreCase))
-                        throw new IOException("Запись больше не существует.");
+                        throw new IOException(Lang.T("Запись больше не существует."));
                     var kind = key.GetValueKind(name);
                     if (kind != RegistryValueKind.String && kind != RegistryValueKind.ExpandString)
-                        throw new IOException("Неизвестный тип команды автозагрузки.");
+                        throw new IOException(Lang.T("Неизвестный тип команды автозагрузки."));
                     row.Command = (string)key.GetValue(name, null, RegistryValueOptions.DoNotExpandEnvironmentNames);
                     row.Identity = Hash(source + "|" + name + "|" + kind + "|" + row.Command);
                 }
@@ -203,13 +203,13 @@ namespace Wintools
                 if (key != null && key.GetValueNames().Contains(name, StringComparer.OrdinalIgnoreCase))
                 {
                     if (key.GetValueKind(name) != RegistryValueKind.Binary)
-                        throw new IOException("Неизвестный тип состояния автозагрузки.");
+                        throw new IOException(Lang.T("Неизвестный тип состояния автозагрузки."));
                     row.Approval = Convert.ToBase64String((byte[])key.GetValue(name));
                 }
             }
 
             if (!row.Enabled.HasValue)
-                row.Error = "Windows использует незнакомый формат состояния. Изменение недоступно.";
+                row.Error = Lang.T("Windows использует незнакомый формат состояния. Изменение недоступно.");
             return row;
         }
 
@@ -228,7 +228,7 @@ namespace Wintools
                     {
                         string folder = Folder(source);
                         if (string.IsNullOrEmpty(folder))
-                            throw new IOException("Папка не определена.");
+                            throw new IOException(Lang.T("Папка не определена."));
                         names = Directory.Exists(folder) ? Directory.GetFiles(folder).Select(Path.GetFileName).Where(n => !n.Equals("desktop.ini", StringComparison.OrdinalIgnoreCase)).ToArray() : new string[0];
                     }
                     else
@@ -242,7 +242,7 @@ namespace Wintools
                         }
                         catch (Exception ex)
                         {
-                            entries.Add(new StartupEntry { Source = source, Name = name, Error = ex.Message, Command = "Не удалось прочитать запись" });
+                            entries.Add(new StartupEntry { Source = source, Name = name, Error = ex.Message, Command = Lang.T("Не удалось прочитать запись") });
                         }
                 }
                 catch (Exception ex)
@@ -265,7 +265,7 @@ namespace Wintools
         {
             Validate(source, name);
             if (value != null && !Decode(value).HasValue)
-                throw new IOException("Некорректное сохраняемое состояние.");
+                throw new IOException(Lang.T("Некорректное сохраняемое состояние."));
             if (source == StartupTasks.Source)
             {
                 StartupTasks.Write(name, value, expected);

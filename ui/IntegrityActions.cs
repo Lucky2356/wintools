@@ -31,21 +31,21 @@ namespace Wintools
         internal static string Title(string action)
         {
             if (action == "windows-repair")
-                return "Восстановление Windows: DISM и SFC";
+                return Lang.T("Восстановление Windows: DISM и SFC");
             if (action == "dism-repair")
-                return "Восстановление компонентов Windows";
+                return Lang.T("Восстановление компонентов Windows");
             if (action == "sfc-repair")
-                return "Восстановление системных файлов";
+                return Lang.T("Восстановление системных файлов");
             if (action == "dism-scan")
-                return "Проверка компонентов Windows";
+                return Lang.T("Проверка компонентов Windows");
             if (action == "dism-status")
-                return "Статус прошлой проверки компонентов";
+                return Lang.T("Статус прошлой проверки компонентов");
             if (action == "sfc-verify")
-                return "Проверка системных файлов";
-            throw new ArgumentException("Неизвестная проверка Windows.");
+                return Lang.T("Проверка системных файлов");
+            throw new ArgumentException(Lang.T("Неизвестная проверка Windows."));
         }
 
-        private static readonly RecordStore Store = new RecordStore("integrity-history", "обслуживание", 65536);
+        private static readonly RecordStore Store = new RecordStore("integrity-history", Lang.T("обслуживание"), 65536);
         private static string DirectoryPath
         {
             get
@@ -57,7 +57,7 @@ namespace Wintools
         private static void ValidateId(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер проверки.");
+                throw new IOException(Lang.T("Некорректный номер проверки."));
         }
 
         private static string RecordPath(string id)
@@ -102,17 +102,17 @@ namespace Wintools
                     "failed",
                     "cancelled"
                 }.Contains(record.State) || !DateTime.TryParseExact(record.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Повреждена запись проверки.");
+                    throw new IOException(Lang.T("Повреждена запись проверки."));
                 Title(record.Action);
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждён отчёт проверки.", ex);
+                throw new IOException(Lang.T("Повреждён отчёт проверки."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждён отчёт проверки.", ex);
+                throw new IOException(Lang.T("Повреждён отчёт проверки."), ex);
             }
         }
 
@@ -128,7 +128,7 @@ namespace Wintools
             if (!File.Exists(path))
                 return "";
             if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("Журнал проверки является ссылкой.");
+                throw new IOException(Lang.T("Журнал проверки является ссылкой."));
             using (var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 if (file.Length > 600000)
@@ -160,7 +160,7 @@ namespace Wintools
             using (var cancel = new EventWaitHandle(false, EventResetMode.ManualReset, EventName(id), out created))
             {
                 if (!created)
-                    throw new IOException("Не удалось создать независимую проверку.");
+                    throw new IOException(Lang.T("Не удалось создать независимую проверку."));
                 cancelReady(CanCancel(action) ? (Action)(() => cancel.Set()) : null);
                 try
                 {
@@ -195,7 +195,7 @@ namespace Wintools
                         }
                         catch (IOException)
                         {
-                            report = "Проверка завершилась без полного отчёта.\n" + CleanLog(ReadLog(id));
+                            report = Lang.T("Проверка завершилась без полного отчёта.\n") + CleanLog(ReadLog(id));
                         }
 
                         return new EngineResult
@@ -215,12 +215,12 @@ namespace Wintools
         internal static int Worker(string[] args)
         {
             if (args.Length != 4 || args[3] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос проверки некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос проверки некорректен или права повышены под другим пользователем."));
             string action = args[1], id = args[2];
             Title(action);
             ValidateId(id);
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала откройте интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала откройте интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -243,7 +243,7 @@ namespace Wintools
                         Action = action,
                         TimeUtc = DateTime.UtcNow.ToString("o"),
                         State = "pending",
-                        Summary = "Обслуживание начато. Итог ещё не получен."
+                        Summary = Lang.T("Обслуживание начато. Итог ещё не получен.")
                     };
                     Save(record);
                     log.WriteLine(Title(action));
@@ -258,15 +258,15 @@ namespace Wintools
                         }
                     };
                     if (cancel.WaitOne(0))
-                        throw new OperationCanceledException("Обслуживание отменено до начала работы.");
+                        throw new OperationCanceledException(Lang.T("Обслуживание отменено до начала работы."));
                     if (IsRepair(action) && Preferences.Load().RestorePoint)
                     {
-                        append("Запрашиваем точку восстановления Windows…");
+                        append(Lang.T("Запрашиваем точку восстановления Windows…"));
                         restorePoint = WindowsIntegrity.RestorePointEvent(100, append);
                     }
 
                     if (cancel.WaitOne(0))
-                        throw new OperationCanceledException("Обслуживание отменено до исправления файлов.");
+                        throw new OperationCanceledException(Lang.T("Обслуживание отменено до исправления файлов."));
                     IntegrityResult result;
                     if (action == "windows-repair")
                         result = WindowsIntegrity.RepairWindows(() => WindowsIntegrity.RepairComponents(cancel, append), () => WindowsIntegrity.RepairFiles(append, false), append);
@@ -294,7 +294,7 @@ namespace Wintools
                         }
                         catch (Exception saveError)
                         {
-                            log.WriteLine("Не удалось сохранить итог: " + saveError.Message);
+                            log.WriteLine(Lang.T("Не удалось сохранить итог: ") + saveError.Message);
                         }
                     }
 

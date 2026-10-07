@@ -14,10 +14,10 @@ namespace Wintools
         private FrameworkElement[] integrityContent;
         private readonly string[] cleanupTitles =
         {
-            "Временные файлы пользователя",
-            "Временные файлы Windows",
-            "Отчёты о сбоях приложений",
-            "Кэш браузеров"
+            Lang.T("Временные файлы пользователя"),
+            Lang.T("Временные файлы Windows"),
+            Lang.T("Отчёты о сбоях приложений"),
+            Lang.T("Кэш браузеров")
         };
         private readonly CheckBox[] cleanupChecks = new CheckBox[4];
         private readonly TextBlock[] cleanupValues = new TextBlock[4];
@@ -40,12 +40,12 @@ namespace Wintools
             Grid.SetRow(cleanupPanel, 1);
             Grid.SetRowSpan(cleanupPanel, 4);
             root.Children.Add(cleanupPanel);
-            panel.Children.Add(Paragraph("Сначала рассчитайте объём, затем отметьте нужные категории. Удаление необратимо. Возраст определяется по последнему изменению файла; занятые файлы могут остаться."));
+            panel.Children.Add(Paragraph(Lang.T("Сначала рассчитайте объём, затем отметьте нужные категории. Удаление необратимо. Возраст определяется по последнему изменению файла; занятые файлы могут остаться.")));
             var controls = new WrapPanel();
             panel.Children.Add(controls);
-            cleanupScan = ToolButton(controls, "Рассчитать объём", async () => await ScanCleanup());
-            cleanupApply = ToolButton(controls, "Удалить выбранное…", async () => await ApplyCleanup());
-            cleanupStop = ToolButton(controls, "Остановить расчёт", () =>
+            cleanupScan = ToolButton(controls, Lang.T("Рассчитать объём"), async () => await ScanCleanup());
+            cleanupApply = ToolButton(controls, Lang.T("Удалить выбранное…"), async () => await ApplyCleanup());
+            cleanupStop = ToolButton(controls, Lang.T("Остановить расчёт"), () =>
             {
                 if (cleanupCancel != null)
                     cleanupCancel.Cancel();
@@ -53,7 +53,7 @@ namespace Wintools
             });
             foreach (Button button in controls.Children)
                 button.Margin = new Thickness(0, 0, 8, 8);
-            cleanupStatus = Paragraph("Расчёт ещё не выполнен. Загрузки, корзина, документы и данные браузеров, кроме дискового кэша, в эти категории не входят.");
+            cleanupStatus = Paragraph(Lang.T("Расчёт ещё не выполнен. Загрузки, корзина, документы и данные браузеров, кроме дискового кэша, в эти категории не входят."));
             panel.Children.Add(cleanupStatus);
             for (int i = 0; i < cleanupTitles.Length; i++)
             {
@@ -66,8 +66,8 @@ namespace Wintools
                 };
                 cleanupChecks[i].Click += (s, e) => RefreshCleanupEnabled();
                 card.Children.Add(cleanupChecks[i]);
-                card.Children.Add(Paragraph(i == 3 ? "Дисковый кэш Chrome, Edge, Brave, Яндекс Браузера, Vivaldi и Firefox. История, пароли, вкладки и вход на сайты сохраняются. Открытые браузеры пропускаются; первые страницы после очистки загрузятся чуть дольше." : i == 2 ? "Файлы CrashDumps старше 7 дней. Они могут понадобиться для выяснения причин сбоев." : "Файлы Temp старше 3 дней. Папки и ссылки пропускаются."));
-                cleanupValues[i] = Paragraph("Объём неизвестен");
+                card.Children.Add(Paragraph(i == 3 ? Lang.T("Дисковый кэш Chrome, Edge, Brave, Яндекс Браузера, Vivaldi и Firefox. История, пароли, вкладки и вход на сайты сохраняются. Открытые браузеры пропускаются; первые страницы после очистки загрузятся чуть дольше.") : i == 2 ? Lang.T("Файлы CrashDumps старше 7 дней. Они могут понадобиться для выяснения причин сбоев.") : Lang.T("Файлы Temp старше 3 дней. Папки и ссылки пропускаются.")));
+                cleanupValues[i] = Paragraph(Lang.T("Объём неизвестен"));
                 card.Children.Add(cleanupValues[i]);
                 var border = new Border
                 {
@@ -117,7 +117,7 @@ namespace Wintools
             {
                 cleanupEstimates[i] = null;
                 cleanupChecks[i].IsChecked = false;
-                cleanupValues[i].Text = "Ожидает расчёта";
+                cleanupValues[i].Text = Lang.T("Ожидает расчёта");
             }
 
             RefreshCleanupEnabled();
@@ -125,25 +125,25 @@ namespace Wintools
             {
                 for (int i = 0; i < cleanupTitles.Length; i++)
                 {
-                    cleanupStatus.Text = "Считаем: " + cleanupTitles[i] + "… Ничего не удаляем.";
+                    cleanupStatus.Text = Lang.T("Считаем: ") + cleanupTitles[i] + Lang.T("… Ничего не удаляем.");
                     var id = CleanupPreview.Ids[i];
                     var read = cleanupRead;
                     var token = cleanupCancel.Token;
                     var result = await Task.Run(() => read(id, token));
                     token.ThrowIfCancellationRequested();
                     cleanupEstimates[i] = result;
-                    cleanupValues[i].Text = result.Source + "\n" + CleanupPreview.Size(result.Bytes) + " · Файлов: " + result.Files + " · Пропущено ссылок: " + result.SkippedLinks + (result.Errors > 0 ? "\nРасчёт неполный. " + result.Error : "");
+                    cleanupValues[i].Text = result.Source + "\n" + CleanupPreview.Size(result.Bytes) + Lang.T(" · Файлов: ") + result.Files + Lang.T(" · Пропущено ссылок: ") + result.SkippedLinks + (result.Errors > 0 ? Lang.T("\nРасчёт неполный. ") + result.Error : "");
                 }
 
-                cleanupStatus.Text = "Расчёт завершён. Объём приблизительный: это размеры файлов, а не гарантированно освобождаемое место. Перед удалением состав будет проверен заново.";
+                cleanupStatus.Text = Lang.T("Расчёт завершён. Объём приблизительный: это размеры файлов, а не гарантированно освобождаемое место. Перед удалением состав будет проверен заново.");
             }
             catch (OperationCanceledException)
             {
-                cleanupStatus.Text = "Расчёт остановлен. Ничего не удалено; доступны только завершённые категории.";
+                cleanupStatus.Text = Lang.T("Расчёт остановлен. Ничего не удалено; доступны только завершённые категории.");
             }
             catch (Exception ex)
             {
-                cleanupStatus.Text = "Расчёт не завершён: " + ex.Message;
+                cleanupStatus.Text = Lang.T("Расчёт не завершён: ") + ex.Message;
             }
             finally
             {
@@ -162,7 +162,7 @@ namespace Wintools
             var selected = Enumerable.Range(0, cleanupTitles.Length).Where(i => cleanupChecks[i].IsChecked == true && cleanupEstimates[i] != null && cleanupEstimates[i].Errors == 0 && cleanupEstimates[i].Files > 0).ToArray();
             if (selected.Length == 0)
                 return;
-            if (!await Confirm("Удалить файлы из выбранных категорий?\n\n" + string.Join("\n", selected.Select(i => cleanupTitles[i] + ": примерно " + CleanupPreview.Size(cleanupEstimates[i].Bytes) + "\n" + cleanupEstimates[i].Source)) + "\n\nФайлы старше 3 дней (отчёты о сбоях — 7 дней, кэш браузеров — целиком) будут удалены без корзины и отката. Состав мог измениться после расчёта. Windows может запросить права администратора."))
+            if (!await Confirm(Lang.T("Удалить файлы из выбранных категорий?\n\n") + string.Join("\n", selected.Select(i => cleanupTitles[i] + Lang.T(": примерно ") + CleanupPreview.Size(cleanupEstimates[i].Bytes) + "\n" + cleanupEstimates[i].Source)) + Lang.T("\n\nФайлы старше 3 дней (отчёты о сбоях — 7 дней, кэш браузеров — целиком) будут удалены без корзины и отката. Состав мог измениться после расчёта. Windows может запросить права администратора.")))
                 return;
             SetBusy(true);
             var output = new StringBuilder();
@@ -171,7 +171,7 @@ namespace Wintools
             {
                 foreach (int i in selected)
                 {
-                    cleanupStatus.Text = "Очищаем: " + cleanupTitles[i];
+                    cleanupStatus.Text = Lang.T("Очищаем: ") + cleanupTitles[i];
                     var result = await cleanupRun(CleanupPreview.Ids[i], text =>
                     {
                         Get<TextBox>("Output").Text = output.ToString() + text;
@@ -179,7 +179,7 @@ namespace Wintools
                     output.AppendLine(cleanupTitles[i]).AppendLine(result.Output);
                     cleanupEstimates[i] = null;
                     cleanupChecks[i].IsChecked = false;
-                    cleanupValues[i].Text = "Повторите расчёт после очистки";
+                    cleanupValues[i].Text = Lang.T("Повторите расчёт после очистки");
                     if (result.Code != 0)
                     {
                         success = false;
@@ -187,18 +187,18 @@ namespace Wintools
                     }
                 }
 
-                cleanupStatus.Text = success ? "Команды очистки завершены. Повторите расчёт, чтобы проверить оставшиеся файлы. Подробности — в выводе." : "Очистка выполнена не полностью. Часть файлов могла быть удалена; последующие категории не запускались. Подробности — в выводе.";
+                cleanupStatus.Text = success ? Lang.T("Команды очистки завершены. Повторите расчёт, чтобы проверить оставшиеся файлы. Подробности — в выводе.") : Lang.T("Очистка выполнена не полностью. Часть файлов могла быть удалена; последующие категории не запускались. Подробности — в выводе.");
             }
             catch (Exception ex)
             {
                 success = false;
                 output.AppendLine(ex.Message);
-                cleanupStatus.Text = "Очистка не завершена: " + ex.Message + ". Часть файлов могла быть удалена; повторите расчёт.";
+                cleanupStatus.Text = Lang.T("Очистка не завершена: ") + ex.Message + Lang.T(". Часть файлов могла быть удалена; повторите расчёт.");
                 for (int i = 0; i < cleanupTitles.Length; i++)
                 {
                     cleanupEstimates[i] = null;
                     cleanupChecks[i].IsChecked = false;
-                    cleanupValues[i].Text = "Объём неизвестен — повторите расчёт";
+                    cleanupValues[i].Text = Lang.T("Объём неизвестен — повторите расчёт");
                 }
             }
             finally

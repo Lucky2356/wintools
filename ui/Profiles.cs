@@ -25,8 +25,8 @@ namespace Wintools
                     return;
                 var dialog = new SaveFileDialog
                 {
-                    Title = "Сохранить план как профиль",
-                    Filter = "Профиль Wintools (*.json)|*.json",
+                    Title = Lang.T("Сохранить план как профиль"),
+                    Filter = Lang.T("Профиль Wintools (*.json)|*.json"),
                     FileName = "wintools-profile.json",
                     OverwritePrompt = true
                 };
@@ -35,11 +35,11 @@ namespace Wintools
                 try
                 {
                     File.WriteAllText(dialog.FileName, new JavaScriptSerializer().Serialize(new ActionProfile { Schema = "wintools/profile/1", Actions = preferences.Plan.ToArray() }), new UTF8Encoding(false));
-                    Text("Status", "Профиль сохранён. Он содержит список действий, а не резервную копию Windows.");
+                    Text("Status", Lang.T("Профиль сохранён. Он содержит список действий, а не резервную копию Windows."));
                 }
                 catch (Exception ex)
                 {
-                    Text("Status", "Не удалось сохранить профиль: " + ex.Message);
+                    Text("Status", Lang.T("Не удалось сохранить профиль: ") + ex.Message);
                 }
             });
             ClickAsync("ProfileImport", async () =>
@@ -48,8 +48,8 @@ namespace Wintools
                     return;
                 var dialog = new OpenFileDialog
                 {
-                    Title = "Загрузить профиль в план",
-                    Filter = "Профиль Wintools (*.json)|*.json",
+                    Title = Lang.T("Загрузить профиль в план"),
+                    Filter = Lang.T("Профиль Wintools (*.json)|*.json"),
                     CheckFileExists = true
                 };
                 if (dialog.ShowDialog(Window) != true)
@@ -57,14 +57,14 @@ namespace Wintools
                 try
                 {
                     if (new FileInfo(dialog.FileName).Length > 65536)
-                        throw new IOException("Файл профиля слишком большой.");
+                        throw new IOException(Lang.T("Файл профиля слишком большой."));
                     var ids = ReadProfile(File.ReadAllText(dialog.FileName));
-                    if (!await Confirm("Добавить в план " + ids.Length + " действий из профиля?\n\nWindows сейчас не изменится. Проверьте действия и ограничения в плане перед применением."))
+                    if (!await Confirm(Lang.T("Добавить в план ") + ids.Length + Lang.T(" действий из профиля?\n\nWindows сейчас не изменится. Проверьте действия и ограничения в плане перед применением.")))
                         return;
                     var previous = preferences.Plan;
                     var next = previous.Concat(ids).Distinct().ToList();
                     if (next.Count > 200)
-                        throw new IOException("В объединённом плане больше 200 действий.");
+                        throw new IOException(Lang.T("В объединённом плане больше 200 действий."));
                     preferences.Plan = next;
                     if (!SavePreferences())
                     {
@@ -73,12 +73,12 @@ namespace Wintools
                     }
 
                     RefreshPlan();
-                    Text("Status", "Профиль добавлен в план. Сначала проверьте предпросмотр и ограничения действий.");
+                    Text("Status", Lang.T("Профиль добавлен в план. Сначала проверьте предпросмотр и ограничения действий."));
                     ShowPage(4);
                 }
                 catch (Exception ex)
                 {
-                    Text("Status", "Не удалось загрузить профиль: " + ex.Message);
+                    Text("Status", Lang.T("Не удалось загрузить профиль: ") + ex.Message);
                 }
             });
         }
@@ -87,9 +87,9 @@ namespace Wintools
         {
             var profile = new JavaScriptSerializer().Deserialize<ActionProfile>(json);
             if (profile == null || profile.Schema != "wintools/profile/1" || profile.Actions == null || profile.Actions.Length > 200)
-                throw new IOException("Неподдерживаемый формат профиля.");
+                throw new IOException(Lang.T("Неподдерживаемый формат профиля."));
             if (profile.Actions.Any(id => !catalogue.Any(t => t.Id == id && CanPlan(t))))
-                throw new IOException("В профиле есть неизвестное или недопустимое действие. Обновите приложение и проверьте файл.");
+                throw new IOException(Lang.T("В профиле есть неизвестное или недопустимое действие. Обновите приложение и проверьте файл."));
             return profile.Actions.Distinct().ToArray();
         }
     }

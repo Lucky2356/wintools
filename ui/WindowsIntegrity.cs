@@ -57,21 +57,21 @@ namespace Wintools
                 return new IntegrityResult
                 {
                     State = scan ? "healthy" : "not-marked",
-                    Summary = scan ? "Повреждения хранилища компонентов не найдены. Это проверка компонентов Windows, а не всех программ и оборудования." : "Windows не хранит отметку о повреждении компонентов. Новое сканирование не выполнялось; для проверки сейчас выберите полную проверку."
+                    Summary = scan ? Lang.T("Повреждения хранилища компонентов не найдены. Это проверка компонентов Windows, а не всех программ и оборудования.") : Lang.T("Windows не хранит отметку о повреждении компонентов. Новое сканирование не выполнялось; для проверки сейчас выберите полную проверку.")
                 };
             if (state == 1)
                 return new IntegrityResult
                 {
                     State = "repairable",
-                    Summary = "Windows сообщает о повреждении хранилища компонентов, которое допускает восстановление. Эта проверка ничего не исправляла."
+                    Summary = Lang.T("Windows сообщает о повреждении хранилища компонентов, которое допускает восстановление. Эта проверка ничего не исправляла.")
                 };
             if (state == 2)
                 return new IntegrityResult
                 {
                     State = "unrepairable",
-                    Summary = "Windows сообщает о повреждении компонентов, которое DISM не считает исправимым этим способом. Потребуется отдельное восстановление Windows. Эта проверка ничего не исправляла."
+                    Summary = Lang.T("Windows сообщает о повреждении компонентов, которое DISM не считает исправимым этим способом. Потребуется отдельное восстановление Windows. Эта проверка ничего не исправляла.")
                 };
-            throw new IOException("Windows вернула неизвестное состояние компонентов.");
+            throw new IOException(Lang.T("Windows вернула неизвестное состояние компонентов."));
         }
 
         internal static IntegrityResult CheckComponents(bool scan, EventWaitHandle cancel, Action<string> output)
@@ -107,9 +107,9 @@ namespace Wintools
                 int code = DismCheckImageHealth(session, scan, cancel.SafeWaitHandle.DangerousGetHandle(), callback, IntPtr.Zero, out state);
                 GC.KeepAlive(callback);
                 if (callbackError != null)
-                    throw new IOException("Не удалось сохранить ход проверки.", callbackError);
+                    throw new IOException(Lang.T("Не удалось сохранить ход проверки."), callbackError);
                 if (code != 0 && cancel.WaitOne(0))
-                    throw new OperationCanceledException("Проверка компонентов остановлена. Итоговое состояние не определено; повторите проверку позже.");
+                    throw new OperationCanceledException(Lang.T("Проверка компонентов остановлена. Итоговое состояние не определено; повторите проверку позже."));
                 Check(code);
                 return DescribeDism(state, scan);
             }
@@ -127,25 +127,25 @@ namespace Wintools
                 return new IntegrityResult
                 {
                     State = "failed",
-                    Summary = "SFC завершилась с кодом " + exitCode + ". Проверка не подтверждена; изучите сообщения Windows в отчёте."
+                    Summary = Lang.T("SFC завершилась с кодом ") + exitCode + Lang.T(". Проверка не подтверждена; изучите сообщения Windows в отчёте.")
                 };
             string text = (output ?? "").ToLowerInvariant();
             if (text.Contains("did not find any integrity violations") || text.Contains("не обнаружила нарушений целостности"))
                 return new IntegrityResult
                 {
                     State = "healthy",
-                    Summary = "SFC не обнаружила нарушений целостности защищённых системных файлов. Исправление файлов не выполнялось."
+                    Summary = Lang.T("SFC не обнаружила нарушений целостности защищённых системных файлов. Исправление файлов не выполнялось.")
                 };
             if (text.Contains("found integrity violations") || text.Contains("обнаружила нарушения целостности") || text.Contains("found corrupt files") || text.Contains("обнаружила поврежденные файлы") || text.Contains("обнаружила повреждённые файлы"))
                 return new IntegrityResult
                 {
                     State = "issues",
-                    Summary = "SFC сообщила о нарушениях целостности системных файлов. Режим проверки ничего не исправляет; подробности сохранены в отчёте и журнале CBS Windows."
+                    Summary = Lang.T("SFC сообщила о нарушениях целостности системных файлов. Режим проверки ничего не исправляет; подробности сохранены в отчёте и журнале CBS Windows.")
                 };
             return new IntegrityResult
             {
                 State = "review",
-                Summary = "SFC завершила команду. Автоматически определить итог по этому сообщению Windows не удалось — прочитайте результат ниже. Отсутствие повреждений не подтверждено."
+                Summary = Lang.T("SFC завершила команду. Автоматически определить итог по этому сообщению Windows не удалось — прочитайте результат ниже. Отсутствие повреждений не подтверждено.")
             };
         }
 
@@ -209,7 +209,7 @@ namespace Wintools
                 process.BeginErrorReadLine();
                 process.WaitForExit();
                 if (error != null)
-                    throw new IOException("Не удалось сохранить вывод SFC.", error);
+                    throw new IOException(Lang.T("Не удалось сохранить вывод SFC."), error);
                 return repair ? DescribeSfcRepair(text.ToString(), process.ExitCode) : DescribeSfc(text.ToString(), process.ExitCode);
             }
         }

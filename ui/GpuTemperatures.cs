@@ -53,7 +53,7 @@ namespace Wintools
             {
                 if (optional)
                     return null;
-                throw new IOException("Установленный драйвер не предоставляет необходимый интерфейс температуры.");
+                throw new IOException(Lang.T("Установленный драйвер не предоставляет необходимый интерфейс температуры."));
             }
 
             return Marshal.GetDelegateForFunctionPointer(address, typeof(T)) as T;
@@ -88,20 +88,20 @@ namespace Wintools
 
                 if (path == null)
                 {
-                    result.Error = "Драйвер NVIDIA с поддержкой чтения температуры не найден.";
+                    result.Error = Lang.T("Драйвер NVIDIA с поддержкой чтения температуры не найден.");
                     return result;
                 }
 
                 Program.SafeDirectory(Path.GetDirectoryName(path));
                 if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
-                    throw new IOException("Библиотека драйвера является ссылкой.");
+                    throw new IOException(Lang.T("Библиотека драйвера является ссылкой."));
                 module = LoadLibraryEx(path, IntPtr.Zero, 0x1100);
                 if (module == IntPtr.Zero)
-                    throw new IOException("Не удалось загрузить интерфейс установленного драйвера NVIDIA.");
+                    throw new IOException(Lang.T("Не удалось загрузить интерфейс установленного драйвера NVIDIA."));
                 var initialize = Function<Initialize>(module, "nvmlInit_v2");
                 shutdown = Function<Initialize>(module, "nvmlShutdown");
                 if (initialize() != 0)
-                    throw new IOException("Драйвер NVIDIA не готов к чтению датчиков.");
+                    throw new IOException(Lang.T("Драйвер NVIDIA не готов к чтению датчиков."));
                 initialized = true;
                 var count = Function<Count>(module, "nvmlDeviceGetCount_v2");
                 var device = Function<Device>(module, "nvmlDeviceGetHandleByIndex_v2");
@@ -110,7 +110,7 @@ namespace Wintools
                 var legacy = Function<LegacyTemperature>(module, "nvmlDeviceGetTemperature", true);
                 uint total;
                 if (count(out total) != 0 || total > 64)
-                    throw new IOException("Не удалось получить список видеокарт NVIDIA.");
+                    throw new IOException(Lang.T("Не удалось получить список видеокарт NVIDIA."));
                 var rows = new List<TemperatureRow>();
                 for (uint i = 0; i < total; i++)
                 {
@@ -123,7 +123,7 @@ namespace Wintools
                     IntPtr handle;
                     if (device(i, out handle) != 0 || handle == IntPtr.Zero)
                     {
-                        row.Error = "Видеокарта недоступна.";
+                        row.Error = Lang.T("Видеокарта недоступна.");
                         continue;
                     }
 
@@ -152,12 +152,12 @@ namespace Wintools
                     }
 
                     if (!row.Celsius.HasValue)
-                        row.Error = code == 0 ? "Драйвер вернул некорректный замер." : "Датчик температуры недоступен (код драйвера " + code + ").";
+                        row.Error = code == 0 ? Lang.T("Драйвер вернул некорректный замер.") : Lang.T("Датчик температуры недоступен (код драйвера ") + code + ").";
                 }
 
                 result.Rows = rows.ToArray();
                 if (total == 0)
-                    result.Error = "Доступные видеокарты NVIDIA не найдены.";
+                    result.Error = Lang.T("Доступные видеокарты NVIDIA не найдены.");
             }
             catch (Exception ex)
             {

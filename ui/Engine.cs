@@ -111,15 +111,15 @@ namespace Wintools
                 string result;
                 try
                 {
-                    result = File.Exists(log) ? ReadLog(log) : "Операция завершилась без вывода.";
+                    result = File.Exists(log) ? ReadLog(log) : Lang.T("Операция завершилась без вывода.");
                 }
                 catch (IOException)
                 {
-                    result = "Операция завершена. Вывод временно недоступен: " + log;
+                    result = Lang.T("Операция завершена. Вывод временно недоступен: ") + log;
                 }
                 catch (UnauthorizedAccessException)
                 {
-                    result = "Операция завершена. Нет доступа к выводу: " + log;
+                    result = Lang.T("Операция завершена. Нет доступа к выводу: ") + log;
                 }
 
                 return new EngineResult
@@ -154,7 +154,7 @@ namespace Wintools
             }.Contains(args[5]))
                 throw new ArgumentException("Invalid worker request.");
             if (args[6] != WindowsIdentity.GetCurrent().User.Value)
-                throw new InvalidOperationException("Повышение прав выполнено под другим пользователем. Операция отменена, чтобы не изменить чужие настройки и приложения. Запустите Wintools в сеансе нужного пользователя с правами администратора.");
+                throw new InvalidOperationException(Lang.T("Повышение прав выполнено под другим пользователем. Операция отменена, чтобы не изменить чужие настройки и приложения. Запустите Wintools в сеансе нужного пользователя с правами администратора."));
             Program.SafeDirectory(Program.Data);
             var command = Arguments(args[1], args[2], args[3], args[5] == "restore");
             if (args[5] == "dry")

@@ -23,7 +23,7 @@ namespace Wintools
         {
             get
             {
-                return Category == "CLEAN" ? "Удалённые файлы вернуть через Wintools нельзя." : Kind == "EDGE" ? "Потребуется заново установить браузер." : Kind == "APPX" ? "Попробуем вернуть приложение из оставшихся файлов. Если их уже нет, потребуется переустановка." : "Wintools сохранит прежнее значение. Вернуть его можно здесь или в истории изменений.";
+                return Category == "CLEAN" ? Lang.T("Удалённые файлы вернуть через Wintools нельзя.") : Kind == "EDGE" ? Lang.T("Потребуется заново установить браузер.") : Kind == "APPX" ? Lang.T("Попробуем вернуть приложение из оставшихся файлов. Если их уже нет, потребуется переустановка.") : Lang.T("Wintools сохранит прежнее значение. Вернуть его можно здесь или в истории изменений.");
             }
         }
     }
@@ -34,31 +34,31 @@ namespace Wintools
         {
             {
                 "ALL",
-                "Все действия"
+                Lang.T("Все действия")
             },
             {
                 "PRIV",
-                "Приватность"
+                Lang.T("Приватность")
             },
             {
                 "UI",
-                "Интерфейс Windows"
+                Lang.T("Интерфейс Windows")
             },
             {
                 "PERF",
-                "Производительность"
+                Lang.T("Производительность")
             },
             {
                 "SVC",
-                "Службы"
+                Lang.T("Службы")
             },
             {
                 "TASK",
-                "Планировщик"
+                Lang.T("Планировщик")
             },
             {
                 "UPD",
-                "Обновления Windows"
+                Lang.T("Обновления Windows")
             },
             {
                 "EDGE",
@@ -66,22 +66,25 @@ namespace Wintools
             },
             {
                 "APPS",
-                "Приложения"
+                Lang.T("Приложения")
             },
             {
                 "SYS",
-                "Питание, сеть, диск"
+                Lang.T("Питание, сеть, диск")
             },
             {
                 "CLEAN",
-                "Очистка"
+                Lang.T("Очистка")
             }
         };
         internal static List<Tweak> Load()
         {
             var definitions = File.ReadAllLines(Path.Combine(Program.Data, "data", "tweaks.def")).Where(l => l.Length > 0 && !l.StartsWith("#")).Select(l => l.Split('|')).ToDictionary(p => p[0]);
             var result = new List<Tweak>();
-            foreach (var line in File.ReadAllLines(Path.Combine(Program.Data, "data", "descr.ru"), Encoding.GetEncoding(866)))
+            // English descriptions live in a UTF-8 copy of the catalogue; the CMD menu keeps using the CP866 Russian file.
+            var english = Path.Combine(Program.Data, "data", "descr.en");
+            var lines = Lang.English && File.Exists(english) ? File.ReadAllLines(english, Encoding.UTF8) : File.ReadAllLines(Path.Combine(Program.Data, "data", "descr.ru"), Encoding.GetEncoding(866));
+            foreach (var line in lines)
             {
                 if (line.Length == 0 || line.StartsWith("#"))
                     continue;
@@ -92,7 +95,7 @@ namespace Wintools
                 bool known = definitions.TryGetValue(p[0], out def);
                 if (!known && p[1] != "SYS" && p[1] != "CLEAN")
                     continue;
-                result.Add(new Tweak { Id = p[0], Category = p[1], Title = p[2], Description = p[3], Caveat = p[4] == "-" ? "Дополнительных условий нет." : p[4], Compatibility = p[5] == "-" ? "" : p[5], Kind = known ? def[4] : p[1], Risk = known ? def[2] : "med", Os = known ? def[3] : "any", Target = known ? def[5] : null, ValueName = known ? def[6] : null, ValueType = known ? def[7] : null, Value = known ? def[8] : null });
+                result.Add(new Tweak { Id = p[0], Category = p[1], Title = p[2], Description = p[3], Caveat = p[4] == "-" ? Lang.T("Дополнительных условий нет.") : p[4], Compatibility = p[5] == "-" ? "" : p[5], Kind = known ? def[4] : p[1], Risk = known ? def[2] : "med", Os = known ? def[3] : "any", Target = known ? def[5] : null, ValueName = known ? def[6] : null, ValueType = known ? def[7] : null, Value = known ? def[8] : null });
             }
 
             return result;
@@ -102,6 +105,7 @@ namespace Wintools
     internal sealed class Preferences
     {
         public string Theme = "system";
+        public string Language = "system";
         public bool AutoCheck = true;
         public bool AutoInstall = true;
         public bool IncludePreview = Program.Version.Contains("-");
@@ -122,6 +126,13 @@ namespace Wintools
                     "dark"
                 }.Contains(result.Theme))
                     result.Theme = "system";
+                if (!new[]
+                {
+                    "system",
+                    "ru",
+                    "en"
+                }.Contains(result.Language))
+                    result.Language = "system";
                 if (result.Favorites == null)
                     result.Favorites = new List<string>();
                 if (result.Plan == null)

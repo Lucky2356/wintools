@@ -19,7 +19,7 @@ namespace Wintools
         {
             get
             {
-                return "PID " + Id + " · " + (Memory < 0 ? "Память недоступна" : (Memory / 1048576.0).ToString("N0") + " МБ памяти");
+                return "PID " + Id + " · " + (Memory < 0 ? Lang.T("Память недоступна") : (Memory / 1048576.0).ToString("N0") + Lang.T(" МБ памяти"));
             }
         }
     }
@@ -81,7 +81,7 @@ namespace Wintools
         };
         internal static string PriorityName(uint value)
         {
-            return value == 64 ? "Низкий" : value == 16384 ? "Ниже обычного" : value == 32 ? "Обычный" : value == 32768 ? "Выше обычного" : value == 128 ? "Высокий" : "Неизвестно";
+            return value == 64 ? Lang.T("Низкий") : value == 16384 ? Lang.T("Ниже обычного") : value == 32 ? Lang.T("Обычный") : value == 32768 ? Lang.T("Выше обычного") : value == 128 ? Lang.T("Высокий") : Lang.T("Неизвестно");
         }
 
         internal static ProcessRow[] Read()
@@ -93,7 +93,7 @@ namespace Wintools
                     var row = new ProcessRow
                     {
                         Id = p.Id,
-                        Name = "Процесс " + p.Id,
+                        Name = Lang.T("Процесс ") + p.Id,
                         Memory = -1
                     };
                     try
@@ -117,7 +117,7 @@ namespace Wintools
         internal static ProcessHandle Open(int id, long started)
         {
             if (id <= 4 || started <= 0 || id == GetCurrentProcessId())
-                throw new InvalidOperationException("Этот процесс не поддерживает управление из Wintools.");
+                throw new InvalidOperationException(Lang.T("Этот процесс не поддерживает управление из Wintools."));
             var handle = OpenProcess(0x100000 | 0x1000 | 0x400 | 0x200, false, id);
             try
             {
@@ -127,12 +127,12 @@ namespace Wintools
                 if (!GetProcessTimes(handle, out creation, out exit, out kernel, out user))
                     throw new Win32Exception(Marshal.GetLastWin32Error());
                 if (creation != started || WaitForSingleObject(handle, 0) != 258)
-                    throw new InvalidOperationException("Выбранный запуск программы уже завершён. Обновите список.");
+                    throw new InvalidOperationException(Lang.T("Выбранный запуск программы уже завершён. Обновите список."));
                 bool critical;
                 if (!IsProcessCritical(handle, out critical))
                     throw new Win32Exception(Marshal.GetLastWin32Error());
                 if (critical)
-                    throw new InvalidOperationException("Критически важный процесс Windows не изменяется.");
+                    throw new InvalidOperationException(Lang.T("Критически важный процесс Windows не изменяется."));
                 ProcessHandle token;
                 if (!OpenProcessToken(handle, 8, out token))
                     throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -141,7 +141,7 @@ namespace Wintools
                 using (var current = WindowsIdentity.GetCurrent())
                 {
                     if (identity.User != current.User)
-                        throw new InvalidOperationException("Доступно управление только процессами вашего пользователя.");
+                        throw new InvalidOperationException(Lang.T("Доступно управление только процессами вашего пользователя."));
                 }
 
                 return handle;
@@ -162,12 +162,12 @@ namespace Wintools
         internal static ProcessSettings Inspect(ProcessHandle handle, int id, long started)
         {
             if (WaitForSingleObject(handle, 0) != 258)
-                throw new InvalidOperationException("Процесс завершён.");
+                throw new InvalidOperationException(Lang.T("Процесс завершён."));
             uint priority = GetPriorityClass(handle);
             if (priority == 0)
                 throw new Win32Exception(Marshal.GetLastWin32Error());
             if (!Priorities.Contains(priority))
-                throw new InvalidOperationException("Режим приоритета этого процесса не поддерживается.");
+                throw new InvalidOperationException(Lang.T("Режим приоритета этого процесса не поддерживается."));
             UIntPtr mask, system;
             if (!GetProcessAffinityMask(handle, out mask, out system))
                 throw new Win32Exception(Marshal.GetLastWin32Error());
@@ -187,15 +187,15 @@ namespace Wintools
             if (action == "priority")
             {
                 if (target > uint.MaxValue || !Priorities.Contains((uint)target))
-                    throw new ArgumentException("Недопустимый приоритет.");
+                    throw new ArgumentException(Lang.T("Недопустимый приоритет."));
             }
             else if (action == "affinity")
             {
                 if (!before.SupportsAffinity || target == 0 || (target & ~before.SystemAffinity) != 0)
-                    throw new ArgumentException("Выберите хотя бы один доступный логический процессор. Системы с несколькими группами CPU этим редактором не поддерживаются.");
+                    throw new ArgumentException(Lang.T("Выберите хотя бы один доступный логический процессор. Системы с несколькими группами CPU этим редактором не поддерживаются."));
             }
             else
-                throw new ArgumentException("Неизвестное действие процесса.");
+                throw new ArgumentException(Lang.T("Неизвестное действие процесса."));
         }
 
         internal static ulong Value(ProcessSettings settings, string action)

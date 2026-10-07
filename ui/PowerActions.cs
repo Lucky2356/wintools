@@ -17,7 +17,7 @@ namespace Wintools
 
     internal static class PowerActions
     {
-        private static readonly RecordStore Store = new RecordStore("power-history", "питание", 65536);
+        private static readonly RecordStore Store = new RecordStore("power-history", Lang.T("питание"), 65536);
         private static string DirectoryPath
         {
             get
@@ -29,7 +29,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер изменения питания.");
+                throw new IOException(Lang.T("Некорректный номер изменения питания."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -55,16 +55,16 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись питания.");
+                    throw new IOException(Lang.T("Некорректная запись питания."));
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история питания.", ex);
+                throw new IOException(Lang.T("Повреждена история питания."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история питания.", ex);
+                throw new IOException(Lang.T("Повреждена история питания."), ex);
             }
         }
 
@@ -76,7 +76,7 @@ namespace Wintools
         internal static void Validate(string target, string expected, string restore)
         {
             if (!PowerPlans.ValidId(target) || !PowerPlans.ValidId(expected))
-                throw new ArgumentException("Некорректная схема питания.");
+                throw new ArgumentException(Lang.T("Некорректная схема питания."));
             if (restore != null && restore != "-")
                 RecordPath(restore);
         }
@@ -100,7 +100,7 @@ namespace Wintools
                 return new EngineResult
                 {
                     Code = process.ExitCode,
-                    Output = File.Exists(path) ? File.ReadAllText(path) : "Действие питания завершилось без отчёта."
+                    Output = File.Exists(path) ? File.ReadAllText(path) : Lang.T("Действие питания завершилось без отчёта.")
                 };
             }
         }
@@ -108,11 +108,11 @@ namespace Wintools
         internal static int Worker(string[] args)
         {
             if (args.Length != 6 || !Regex.IsMatch(args[3], "^[a-f0-9]{32}$") || args[4] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос питания некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос питания некорректен или права повышены под другим пользователем."));
             Validate(args[1], args[2], args[5]);
             string target = args[1].ToLowerInvariant(), expected = args[2].ToLowerInvariant(), id = args[3];
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -128,21 +128,21 @@ namespace Wintools
                     gate = new FileStream(lockPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     var snapshot = PowerPlans.Read();
                     if (snapshot.Active != expected)
-                        throw new IOException("Другая программа уже изменила схему питания. Обновите список и повторите выбор.");
+                        throw new IOException(Lang.T("Другая программа уже изменила схему питания. Обновите список и повторите выбор."));
                     var next = snapshot.Plans.FirstOrDefault(p => p.Id == target);
                     if (next == null)
-                        throw new IOException("Выбранная схема больше недоступна на этом ПК.");
+                        throw new IOException(Lang.T("Выбранная схема больше недоступна на этом ПК."));
                     PowerChange original = null;
                     if (args[5] != "-")
                     {
                         original = Read(args[5]);
                         if (original.Before != target || original.Action != "select" || original.Status == "REVERTED")
-                            throw new IOException("Запись не подходит для восстановления схемы.");
+                            throw new IOException(Lang.T("Запись не подходит для восстановления схемы."));
                     }
 
                     if (target == snapshot.Active && original == null)
                     {
-                        log.WriteLine("Эта схема уже используется. Изменений нет.");
+                        log.WriteLine(Lang.T("Эта схема уже используется. Изменений нет."));
                         return 0;
                     }
 
@@ -170,7 +170,7 @@ namespace Wintools
                         Save(original);
                     }
 
-                    log.WriteLine("Используется схема: " + next.Name + ". Прежняя схема: " + record.BeforeName + ". Запись истории: " + id);
+                    log.WriteLine(Lang.T("Используется схема: ") + next.Name + Lang.T(". Прежняя схема: ") + record.BeforeName + Lang.T(". Запись истории: ") + id);
                     return 0;
                 }
                 catch (Exception ex)
@@ -186,11 +186,11 @@ namespace Wintools
                         }
                         catch (Exception saveError)
                         {
-                            log.WriteLine("История требует проверки: " + saveError.Message);
+                            log.WriteLine(Lang.T("История требует проверки: ") + saveError.Message);
                         }
                     }
 
-                    log.WriteLine("Не удалось завершить переключение: " + ex.Message + " Обновите текущее состояние.");
+                    log.WriteLine(Lang.T("Не удалось завершить переключение: ") + ex.Message + Lang.T(" Обновите текущее состояние."));
                     return 4;
                 }
                 finally

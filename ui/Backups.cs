@@ -25,7 +25,7 @@ namespace Wintools
             get
             {
                 DateTime time;
-                return (DateTime.TryParse(TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time) ? time.ToLocalTime().ToString("g") : "дата неизвестна") + " · №" + Sequence;
+                return (DateTime.TryParse(TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time) ? time.ToLocalTime().ToString("g") : Lang.T("дата неизвестна")) + " · №" + Sequence;
             }
         }
     }
@@ -86,7 +86,7 @@ namespace Wintools
         private static string Clip(string text)
         {
             text = (text ?? "").Trim();
-            return text.Length > 120 ? text.Substring(0, 120) : text.Length == 0 ? "Без описания" : text;
+            return text.Length > 120 ? text.Substring(0, 120) : text.Length == 0 ? Lang.T("Без описания") : text;
         }
 
         internal static void Storage(BackupResult result)
@@ -113,7 +113,7 @@ namespace Wintools
                 "create",
                 "drivers"
             }.Contains(action))
-                throw new ArgumentException("Неизвестное действие резервного копирования.");
+                throw new ArgumentException(Lang.T("Неизвестное действие резервного копирования."));
             string token = Guid.NewGuid().ToString("N"), sid = WindowsIdentity.GetCurrent().User.Value;
             var info = new ProcessStartInfo(Program.Exe, "--backup-worker " + action + " " + token + " " + sid)
             {
@@ -130,9 +130,9 @@ namespace Wintools
                 try
                 {
                     if (!File.Exists(path))
-                        throw new IOException("Действие завершилось без отчёта.");
+                        throw new IOException(Lang.T("Действие завершилось без отчёта."));
                     if (new FileInfo(path).Length > 1048576)
-                        throw new IOException("Отчёт слишком велик.");
+                        throw new IOException(Lang.T("Отчёт слишком велик."));
                     var text = File.ReadAllText(path);
                     if (process.ExitCode != 0)
                         throw new IOException(text);
@@ -155,15 +155,15 @@ namespace Wintools
         internal static BackupResult Validate(BackupResult result)
         {
             if (result == null || result.Points == null || result.Points.Length > 50 || result.UsedBytes < 0 || result.MaxBytes < 0 || result.Drivers < 0 || (result.Message != null && result.Message.Length > 500))
-                throw new IOException("Некорректный отчёт резервного копирования.");
+                throw new IOException(Lang.T("Некорректный отчёт резервного копирования."));
             foreach (var point in result.Points)
                 if (point == null || string.IsNullOrEmpty(point.Description) || point.Description.Length > 120)
-                    throw new IOException("Некорректная точка восстановления.");
+                    throw new IOException(Lang.T("Некорректная точка восстановления."));
             if (result.Folder != null)
             {
                 var root = Path.GetFullPath(Path.Combine(Program.Data, "drivers")) + Path.DirectorySeparatorChar;
                 if (!Path.GetFullPath(result.Folder).StartsWith(root, StringComparison.OrdinalIgnoreCase))
-                    throw new IOException("Некорректная папка драйверов.");
+                    throw new IOException(Lang.T("Некорректная папка драйверов."));
             }
 
             return result;
@@ -177,9 +177,9 @@ namespace Wintools
                 "create",
                 "drivers"
             }.Contains(args[1]) || !Regex.IsMatch(args[2], "^[a-f0-9]{32}$") || args[3] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос резервного копирования некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос резервного копирования некорректен или права повышены под другим пользователем."));
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -196,7 +196,7 @@ namespace Wintools
                     if (!WindowsIntegrity.RestorePointEvent(100, messages.Add) || !WindowsIntegrity.RestorePointEvent(101, messages.Add))
                         throw new IOException(string.Join(" ", messages));
                     long after = SafePoints().Select(p => p.Sequence).DefaultIfEmpty(0).Max();
-                    result.Message = after > before ? "Точка восстановления создана." : "Windows приняла запрос, но новую точку не создала: обычно Windows создаёт не больше одной точки за 24 часа или защита системы выключена.";
+                    result.Message = after > before ? Lang.T("Точка восстановления создана.") : Lang.T("Windows приняла запрос, но новую точку не создала: обычно Windows создаёт не больше одной точки за 24 часа или защита системы выключена.");
                 }
 
                 if (args[1] == "drivers")
@@ -225,17 +225,17 @@ namespace Wintools
                             {
                             }
 
-                            throw new IOException("Экспорт драйверов не завершился за 10 минут.");
+                            throw new IOException(Lang.T("Экспорт драйверов не завершился за 10 минут."));
                         }
 
                         error.Wait();
                         if (process.ExitCode != 0 && CountDrivers(folder) == 0)
-                            throw new IOException("pnputil завершился с кодом " + process.ExitCode + ".");
+                            throw new IOException(Lang.T("pnputil завершился с кодом ") + process.ExitCode + ".");
                     }
 
                     result.Folder = folder;
                     result.Drivers = CountDrivers(folder);
-                    result.Message = "Сохранено драйверов: " + result.Drivers + ".";
+                    result.Message = Lang.T("Сохранено драйверов: ") + result.Drivers + ".";
                 }
 
                 result.Points = SafePoints();
@@ -299,7 +299,7 @@ namespace Wintools
                 long.TryParse(value("FullChargeCapacity"), NumberStyles.Integer, CultureInfo.InvariantCulture, out full);
                 int.TryParse(value("CycleCount"), NumberStyles.Integer, CultureInfo.InvariantCulture, out cycles);
                 var name = (value("Manufacturer") + " " + value("Id")).Trim();
-                result.Add(new BatteryInfo { Name = name.Length == 0 ? "Батарея" : name.Length > 80 ? name.Substring(0, 80) : name, DesignMWh = Math.Max(0, design), FullMWh = Math.Max(0, full), Cycles = Math.Max(0, cycles) });
+                result.Add(new BatteryInfo { Name = name.Length == 0 ? Lang.T("Батарея") : name.Length > 80 ? name.Substring(0, 80) : name, DesignMWh = Math.Max(0, design), FullMWh = Math.Max(0, full), Cycles = Math.Max(0, cycles) });
             }
 
             return result.ToArray();
@@ -308,8 +308,8 @@ namespace Wintools
         internal static string Describe(BatteryInfo[] batteries)
         {
             if (batteries.Length == 0)
-                return "Батарея не найдена: похоже, это настольный ПК или Windows не видит батарею.";
-            return string.Join("\n", batteries.Select(b => b.Name + ": " + (b.Health.HasValue ? "сохранилось " + b.Health.Value.ToString("0", CultureInfo.InvariantCulture) + " % ёмкости (" + (b.FullMWh / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + " из " + (b.DesignMWh / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + " Вт·ч)" : "ёмкость неизвестна") + (b.Cycles > 0 ? ", циклов заряда: " + b.Cycles : "") + ".")) + "\nЁмкость ниже 80 % обычно заметна по времени работы; это естественный износ, а не неисправность Windows.";
+                return Lang.T("Батарея не найдена: похоже, это настольный ПК или Windows не видит батарею.");
+            return string.Join("\n", batteries.Select(b => b.Name + ": " + (b.Health.HasValue ? Lang.T("сохранилось ") + b.Health.Value.ToString("0", CultureInfo.InvariantCulture) + Lang.T(" % ёмкости (") + (b.FullMWh / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" из ") + (b.DesignMWh / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" Вт·ч)") : Lang.T("ёмкость неизвестна")) + (b.Cycles > 0 ? Lang.T(", циклов заряда: ") + b.Cycles : "") + ".")) + Lang.T("\nЁмкость ниже 80 % обычно заметна по времени работы; это естественный износ, а не неисправность Windows.");
         }
 
         internal static async Task<BatteryInfo[]> ReadBatteries(string htmlPath)
@@ -366,7 +366,7 @@ namespace Wintools
                         {
                         }
 
-                        throw new IOException("powercfg не ответил за минуту.");
+                        throw new IOException(Lang.T("powercfg не ответил за минуту."));
                     }
 
                     error.Wait();

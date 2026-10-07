@@ -37,10 +37,10 @@ namespace Wintools
         {
             serviceWatch = new CheckBox
             {
-                Content = "Автообновление · 5 с",
+                Content = Lang.T("Автообновление · 5 с"),
                 IsChecked = true,
                 Margin = new Thickness(12, 6, 0, 6),
-                ToolTip = "Пока открыт раздел служб. При сворачивании и выполнении изменений обновление приостанавливается."
+                ToolTip = Lang.T("Пока открыт раздел служб. При сворачивании и выполнении изменений обновление приостанавливается.")
             };
             filters.Children.Add(serviceWatch);
             serviceWatch.Click += (s, e) => ServiceVisibility();
@@ -86,7 +86,7 @@ namespace Wintools
             if (!automatic)
             {
                 Filter();
-                serviceStatus.Text = "Читаем установленные службы и способы их запуска…";
+                serviceStatus.Text = Lang.T("Читаем установленные службы и способы их запуска…");
             }
 
             try
@@ -107,7 +107,7 @@ namespace Wintools
                     return existing;
                 }).ToArray();
                 FilterServices(true);
-                serviceStatus.Text = "Обновлено в " + DateTime.Now.ToString("HH:mm:ss") + " · Всего: " + services.Length + " · Работают: " + services.Count(r => r.State == "Running") + " · Автозапуск: " + services.Count(r => r.Mode == "Auto") + ". Работа и запуск Windows показаны отдельно.";
+                serviceStatus.Text = Lang.T("Обновлено в ") + DateTime.Now.ToString("HH:mm:ss") + Lang.T(" · Всего: ") + services.Length + Lang.T(" · Работают: ") + services.Count(r => r.State == "Running") + Lang.T(" · Автозапуск: ") + services.Count(r => r.Mode == "Auto") + Lang.T(". Работа и запуск Windows показаны отдельно.");
                 if (!automatic)
                     Filter();
                 if (serviceList.SelectedItem != null)
@@ -120,7 +120,7 @@ namespace Wintools
                 {
                     services = null;
                     FilterServices();
-                    serviceStatus.Text = "Не удалось прочитать службы. Их состояние неизвестно. " + ex.Message;
+                    serviceStatus.Text = Lang.T("Не удалось прочитать службы. Их состояние неизвестно. ") + ex.Message;
                     Filter();
                 }
             }

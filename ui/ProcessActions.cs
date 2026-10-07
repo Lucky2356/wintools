@@ -18,7 +18,7 @@ namespace Wintools
 
     internal static class ProcessActions
     {
-        private static readonly RecordStore Store = new RecordStore("process-history", "процессы", 65536);
+        private static readonly RecordStore Store = new RecordStore("process-history", Lang.T("процессы"), 65536);
         private static string DirectoryPath
         {
             get
@@ -30,7 +30,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер изменения процесса.");
+                throw new IOException(Lang.T("Некорректный номер изменения процесса."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -57,18 +57,18 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(r.Status) || !DateTime.TryParseExact(r.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись процесса.");
+                    throw new IOException(Lang.T("Некорректная запись процесса."));
                 if (r.Action == "priority" && (before > uint.MaxValue || after > uint.MaxValue || !ProcessControl.Priorities.Contains((uint)before) || !ProcessControl.Priorities.Contains((uint)after)))
-                    throw new IOException("Некорректный приоритет в истории.");
+                    throw new IOException(Lang.T("Некорректный приоритет в истории."));
                 return r;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история процессов.", ex);
+                throw new IOException(Lang.T("Повреждена история процессов."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история процессов.", ex);
+                throw new IOException(Lang.T("Повреждена история процессов."), ex);
             }
         }
 
@@ -91,28 +91,28 @@ namespace Wintools
             try
             {
                 if (row.Id != expected.Id || row.Started != expected.Started)
-                    throw new ArgumentException("Выбран другой запуск процесса.");
+                    throw new ArgumentException(Lang.T("Выбран другой запуск процесса."));
                 ProcessControl.ValidateTarget(action, target, expected);
                 gate = new FileStream(lockPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                 using (var handle = ProcessControl.Open(row.Id, row.Started))
                 {
                     var before = ProcessControl.Inspect(handle, row.Id, row.Started);
                     if (ProcessControl.Value(before, action) != ProcessControl.Value(expected, action))
-                        throw new IOException("Настройка процесса уже изменилась. Обновите состояние перед повтором.");
+                        throw new IOException(Lang.T("Настройка процесса уже изменилась. Обновите состояние перед повтором."));
                     ProcessControl.ValidateTarget(action, target, before);
                     ProcessChange original = null;
                     if (restore != null)
                     {
                         original = Read(restore);
                         if (original.Restore || original.Status == "REVERTED" || original.Pid != row.Id || original.Started != row.Started || original.Action != action || ulong.Parse(original.Before) != target || ulong.Parse(original.After) != ProcessControl.Value(before, action))
-                            throw new IOException("Изменение не подходит для возврата. Сначала отмените более позднюю настройку.");
+                            throw new IOException(Lang.T("Изменение не подходит для возврата. Сначала отмените более позднюю настройку."));
                     }
 
                     if (ProcessControl.Value(before, action) == target && original == null)
                         return new EngineResult
                         {
                             Code = 0,
-                            Output = "Этот параметр уже установлен."
+                            Output = Lang.T("Этот параметр уже установлен.")
                         };
                     record = new ProcessChange
                     {
@@ -130,10 +130,10 @@ namespace Wintools
                     };
                     Save(record);
                     if (ProcessControl.Value(ProcessControl.Inspect(handle, row.Id, row.Started), action) != ProcessControl.Value(before, action))
-                        throw new IOException("Настройка процесса изменилась во время подготовки.");
+                        throw new IOException(Lang.T("Настройка процесса изменилась во время подготовки."));
                     ProcessControl.Set(handle, action, target, before);
                     if (ProcessControl.Value(ProcessControl.Inspect(handle, row.Id, row.Started), action) != target)
-                        throw new IOException("Процесс не подтвердил новое значение.");
+                        throw new IOException(Lang.T("Процесс не подтвердил новое значение."));
                     record.Status = "OK";
                     Save(record);
                     if (original != null)
@@ -145,7 +145,7 @@ namespace Wintools
                     return new EngineResult
                     {
                         Code = 0,
-                        Output = row.Name + " · PID " + row.Id + ": " + (action == "priority" ? "приоритет «" + ProcessControl.PriorityName((uint)target) + "»" : "изменён набор логических процессоров") + ". Настройка действует для этого запуска программы. Вернуть прежнее значение можно через историю, пока процесс работает. Дочерние процессы могут наследовать настройку; их параметры отдельно не возвращаются."
+                        Output = row.Name + " · PID " + row.Id + ": " + (action == "priority" ? Lang.T("приоритет «") + ProcessControl.PriorityName((uint)target) + "»" : Lang.T("изменён набор логических процессоров")) + Lang.T(". Настройка действует для этого запуска программы. Вернуть прежнее значение можно через историю, пока процесс работает. Дочерние процессы могут наследовать настройку; их параметры отдельно не возвращаются.")
                     };
                 }
             }
@@ -162,14 +162,14 @@ namespace Wintools
                     }
                     catch (Exception save)
                     {
-                        message += " Не удалось сохранить итог: " + save.Message;
+                        message += Lang.T(" Не удалось сохранить итог: ") + save.Message;
                     }
                 }
 
                 return new EngineResult
                 {
                     Code = 4,
-                    Output = "Не удалось завершить изменение процесса: " + message + " Обновите состояние."
+                    Output = Lang.T("Не удалось завершить изменение процесса: ") + message + Lang.T(" Обновите состояние.")
                 };
             }
             finally

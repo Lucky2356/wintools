@@ -590,6 +590,11 @@
          <ComboBox x:Name="Theme" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Цветовая тема">
           <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Светлая"/><ComboBoxItem Content="Тёмная"/>
          </ComboBox>
+         <TextBlock Text="Язык интерфейса · Language" FontWeight="SemiBold" Margin="0,16,0,6"/>
+         <ComboBox x:Name="Language" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Язык интерфейса">
+          <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Русский"/><ComboBoxItem Content="English"/>
+         </ComboBox>
+         <TextBlock Text="Язык применится после перезапуска Wintools." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
         </StackPanel>
        </Border>
        <Border Style="{StaticResource Card}" Padding="22">

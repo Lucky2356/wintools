@@ -12,7 +12,7 @@ namespace Wintools
         private static extern int DismRestoreImageHealth(uint session, IntPtr sources, uint count, [MarshalAs(UnmanagedType.Bool)] bool limitAccess, IntPtr cancel, DismProgress progress, IntPtr data);
         internal static IntegrityResult RepairComponents(EventWaitHandle cancel, Action<string> output)
         {
-            output("Этап 1: ищем повреждения компонентов перед исправлением.");
+            output(Lang.T("Этап 1: ищем повреждения компонентов перед исправлением."));
             var initial = CheckComponents(true, cancel, output);
             output(initial.Summary);
             if (initial.State == "healthy")
@@ -21,11 +21,11 @@ namespace Wintools
                 return new IntegrityResult
                 {
                     State = initial.State,
-                    Summary = "Компоненты не допускают исправления этим способом. Восстановление не запускалось. " + initial.Summary
+                    Summary = Lang.T("Компоненты не допускают исправления этим способом. Восстановление не запускалось. ") + initial.Summary
                 };
             if (cancel.WaitOne(0))
-                throw new OperationCanceledException("Восстановление отменено до исправления компонентов.");
-            output("Этап 2: восстанавливаем компоненты. Windows может скачать файлы из Центра обновления; требуется доступ к интернету, если локального источника недостаточно.");
+                throw new OperationCanceledException(Lang.T("Восстановление отменено до исправления компонентов."));
+            output(Lang.T("Этап 2: восстанавливаем компоненты. Windows может скачать файлы из Центра обновления; требуется доступ к интернету, если локального источника недостаточно."));
             output("@progress|0");
             Check(DismInitialize(1, null, null));
             uint session = 0;
@@ -57,9 +57,9 @@ namespace Wintools
                 int code = DismRestoreImageHealth(session, IntPtr.Zero, 0, false, cancel.SafeWaitHandle.DangerousGetHandle(), callback, IntPtr.Zero);
                 GC.KeepAlive(callback);
                 if (callbackError != null)
-                    throw new IOException("Не удалось сохранить ход восстановления.", callbackError);
+                    throw new IOException(Lang.T("Не удалось сохранить ход восстановления."), callbackError);
                 if (code != 0 && cancel.WaitOne(0))
-                    throw new OperationCanceledException("Восстановление отменено. Компоненты могли измениться; выполните полную проверку перед дальнейшими действиями.");
+                    throw new OperationCanceledException(Lang.T("Восстановление отменено. Компоненты могли измениться; выполните полную проверку перед дальнейшими действиями."));
                 Check(code);
             }
             finally
@@ -73,15 +73,15 @@ namespace Wintools
                 return new IntegrityResult
                 {
                     State = "review",
-                    Summary = "DISM завершила восстановление, но после запроса отмены повторная проверка не запускалась. Компоненты могли измениться. Выполните полную проверку."
+                    Summary = Lang.T("DISM завершила восстановление, но после запроса отмены повторная проверка не запускалась. Компоненты могли измениться. Выполните полную проверку.")
                 };
-            output("Этап 3: повторно проверяем компоненты после восстановления.");
+            output(Lang.T("Этап 3: повторно проверяем компоненты после восстановления."));
             output("@progress|0");
             var final = CheckComponents(true, cancel, output);
             return new IntegrityResult
             {
                 State = final.State == "healthy" ? "repaired" : final.State,
-                Summary = final.State == "healthy" ? "Компоненты восстановлены. Повторная полная проверка DISM не нашла повреждений." : "Восстановление завершилось, но повторная проверка не подтвердила исправление всех компонентов. " + final.Summary
+                Summary = final.State == "healthy" ? Lang.T("Компоненты восстановлены. Повторная полная проверка DISM не нашла повреждений.") : Lang.T("Восстановление завершилось, но повторная проверка не подтвердила исправление всех компонентов. ") + final.Summary
             };
         }
 
@@ -92,31 +92,31 @@ namespace Wintools
                 return new IntegrityResult
                 {
                     State = "failed",
-                    Summary = "Windows требует перезагрузки перед продолжением проверки. Сохраните работу, перезагрузите ПК и повторите обслуживание. Автоматическая перезагрузка не выполняется."
+                    Summary = Lang.T("Windows требует перезагрузки перед продолжением проверки. Сохраните работу, перезагрузите ПК и повторите обслуживание. Автоматическая перезагрузка не выполняется.")
                 };
             if (exitCode != 0)
                 return new IntegrityResult
                 {
                     State = "failed",
-                    Summary = "SFC завершилась с кодом " + exitCode + ". Исправление всех файлов не подтверждено; прочитайте отчёт."
+                    Summary = Lang.T("SFC завершилась с кодом ") + exitCode + Lang.T(". Исправление всех файлов не подтверждено; прочитайте отчёт.")
                 };
             if (text.Contains("unable to fix") || text.Contains("не может восстановить") || text.Contains("не удалось восстановить"))
                 return new IntegrityResult
                 {
                     State = "issues",
-                    Summary = "SFC не смогла исправить все повреждения. Часть файлов могла быть восстановлена. Подробности — в отчёте и журнале CBS Windows."
+                    Summary = Lang.T("SFC не смогла исправить все повреждения. Часть файлов могла быть восстановлена. Подробности — в отчёте и журнале CBS Windows.")
                 };
             if (text.Contains("successfully repaired") || text.Contains("успешно их восстановила") || text.Contains("успешно восстановила"))
                 return new IntegrityResult
                 {
                     State = "repaired",
-                    Summary = "SFC сообщает, что повреждённые системные файлы успешно восстановлены. Подробности сохранены в журнале CBS Windows."
+                    Summary = Lang.T("SFC сообщает, что повреждённые системные файлы успешно восстановлены. Подробности сохранены в журнале CBS Windows.")
                 };
             var result = DescribeSfc(output, exitCode);
             if (result.State == "healthy")
-                result.Summary = "SFC не обнаружила нарушений целостности защищённых системных файлов. Восстанавливать их не потребовалось.";
+                result.Summary = Lang.T("SFC не обнаружила нарушений целостности защищённых системных файлов. Восстанавливать их не потребовалось.");
             else if (result.State == "issues")
-                result.Summary = "SFC сообщила о повреждениях, но успешное исправление не подтверждено. Прочитайте сообщения Windows ниже.";
+                result.Summary = Lang.T("SFC сообщила о повреждениях, но успешное исправление не подтверждено. Прочитайте сообщения Windows ниже.");
             return result;
         }
 
@@ -128,9 +128,9 @@ namespace Wintools
                 return new IntegrityResult
                 {
                     State = first.State,
-                    Summary = "Обслуживание остановлено на компонентах; исправление системных файлов не запускалось. " + first.Summary
+                    Summary = Lang.T("Обслуживание остановлено на компонентах; исправление системных файлов не запускалось. ") + first.Summary
                 };
-            output("Следующий этап: проверяем и восстанавливаем защищённые системные файлы SFC.");
+            output(Lang.T("Следующий этап: проверяем и восстанавливаем защищённые системные файлы SFC."));
             output("@progress|0");
             var second = files();
             return new IntegrityResult
@@ -158,13 +158,13 @@ namespace Wintools
                     }
 
                     if (type == 100)
-                        output("Запрос точки восстановления принят. Windows может использовать недавнюю точку вместо создания новой.");
+                        output(Lang.T("Запрос точки восстановления принят. Windows может использовать недавнюю точку вместо создания новой."));
                     return true;
                 }
             }
             catch (Exception ex)
             {
-                output("Точка восстановления: " + ex.Message + ". " + (type == 100 ? "Обслуживание продолжится; отдельного отката исправленных системных файлов в Wintools нет." : "Проверьте состояние защиты системы в Windows."));
+                output(Lang.T("Точка восстановления: ") + ex.Message + ". " + (type == 100 ? Lang.T("Обслуживание продолжится; отдельного отката исправленных системных файлов в Wintools нет.") : Lang.T("Проверьте состояние защиты системы в Windows.")));
                 return false;
             }
         }

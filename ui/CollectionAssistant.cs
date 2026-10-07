@@ -21,30 +21,30 @@ namespace Wintools
         {
             new[]
             {
-                "Хотите убрать рекламу и рекомендации Windows?",
-                "Нужна персонализация текста и рукописного ввода?",
-                "Пользуетесь историей активности или облачным поиском Windows?",
-                "Хотите ограничить диагностические службы и задачи? На рабочем ПК сначала согласуйте это с администратором.",
-                "Пользуетесь Recall или Copilot?"
+                Lang.T("Хотите убрать рекламу и рекомендации Windows?"),
+                Lang.T("Нужна персонализация текста и рукописного ввода?"),
+                Lang.T("Пользуетесь историей активности или облачным поиском Windows?"),
+                Lang.T("Хотите ограничить диагностические службы и задачи? На рабочем ПК сначала согласуйте это с администратором."),
+                Lang.T("Пользуетесь Recall или Copilot?")
             },
             new[]
             {
-                "Хотите видеть расширения файлов и открывать Проводник со списком дисков?",
-                "Нужны списки недавних файлов и часто открываемых папок?",
-                "Хотите видеть скрытые файлы и классическое контекстное меню?",
-                "Хотите тёмное оформление и дополнительные настройки панели задач?",
-                "Пользуетесь сетевыми медиатеками или обнаружением устройств в сети?",
-                "Печатаете документы, сохраняете их через печать в PDF или пользуетесь сканером?"
+                Lang.T("Хотите видеть расширения файлов и открывать Проводник со списком дисков?"),
+                Lang.T("Нужны списки недавних файлов и часто открываемых папок?"),
+                Lang.T("Хотите видеть скрытые файлы и классическое контекстное меню?"),
+                Lang.T("Хотите тёмное оформление и дополнительные настройки панели задач?"),
+                Lang.T("Пользуетесь сетевыми медиатеками или обнаружением устройств в сети?"),
+                Lang.T("Печатаете документы, сохраняете их через печать в PDF или пользуетесь сканером?")
             },
             new[]
             {
-                "Пользуетесь встроенной записью игр Windows?",
-                "Хотите убрать виджеты, новости, анимацию панели задач и предложения Windows?",
-                "Нужна хотя бы одна функция: офлайн-карты, факс, медиатека, NFC, Insider или удалённая установка приложений?",
-                "Пользуетесь Xbox, Game Pass, облачными сохранениями или аксессуарами Xbox?",
-                "Пользуетесь Bluetooth: наушниками, мышью, клавиатурой или контроллером?",
-                "Подключаетесь к этому ПК через удалённый рабочий стол (RDP)?",
-                "Печатаете документы, сохраняете их через печать в PDF или пользуетесь сканером?"
+                Lang.T("Пользуетесь встроенной записью игр Windows?"),
+                Lang.T("Хотите убрать виджеты, новости, анимацию панели задач и предложения Windows?"),
+                Lang.T("Нужна хотя бы одна функция: офлайн-карты, факс, медиатека, NFC, Insider или удалённая установка приложений?"),
+                Lang.T("Пользуетесь Xbox, Game Pass, облачными сохранениями или аксессуарами Xbox?"),
+                Lang.T("Пользуетесь Bluetooth: наушниками, мышью, клавиатурой или контроллером?"),
+                Lang.T("Подключаетесь к этому ПК через удалённый рабочий стол (RDP)?"),
+                Lang.T("Печатаете документы, сохраняете их через печать в PDF или пользуетесь сканером?")
             }
         };
         private static readonly bool[][] CollectionSelectOnYes =
@@ -89,7 +89,7 @@ namespace Wintools
             assistantTitle.FontSize = 21;
             assistantTitle.FontWeight = FontWeights.SemiBold;
             collectionAssistant.Children.Add(assistantTitle);
-            collectionAssistant.Children.Add(Paragraph("Ответы только отметят группы внутри выбранной подборки. Они не меняют Windows и не добавляют действия в план. Перед применением вы сможете проверить каждое действие."));
+            collectionAssistant.Children.Add(Paragraph(Lang.T("Ответы только отметят группы внутри выбранной подборки. Они не меняют Windows и не добавляют действия в план. Перед применением вы сможете проверить каждое действие.")));
             collectionAssistantGrid = new Grid();
             collectionAssistantGrid.ColumnDefinitions.Add(new ColumnDefinition());
             collectionAssistantGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(0) });
@@ -113,14 +113,14 @@ namespace Wintools
                 HorizontalAlignment = HorizontalAlignment.Left,
                 ItemsSource = new[]
                 {
-                    "Не уверен — не добавлять",
-                    "Да",
-                    "Нет"
+                    Lang.T("Не уверен — не добавлять"),
+                    Lang.T("Да"),
+                    Lang.T("Нет")
                 },
                 SelectedIndex = 0,
                 Margin = new Thickness(0, 0, 0, 12)
             };
-            System.Windows.Automation.AutomationProperties.SetName(assistantAnswer, "Ответ на вопрос подборки");
+            System.Windows.Automation.AutomationProperties.SetName(assistantAnswer, Lang.T("Ответ на вопрос подборки"));
             questionPanel.Children.Add(assistantAnswer);
             assistantAnswer.SelectionChanged += (s, e) =>
             {
@@ -133,7 +133,7 @@ namespace Wintools
             questionPanel.Children.Add(controls);
             assistantBack = new Button
             {
-                Content = "← Назад",
+                Content = Lang.T("← Назад"),
                 Margin = new Thickness(0, 0, 8, 8)
             };
             controls.Children.Add(assistantBack);
@@ -148,14 +148,14 @@ namespace Wintools
             };
             assistantNext = new Button
             {
-                Content = "Далее →",
+                Content = Lang.T("Далее →"),
                 Margin = new Thickness(0, 0, 8, 8)
             };
             controls.Children.Add(assistantNext);
             assistantNext.Click += (s, e) => NextAssistant();
             var cancel = new Button
             {
-                Content = "Отмена",
+                Content = Lang.T("Отмена"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             controls.Children.Add(cancel);
@@ -188,7 +188,7 @@ namespace Wintools
                 return;
             assistantIndex = Array.IndexOf(collectionChoices, choice);
             if (assistantIndex < 0 || CollectionQuestions[assistantIndex].Length != choice.Sections.Length || CollectionSelectOnYes[assistantIndex].Length != choice.Sections.Length)
-                throw new InvalidOperationException("Вопросы не соответствуют подборке.");
+                throw new InvalidOperationException(Lang.T("Вопросы не соответствуют подборке."));
             assistantChoice = choice;
             assistantAnswers = new int[choice.Sections.Length];
             assistantStep = 0;
@@ -215,13 +215,13 @@ namespace Wintools
                 return;
             renderingAssistant = true;
             bool review = assistantStep == assistantAnswers.Length;
-            assistantTitle.Text = assistantChoice.Title + " · " + (review ? "Проверка выбора" : "Вопрос " + (assistantStep + 1) + " из " + assistantAnswers.Length);
-            assistantQuestion.Text = review ? "Проверьте предложенные группы" : CollectionQuestions[assistantIndex][assistantStep];
-            assistantDetail.Text = review ? "Кнопка ниже отметит эти группы в подборке и заменит её прежний выбор. План и настройки Windows останутся прежними. Если нужная функция попала в отключения, вернитесь назад и измените ответ." : assistantChoice.Sections[assistantStep].Detail;
+            assistantTitle.Text = assistantChoice.Title + " · " + (review ? Lang.T("Проверка выбора") : Lang.T("Вопрос ") + (assistantStep + 1) + Lang.T(" из ") + assistantAnswers.Length);
+            assistantQuestion.Text = review ? Lang.T("Проверьте предложенные группы") : CollectionQuestions[assistantIndex][assistantStep];
+            assistantDetail.Text = review ? Lang.T("Кнопка ниже отметит эти группы в подборке и заменит её прежний выбор. План и настройки Windows останутся прежними. Если нужная функция попала в отключения, вернитесь назад и измените ответ.") : assistantChoice.Sections[assistantStep].Detail;
             assistantAnswer.Visibility = review ? Visibility.Collapsed : Visibility.Visible;
             if (!review)
                 assistantAnswer.SelectedIndex = assistantAnswers[assistantStep];
-            assistantNext.Content = review ? "Отметить группы в подборке" : "Далее →";
+            assistantNext.Content = review ? Lang.T("Отметить группы в подборке") : Lang.T("Далее →");
             renderingAssistant = false;
             RefreshCollectionAssistant();
             RenderAssistantSummary();
@@ -241,7 +241,7 @@ namespace Wintools
             if (assistantChoice == null)
                 return;
             var sections = assistantChoice.Sections.Where((s, i) => AssistantSelected(i)).ToArray();
-            assistantSummary.Text = "Предложено действий: " + AssistantIds().Length + "\n\n" + (sections.Length == 0 ? "Группы пока не выбраны. При ответе «Не уверен» мастер ничего не добавляет." : string.Join("\n\n", sections.Select(s => s.Title + "\n" + s.Detail))) + "\n\nДействия для другой версии Windows исключены. Наличие компонентов проверяется при выполнении. Уменьшение числа служб само по себе не гарантирует ускорения.";
+            assistantSummary.Text = Lang.T("Предложено действий: ") + AssistantIds().Length + "\n\n" + (sections.Length == 0 ? Lang.T("Группы пока не выбраны. При ответе «Не уверен» мастер ничего не добавляет.") : string.Join("\n\n", sections.Select(s => s.Title + "\n" + s.Detail))) + Lang.T("\n\nДействия для другой версии Windows исключены. Наличие компонентов проверяется при выполнении. Уменьшение числа служб само по себе не гарантирует ускорения.");
         }
 
         private void NextAssistant()
@@ -261,7 +261,7 @@ namespace Wintools
             RefreshCollectionCounts();
             var title = assistantChoice.Title;
             CloseCollectionAssistant();
-            Text("Status", "Группы отмечены в подборке «" + title + "». Просмотрите действия перед добавлением в план.");
+            Text("Status", Lang.T("Группы отмечены в подборке «") + title + Lang.T("». Просмотрите действия перед добавлением в план."));
         }
 
         private void CloseCollectionAssistant()

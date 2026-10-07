@@ -45,9 +45,9 @@ namespace Wintools
             {
                 Margin = new Thickness(0, 0, 10, 0)
             };
-            System.Windows.Automation.AutomationProperties.SetName(processSearch, "Поиск процесса по имени или PID");
+            System.Windows.Automation.AutomationProperties.SetName(processSearch, Lang.T("Поиск процесса по имени или PID"));
             filters.Children.Add(processSearch);
-            var hint = Paragraph("Имя программы или PID…");
+            var hint = Paragraph(Lang.T("Имя программы или PID…"));
             hint.IsHitTestVisible = false;
             hint.Margin = new Thickness(12, 0, 10, 0);
             hint.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
@@ -60,12 +60,12 @@ namespace Wintools
             };
             processRefresh = new Button
             {
-                Content = "Обновить"
+                Content = Lang.T("Обновить")
             };
             Grid.SetColumn(processRefresh, 1);
             filters.Children.Add(processRefresh);
             processRefresh.Click += async (s, e) => await ReadProcesses();
-            processStatus = Paragraph("Выберите процесс. Список отсортирован по используемой памяти.");
+            processStatus = Paragraph(Lang.T("Выберите процесс. Список отсортирован по используемой памяти."));
             Grid.SetRow(processStatus, 1);
             root.Children.Add(processStatus);
             var body = new Grid();
@@ -97,22 +97,22 @@ namespace Wintools
             };
             Grid.SetColumn(scroll, 1);
             body.Children.Add(scroll);
-            processDetail = Paragraph("Выберите программу слева. Настройки применяются только к выбранному запуску.");
+            processDetail = Paragraph(Lang.T("Выберите программу слева. Настройки применяются только к выбранному запуску."));
             panel.Children.Add(processDetail);
-            panel.Children.Add(Paragraph("Приоритет процессора"));
+            panel.Children.Add(Paragraph(Lang.T("Приоритет процессора")));
             processPriority = new ComboBox
             {
                 ItemsSource = ProcessControl.Priorities.Select(ProcessControl.PriorityName).ToArray(),
                 SelectedIndex = 2,
                 Margin = new Thickness(0, 0, 0, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(processPriority, "Новый приоритет процесса");
+            System.Windows.Automation.AutomationProperties.SetName(processPriority, Lang.T("Новый приоритет процесса"));
             processPriority.SelectionChanged += (s, e) => RefreshProcessEnabled();
             panel.Children.Add(processPriority);
-            panel.Children.Add(Paragraph("Определяет, кому раньше достанется время CPU при нагрузке. Повышение может замедлить другие программы; больше FPS оно не гарантирует."));
+            panel.Children.Add(Paragraph(Lang.T("Определяет, кому раньше достанется время CPU при нагрузке. Повышение может замедлить другие программы; больше FPS оно не гарантирует.")));
             processApplyPriority = new Button
             {
-                Content = "Применить приоритет",
+                Content = Lang.T("Применить приоритет"),
                 Margin = new Thickness(0, 0, 0, 14),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
@@ -122,20 +122,20 @@ namespace Wintools
                     await ChangeProcess("priority", ProcessControl.Priorities[processPriority.SelectedIndex]);
             };
             panel.Children.Add(processApplyPriority);
-            panel.Children.Add(Paragraph("Доступные логические процессоры"));
-            processCpuStatus = Paragraph("Состояние ещё не прочитано.");
+            panel.Children.Add(Paragraph(Lang.T("Доступные логические процессоры")));
+            processCpuStatus = Paragraph(Lang.T("Состояние ещё не прочитано."));
             panel.Children.Add(processCpuStatus);
             processCpus = new WrapPanel();
             panel.Children.Add(processCpus);
             processApplyCpu = new Button
             {
-                Content = "Применить набор CPU",
+                Content = Lang.T("Применить набор CPU"),
                 Margin = new Thickness(0, 8, 0, 12),
                 HorizontalAlignment = HorizontalAlignment.Left
             };
             processApplyCpu.Click += async (s, e) => await ChangeProcess("affinity", SelectedCpuMask());
             panel.Children.Add(processApplyCpu);
-            panel.Children.Add(Paragraph("Ограничение набора CPU может снизить производительность. Прежнее значение сохраняется в истории и возвращается, пока этот запуск работает. Дочерние процессы могут наследовать настройку; их параметры отдельно не возвращаются."));
+            panel.Children.Add(Paragraph(Lang.T("Ограничение набора CPU может снизить производительность. Прежнее значение сохраняется в истории и возвращается, пока этот запуск работает. Дочерние процессы могут наследовать настройку; их параметры отдельно не возвращаются.")));
             root.IsVisibleChanged += async (s, e) =>
             {
                 if (root.IsVisible && !smoke)
@@ -176,7 +176,7 @@ namespace Wintools
             var rows = processRows.Where(r => (r.Name + " " + r.Id).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0).ToArray();
             processList.ItemsSource = rows;
             processList.SelectedItem = prior == null ? null : rows.FirstOrDefault(r => r.Id == prior.Id && r.Started == prior.Started);
-            processStatus.Text = "Показано: " + rows.Length + " · По убыванию памяти. Изменения доступны для поддерживаемых процессов вашего пользователя.";
+            processStatus.Text = Lang.T("Показано: ") + rows.Length + Lang.T(" · По убыванию памяти. Изменения доступны для поддерживаемых процессов вашего пользователя.");
         }
 
         private async Task ReadProcesses()
@@ -198,7 +198,7 @@ namespace Wintools
             {
                 processRows = new ProcessRow[0];
                 processList.ItemsSource = null;
-                processStatus.Text = "Не удалось прочитать процессы: " + ex.Message;
+                processStatus.Text = Lang.T("Не удалось прочитать процессы: ") + ex.Message;
             }
             finally
             {
@@ -217,12 +217,12 @@ namespace Wintools
             RefreshProcessEnabled();
             if (row == null)
             {
-                processDetail.Text = "Выберите программу слева.";
+                processDetail.Text = Lang.T("Выберите программу слева.");
                 processCpuStatus.Text = "";
                 return;
             }
 
-            processDetail.Text = "Читаем настройки «" + row.Name + "»…";
+            processDetail.Text = Lang.T("Читаем настройки «") + row.Name + "»…";
             try
             {
                 var inspect = processInspect;
@@ -230,7 +230,7 @@ namespace Wintools
                 if (closed || epoch != processSelectionEpoch)
                     return;
                 processSettings = settings;
-                processDetail.Text = row.Name + " · PID " + row.Id + "\nСейчас: " + ProcessControl.PriorityName(settings.Priority) + " приоритет.";
+                processDetail.Text = row.Name + " · PID " + row.Id + Lang.T("\nСейчас: ") + ProcessControl.PriorityName(settings.Priority) + Lang.T(" приоритет.");
                 processPriority.SelectedIndex = Array.IndexOf(ProcessControl.Priorities, settings.Priority);
                 if (settings.SupportsAffinity)
                 {
@@ -250,18 +250,18 @@ namespace Wintools
                         processCpus.Children.Add(box);
                     }
 
-                    processCpuStatus.Text = "Отмечены разрешённые процессоры. Оставьте хотя бы один.";
+                    processCpuStatus.Text = Lang.T("Отмечены разрешённые процессоры. Оставьте хотя бы один.");
                 }
                 else
-                    processCpuStatus.Text = "Редактор CPU недоступен для этого процесса или системы с несколькими группами процессоров.";
+                    processCpuStatus.Text = Lang.T("Редактор CPU недоступен для этого процесса или системы с несколькими группами процессоров.");
             }
             catch (Exception ex)
             {
                 if (epoch != processSelectionEpoch || closed)
                     return;
                 processSettings = null;
-                processDetail.Text = row.Name + ": управление недоступно. " + ex.Message;
-                processCpuStatus.Text = "Состояние неизвестно.";
+                processDetail.Text = row.Name + Lang.T(": управление недоступно. ") + ex.Message;
+                processCpuStatus.Text = Lang.T("Состояние неизвестно.");
             }
             finally
             {
@@ -284,7 +284,7 @@ namespace Wintools
                 ProcessControl.ValidateTarget(action, target, before);
                 if (ProcessControl.Value(before, action) == target)
                     return;
-                if (!await Confirm("Изменить «" + row.Name + "» · PID " + row.Id + "?\n\n" + (action == "priority" ? "Новый приоритет: " + ProcessControl.PriorityName((uint)target) + ". Высокий приоритет может замедлить другие программы." : "Изменится набор логических процессоров, на которых разрешено работать программе. Ограничение может снизить её производительность.") + "\n\nНастройка действует для текущего запуска. Прежнее значение сохранится в истории. Параметры дочерних процессов отдельно не возвращаются."))
+                if (!await Confirm(Lang.T("Изменить «") + row.Name + "» · PID " + row.Id + "?\n\n" + (action == "priority" ? Lang.T("Новый приоритет: ") + ProcessControl.PriorityName((uint)target) + Lang.T(". Высокий приоритет может замедлить другие программы.") : Lang.T("Изменится набор логических процессоров, на которых разрешено работать программе. Ограничение может снизить её производительность.")) + Lang.T("\n\nНастройка действует для текущего запуска. Прежнее значение сохранится в истории. Параметры дочерних процессов отдельно не возвращаются.")))
                     return;
                 await RunProcessChange(row, before, action, target, null);
             }
@@ -303,13 +303,13 @@ namespace Wintools
             {
                 var result = await processRun(row, before, action, target, restore);
                 Get<TextBox>("Output").Text = result.Output;
-                Text("Status", result.Code == 0 ? "Настройка процесса сохранена." : "Настройка процесса требует внимания. Причина — в выводе.");
+                Text("Status", result.Code == 0 ? Lang.T("Настройка процесса сохранена.") : Lang.T("Настройка процесса требует внимания. Причина — в выводе."));
                 if (result.Code != 0)
                     ExpandOutput(true);
             }
             catch (Exception ex)
             {
-                Text("Status", "Процесс не изменён: " + ex.Message);
+                Text("Status", Lang.T("Процесс не изменён: ") + ex.Message);
             }
             finally
             {
@@ -328,24 +328,24 @@ namespace Wintools
             {
                 var record = ProcessActions.Read(id);
                 if (record.Restore || record.Status == "REVERTED")
-                    throw new InvalidOperationException("Это изменение уже возвращено.");
+                    throw new InvalidOperationException(Lang.T("Это изменение уже возвращено."));
                 var inspect = processInspect;
                 var before = await Task.Run(() => inspect(record.Pid, record.Started));
                 if (ProcessControl.Value(before, record.Action) != ulong.Parse(record.After))
-                    throw new InvalidOperationException("Настройка изменена позднее. Сначала верните более новое изменение.");
-                if (!await Confirm("Вернуть прежнюю настройку «" + record.Name + "» · PID " + record.Pid + "?\n\nВозврат относится только к этому запуску программы, без изменения дочерних процессов."))
+                    throw new InvalidOperationException(Lang.T("Настройка изменена позднее. Сначала верните более новое изменение."));
+                if (!await Confirm(Lang.T("Вернуть прежнюю настройку «") + record.Name + "» · PID " + record.Pid + Lang.T("?\n\nВозврат относится только к этому запуску программы, без изменения дочерних процессов.")))
                     return;
                 await RunProcessChange(new ProcessRow { Id = record.Pid, Started = record.Started, Name = record.Name }, before, record.Action, ulong.Parse(record.Before), id);
             }
             catch (Exception ex)
             {
-                Text("Status", "Не удалось вернуть настройку процесса: " + ex.Message);
+                Text("Status", Lang.T("Не удалось вернуть настройку процесса: ") + ex.Message);
             }
         }
 
         private static HistoryRow[] ProcessHistoryRows()
         {
-            return ProcessActions.History().Select(r => new HistoryRow { Run = r.Id, ProcessChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Restore ? "Возврат · " : "") + r.Name + " · " + (r.Action == "priority" ? "приоритет" : "набор CPU"), Status = r.Status == "OK" ? "Применено" : r.Status == "REVERTED" ? "Откат выполнен" : "Требует внимания", CanRevert = !r.Restore && r.Status != "REVERTED" }).ToArray();
+            return ProcessActions.History().Select(r => new HistoryRow { Run = r.Id, ProcessChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Restore ? Lang.T("Возврат · ") : "") + r.Name + " · " + (r.Action == "priority" ? Lang.T("приоритет") : Lang.T("набор CPU")), Status = r.Status == "OK" ? Lang.T("Применено") : r.Status == "REVERTED" ? Lang.T("Откат выполнен") : Lang.T("Требует внимания"), CanRevert = !r.Restore && r.Status != "REVERTED" }).ToArray();
         }
     }
 }

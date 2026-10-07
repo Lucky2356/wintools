@@ -31,13 +31,13 @@ namespace Wintools
         internal static UsageReport Measure(string root, CancellationToken cancel, int limit)
         {
             if (!Directory.Exists(root))
-                throw new IOException("Папка не найдена.");
+                throw new IOException(Lang.T("Папка не найдена."));
             var report = new UsageReport();
             var result = new List<FolderUsage>();
             int visited = 0;
             var loose = new FolderUsage
             {
-                Name = "Файлы в самой папке",
+                Name = Lang.T("Файлы в самой папке"),
                 Path = root
             };
             IEnumerable<string> children;
@@ -47,7 +47,7 @@ namespace Wintools
             }
             catch (UnauthorizedAccessException)
             {
-                throw new IOException("Нет доступа к папке.");
+                throw new IOException(Lang.T("Нет доступа к папке."));
             }
 
             foreach (var child in children)
@@ -141,14 +141,14 @@ namespace Wintools
                 result.Add(loose);
             report.Bytes = result.Sum(f => f.Bytes);
             foreach (var folder in result)
-                folder.Detail = Size(folder.Bytes) + " · файлов: " + folder.Files + (report.Bytes > 0 ? " · " + (100.0 * folder.Bytes / report.Bytes).ToString("0") + " %" : "");
+                folder.Detail = Size(folder.Bytes) + Lang.T(" · файлов: ") + folder.Files + (report.Bytes > 0 ? " · " + (100.0 * folder.Bytes / report.Bytes).ToString("0") + " %" : "");
             report.Folders = result.OrderByDescending(f => f.Bytes).Take(20).ToArray();
             return report;
         }
 
         internal static string Size(long bytes)
         {
-            return bytes >= 1073741824 ? (bytes / 1073741824.0).ToString("0.0") + " ГБ" : (bytes / 1048576.0).ToString("0.0") + " МБ";
+            return bytes >= 1073741824 ? (bytes / 1073741824.0).ToString("0.0") + Lang.T(" ГБ") : (bytes / 1048576.0).ToString("0.0") + Lang.T(" МБ");
         }
     }
 
@@ -177,7 +177,7 @@ namespace Wintools
             },
             new[]
             {
-                "Яндекс Браузер",
+                Lang.T("Яндекс Браузер"),
                 "browser",
                 @"Yandex\YandexBrowser\User Data"
             },
@@ -268,7 +268,7 @@ namespace Wintools
             {
                 if (Running(source))
                 {
-                    names.Add(source.Browser + " (открыт — пропущен)");
+                    names.Add(source.Browser + Lang.T(" (открыт — пропущен)"));
                     continue;
                 }
 
@@ -285,7 +285,7 @@ namespace Wintools
                 }
             }
 
-            result.Source = names.Count == 0 ? "Поддерживаемые браузеры не найдены" : string.Join(", ", names);
+            result.Source = names.Count == 0 ? Lang.T("Поддерживаемые браузеры не найдены") : string.Join(", ", names);
             return result;
         }
 
@@ -304,7 +304,7 @@ namespace Wintools
             {
                 if (Running(source))
                 {
-                    output.AppendLine(source.Browser + ": открыт, кэш не очищался. Закройте браузер и повторите.");
+                    output.AppendLine(source.Browser + Lang.T(": открыт, кэш не очищался. Закройте браузер и повторите."));
                     continue;
                 }
 
@@ -372,10 +372,10 @@ namespace Wintools
                     }
                 }
 
-                output.AppendLine(source.Browser + ": кэш очищен.");
+                output.AppendLine(source.Browser + Lang.T(": кэш очищен."));
             }
 
-            output.AppendLine("Удалено файлов: " + deleted + " (" + DiskUsage.Size(bytes) + "). Пропущено занятых или недоступных: " + skipped + ".");
+            output.AppendLine(Lang.T("Удалено файлов: ") + deleted + " (" + DiskUsage.Size(bytes) + Lang.T("). Пропущено занятых или недоступных: ") + skipped + ".");
             return new EngineResult
             {
                 Code = 0,

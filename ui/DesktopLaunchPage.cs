@@ -29,16 +29,16 @@ namespace Wintools
             applicationLaunch.Visibility = applicationLaunchEntry.Visibility = row == null ? Visibility.Collapsed : Visibility.Visible;
             applicationLaunchEntry.IsEnabled = !busy && !readingApplications && entries.Length > 0;
             applicationLaunch.IsEnabled = applicationLaunchEntry.IsEnabled;
-            applicationLaunch.ToolTip = entries.Length == 0 ? "Подходящий ярлык меню «Пуск» не найден. Программу можно открыть обычным способом." : "Открыть выбранный ярлык меню «Пуск»";
+            applicationLaunch.ToolTip = entries.Length == 0 ? Lang.T("Подходящий ярлык меню «Пуск» не найден. Программу можно открыть обычным способом.") : Lang.T("Открыть выбранный ярлык меню «Пуск»");
             DesktopLaunchTooltip();
             if (row != null)
-                applicationDetail.Text += "\n" + (entries.Length == 0 ? "Подходящий ярлык «Пуска» не найден. Откройте программу обычным способом." : "Запуск через ярлык «Пуска». Если их несколько, выберите нужный.") + (desktopLaunches.Errors > 0 ? " Часть ярлыков не удалось прочитать." : "");
+                applicationDetail.Text += "\n" + (entries.Length == 0 ? Lang.T("Подходящий ярлык «Пуска» не найден. Откройте программу обычным способом.") : Lang.T("Запуск через ярлык «Пуска». Если их несколько, выберите нужный.")) + (desktopLaunches.Errors > 0 ? Lang.T(" Часть ярлыков не удалось прочитать.") : "");
         }
 
         private void DesktopLaunchTooltip()
         {
             var entry = applicationLaunchEntry.SelectedItem as DesktopShortcut;
-            applicationLaunchEntry.ToolTip = entry == null ? "Выберите ярлык программы" : entry.Target + "\n" + entry.Arguments + "\nЯрлык: " + entry.Path;
+            applicationLaunchEntry.ToolTip = entry == null ? Lang.T("Выберите ярлык программы") : entry.Target + "\n" + entry.Arguments + Lang.T("\nЯрлык: ") + entry.Path;
         }
 
         private async Task LaunchDesktopApplication()
@@ -53,14 +53,14 @@ namespace Wintools
                 var current = await Task.Run(() => desktopReload(entry));
                 var refreshed = applicationReload(row);
                 if (refreshed == null || !DesktopLaunch.Match(refreshed, new DesktopLaunchInventory { Entries = new[] { current } }).Any())
-                    throw new IOException("Запись программы или ярлык изменились. Обновите список.");
+                    throw new IOException(Lang.T("Запись программы или ярлык изменились. Обновите список."));
                 var start = DesktopLaunch.StartInfo(entry, current);
                 desktopStart(start);
-                applicationStatus.Text = "Запрос запуска «" + entry.Name + "» передан Windows.";
+                applicationStatus.Text = Lang.T("Запрос запуска «") + entry.Name + Lang.T("» передан Windows.");
             }
             catch (Exception ex)
             {
-                applicationStatus.Text = "Не удалось запустить программу: " + ex.Message;
+                applicationStatus.Text = Lang.T("Не удалось запустить программу: ") + ex.Message;
             }
             finally
             {

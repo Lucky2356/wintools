@@ -58,7 +58,7 @@ jobs:
           $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $PWD $zip))
           try {
             $entries = @($archive.Entries | ForEach-Object FullName)
-            foreach ($required in @('wintweaks.cmd','menu.cmd','lib/helpers.ps1','data/tweaks.def','VERSION')) {
+            foreach ($required in @('wintweaks.cmd','menu.cmd','lib/helpers.ps1','data/tweaks.def','data/descr.en','VERSION')) {
               if ($required -notin $entries) { throw "Missing $required" }
             }
             if ($entries -match '^(state|backups|logs|reports|tests|\.git)/|promt\.md$') { throw 'Unexpected release contents' }

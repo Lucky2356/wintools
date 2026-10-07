@@ -30,34 +30,34 @@ namespace Wintools
         private void InitializeMeasurements(StackPanel parent)
         {
             var panel = new StackPanel();
-            panel.Children.Add(Paragraph("Запишите до 10 минут работы, затем повторите ту же задачу после изменений. Запись продолжается в других разделах и при свёрнутом окне. Пауза обычного монитора её не останавливает. Выбранные сейчас GPU и сетевой адаптер закрепляются на всю запись. Настройки Windows не меняются."));
+            panel.Children.Add(Paragraph(Lang.T("Запишите до 10 минут работы, затем повторите ту же задачу после изменений. Запись продолжается в других разделах и при свёрнутом окне. Пауза обычного монитора её не останавливает. Выбранные сейчас GPU и сетевой адаптер закрепляются на всю запись. Настройки Windows не меняются.")));
             var controls = new WrapPanel();
             panel.Children.Add(controls);
             measurementName = new TextBox
             {
-                Text = "До изменений",
+                Text = Lang.T("До изменений"),
                 Width = 220,
                 MaxLength = 80,
                 Margin = new Thickness(0, 0, 10, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(measurementName, "Название записи измерений");
+            System.Windows.Automation.AutomationProperties.SetName(measurementName, Lang.T("Название записи измерений"));
             controls.Children.Add(measurementName);
             measurementStart = new Button
             {
-                Content = "Начать запись",
+                Content = Lang.T("Начать запись"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             controls.Children.Add(measurementStart);
             measurementStart.Click += async (s, e) => await StartMeasurement();
             measurementStop = new Button
             {
-                Content = "Остановить и сохранить",
+                Content = Lang.T("Остановить и сохранить"),
                 IsEnabled = false,
                 Margin = new Thickness(0, 0, 0, 8)
             };
             controls.Children.Add(measurementStop);
             measurementStop.Click += (s, e) => StopMeasurement();
-            measurementStatus = Paragraph("Записи хранятся в WintoolsData/measurements. Каждый полученный замер сохраняется на диск; после сбоя доступны уже сохранённые данные.");
+            measurementStatus = Paragraph(Lang.T("Записи хранятся в WintoolsData/measurements. Каждый полученный замер сохраняется на диск; после сбоя доступны уже сохранённые данные."));
             panel.Children.Add(measurementStatus);
             var selectors = new WrapPanel();
             panel.Children.Add(selectors);
@@ -73,8 +73,8 @@ namespace Wintools
                 DisplayMemberPath = "Label",
                 Margin = new Thickness(0, 0, 0, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(measurementFirst, "Первая запись");
-            System.Windows.Automation.AutomationProperties.SetName(measurementSecond, "Вторая запись для сравнения");
+            System.Windows.Automation.AutomationProperties.SetName(measurementFirst, Lang.T("Первая запись"));
+            System.Windows.Automation.AutomationProperties.SetName(measurementSecond, Lang.T("Вторая запись для сравнения"));
             selectors.Children.Add(measurementFirst);
             selectors.Children.Add(measurementSecond);
             measurementFirst.SelectionChanged += (s, e) => RenderMeasurements();
@@ -83,14 +83,14 @@ namespace Wintools
             panel.Children.Add(actions);
             var refresh = new Button
             {
-                Content = "Обновить записи",
+                Content = Lang.T("Обновить записи"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             actions.Children.Add(refresh);
             refresh.Click += (s, e) => ReadMeasurements();
             var export = new Button
             {
-                Content = "Сохранить первую запись в CSV…",
+                Content = Lang.T("Сохранить первую запись в CSV…"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             actions.Children.Add(export);
@@ -102,11 +102,11 @@ namespace Wintools
             for (int i = 0; i < 4; i++)
                 measurementTable.ColumnDefinitions.Add(new ColumnDefinition());
             panel.Children.Add(measurementTable);
-            measurementReport = Paragraph("Записей пока нет. Начните измерение выше.");
+            measurementReport = Paragraph(Lang.T("Записей пока нет. Начните измерение выше."));
             panel.Children.Add(measurementReport);
             measurementExpander = new Expander
             {
-                Header = "Запись нагрузки и сравнение замеров",
+                Header = Lang.T("Запись нагрузки и сравнение замеров"),
                 Content = panel,
                 Margin = new Thickness(0, 0, 0, 18)
             };
@@ -124,7 +124,7 @@ namespace Wintools
             var name = measurementName.Text.Trim();
             if (name.Length == 0)
             {
-                measurementStatus.Text = "Введите название, например «До изменений» или название игры.";
+                measurementStatus.Text = Lang.T("Введите название, например «До изменений» или название игры.");
                 return;
             }
 
@@ -138,9 +138,9 @@ namespace Wintools
                 Name = name,
                 Status = "recording",
                 GpuId = gpu == null ? "" : gpu.Id,
-                GpuName = gpu == null ? "не выбран" : gpu.Name,
+                GpuName = gpu == null ? Lang.T("не выбран") : gpu.Name,
                 NetworkId = networkId ?? "",
-                NetworkName = network == null ? "не выбран" : ((System.Collections.Generic.KeyValuePair<string, string>)network).Value
+                NetworkName = network == null ? Lang.T("не выбран") : ((System.Collections.Generic.KeyValuePair<string, string>)network).Value
             };
             try
             {
@@ -148,7 +148,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                measurementStatus.Text = "Запись не началась: " + ex.Message;
+                measurementStatus.Text = Lang.T("Запись не началась: ") + ex.Message;
                 return;
             }
 
@@ -171,7 +171,7 @@ namespace Wintools
                 }
                 catch (Exception ex)
                 {
-                    point.Error = "CPU/ОЗУ/сеть: " + ex.Message;
+                    point.Error = Lang.T("CPU/ОЗУ/сеть: ") + ex.Message;
                 }
 
                 if (gpuId.Length > 0)
@@ -188,7 +188,7 @@ namespace Wintools
             });
             measurement = session;
             measurementWindowTitle = Window.Title;
-            Window.Title = measurementWindowTitle + " · Идёт запись нагрузки";
+            Window.Title = measurementWindowTitle + Lang.T(" · Идёт запись нагрузки");
             measurementClock.Restart();
             measurementStart.IsEnabled = false;
             measurementName.IsEnabled = false;
@@ -226,12 +226,12 @@ namespace Wintools
                     point.Error = point.Error.Substring(0, 4096);
                 session.Points.Add(point);
                 Measurements.Save(session);
-                measurementStatus.Text = "Идёт запись «" + session.Name + "» · " + session.Points.Count + " замеров · " + measurementClock.Elapsed.ToString(@"mm\:ss") + " из 10:00. GPU: " + session.GpuName + " · Сеть: " + session.NetworkName + ". Можно свернуть приложение.";
+                measurementStatus.Text = Lang.T("Идёт запись «") + session.Name + "» · " + session.Points.Count + Lang.T(" замеров · ") + measurementClock.Elapsed.ToString(@"mm\:ss") + " из 10:00. GPU: " + session.GpuName + " · Сеть: " + session.NetworkName + ". Можно свернуть приложение.";
             }
             catch (Exception ex)
             {
                 StopMeasurement(false);
-                measurementStatus.Text = "Запись остановлена из-за ошибки: " + ex.Message + ". В списке доступны сохранённые замеры.";
+                measurementStatus.Text = Lang.T("Запись остановлена из-за ошибки: ") + ex.Message + Lang.T(". В списке доступны сохранённые замеры.");
             }
             finally
             {
@@ -255,11 +255,11 @@ namespace Wintools
             try
             {
                 Measurements.Save(session);
-                measurementStatus.Text = "Запись «" + session.Name + "» сохранена: " + session.Points.Count + " замеров. Выберите две записи ниже для сравнения.";
+                measurementStatus.Text = Lang.T("Запись «") + session.Name + Lang.T("» сохранена: ") + session.Points.Count + Lang.T(" замеров. Выберите две записи ниже для сравнения.");
             }
             catch (Exception ex)
             {
-                measurementStatus.Text = "Не удалось сохранить завершение записи: " + ex.Message + ". Предыдущие сохранённые замеры остаются на диске.";
+                measurementStatus.Text = Lang.T("Не удалось сохранить завершение записи: ") + ex.Message + Lang.T(". Предыдущие сохранённые замеры остаются на диске.");
             }
 
             if (!closed)
@@ -280,11 +280,11 @@ namespace Wintools
                 measurementSecond.SelectedItem = rows.FirstOrDefault(r => second != null && r.Id == second.Id);
                 RenderMeasurements();
                 if (errors > 0)
-                    measurementStatus.Text = "Не удалось прочитать записей: " + errors + ". Остальные доступны. Показаны последние 50 файлов.";
+                    measurementStatus.Text = Lang.T("Не удалось прочитать записей: ") + errors + Lang.T(". Остальные доступны. Показаны последние 50 файлов.");
             }
             catch (Exception ex)
             {
-                measurementStatus.Text = "Не удалось прочитать записи: " + ex.Message;
+                measurementStatus.Text = Lang.T("Не удалось прочитать записи: ") + ex.Message;
             }
         }
 
@@ -298,7 +298,7 @@ namespace Wintools
             var second = measurementSecond.SelectedItem as MeasurementSession;
             if (first == null)
             {
-                measurementReport.Text = "Записей пока нет. Начните измерение выше.";
+                measurementReport.Text = Lang.T("Записей пока нет. Начните измерение выше.");
                 return;
             }
 
@@ -307,10 +307,10 @@ namespace Wintools
                 second = null;
             string[] titles =
             {
-                "Показатель",
-                "Первая запись",
-                "Вторая запись",
-                "Разница средних"
+                Lang.T("Показатель"),
+                Lang.T("Первая запись"),
+                Lang.T("Вторая запись"),
+                Lang.T("Разница средних")
             };
             for (int r = 0; r < 6; r++)
                 measurementTable.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -327,10 +327,10 @@ namespace Wintools
             string[] names =
             {
                 "CPU",
-                "Занятая ОЗУ",
+                Lang.T("Занятая ОЗУ"),
                 "GPU",
-                "Приём сети",
-                "Отправка сети"
+                Lang.T("Приём сети"),
+                Lang.T("Отправка сети")
             };
             for (int i = 0; i < 5; i++)
             {
@@ -338,31 +338,31 @@ namespace Wintools
                 var b = second == null ? new double? [0] : second.Points.Select(metrics[i]).ToArray();
                 bool compatible = second != null && (i < 2 || (i == 2 ? first.GpuId == second.GpuId && first.GpuName == second.GpuName : first.NetworkId == second.NetworkId));
                 MeasurementCell(i + 1, 0, names[i], true);
-                MeasurementCell(i + 1, 1, MeasurementStatistic(a, i < 3 ? "%" : "МиБ/с"), false);
-                MeasurementCell(i + 1, 2, second == null ? "—" : MeasurementStatistic(b, i < 3 ? "%" : "МиБ/с"), false);
-                MeasurementCell(i + 1, 3, second == null ? "—" : compatible ? Measurements.Difference("", a, b, i < 3 ? "п.п." : "МиБ/с") : "Другой адаптер", false);
+                MeasurementCell(i + 1, 1, MeasurementStatistic(a, i < 3 ? "%" : Lang.T("МиБ/с")), false);
+                MeasurementCell(i + 1, 2, second == null ? "—" : MeasurementStatistic(b, i < 3 ? "%" : Lang.T("МиБ/с")), false);
+                MeasurementCell(i + 1, 3, second == null ? "—" : compatible ? Measurements.Difference("", a, b, i < 3 ? Lang.T("п.п.") : Lang.T("МиБ/с")) : Lang.T("Другой адаптер"), false);
             }
 
             var info = new StringBuilder();
-            info.AppendLine("Первая: " + MeasurementCaption(first));
+            info.AppendLine(Lang.T("Первая: ") + MeasurementCaption(first));
             if (second != null)
-                info.AppendLine("Вторая: " + MeasurementCaption(second));
-            info.AppendLine(second == null ? (same ? "Выберите другую вторую запись." : "Выберите вторую запись для сравнения.") : "Разница средних: вторая запись минус первая. Для процентов разница показана в процентных пунктах (п.п.).");
-            info.AppendLine("Средние и максимумы рассчитаны по доступным замерам. Повторяйте одинаковую задачу: фоновые программы, длительность и пропуски влияют на результат. Это не измерение FPS.");
+                info.AppendLine(Lang.T("Вторая: ") + MeasurementCaption(second));
+            info.AppendLine(second == null ? (same ? Lang.T("Выберите другую вторую запись.") : Lang.T("Выберите вторую запись для сравнения.")) : Lang.T("Разница средних: вторая запись минус первая. Для процентов разница показана в процентных пунктах (п.п.)."));
+            info.AppendLine(Lang.T("Средние и максимумы рассчитаны по доступным замерам. Повторяйте одинаковую задачу: фоновые программы, длительность и пропуски влияют на результат. Это не измерение FPS."));
             foreach (var error in first.Points.Concat(second == null ? new MeasurementPoint[0] : second.Points.ToArray()).Select(p => p.Error).Where(e => e.Length > 0).Distinct().Take(2))
-                info.AppendLine("Неполные данные: " + error);
+                info.AppendLine(Lang.T("Неполные данные: ") + error);
             measurementReport.Text = info.ToString();
         }
 
         private static string MeasurementStatistic(double? [] all, string unit)
         {
             var values = all.Where(v => v.HasValue).Select(v => v.Value).ToArray();
-            return values.Length == 0 ? "Нет замеров" : "Среднее " + values.Average().ToString("N1") + " " + unit + "\nМакс. " + values.Max().ToString("N1") + " · " + values.Length + " из " + all.Length;
+            return values.Length == 0 ? Lang.T("Нет замеров") : Lang.T("Среднее ") + values.Average().ToString("N1") + " " + unit + Lang.T("\nМакс. ") + values.Max().ToString("N1") + " · " + values.Length + Lang.T(" из ") + all.Length;
         }
 
         private static string MeasurementCaption(MeasurementSession session)
         {
-            return session.Label + " · " + (session.Points.Count == 0 ? 0 : session.Points.Last().Seconds).ToString("N0") + " с · " + (session.Status == "complete" ? "завершена" : "незавершённая запись") + "\nGPU: " + session.GpuName + " · Сеть: " + session.NetworkName;
+            return session.Label + " · " + (session.Points.Count == 0 ? 0 : session.Points.Last().Seconds).ToString("N0") + Lang.T(" с · ") + (session.Status == "complete" ? Lang.T("завершена") : Lang.T("незавершённая запись")) + "\nGPU: " + session.GpuName + Lang.T(" · Сеть: ") + session.NetworkName;
         }
 
         private void MeasurementCell(int row, int column, string value, bool bold)
@@ -388,13 +388,13 @@ namespace Wintools
             var session = measurementFirst.SelectedItem as MeasurementSession;
             if (session == null)
             {
-                measurementStatus.Text = "Выберите первую запись для экспорта.";
+                measurementStatus.Text = Lang.T("Выберите первую запись для экспорта.");
                 return;
             }
 
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Сохранить замеры",
+                Title = Lang.T("Сохранить замеры"),
                 Filter = "CSV (*.csv)|*.csv",
                 DefaultExt = ".csv",
                 FileName = "Wintools-measurements-" + session.Id + ".csv"
@@ -404,11 +404,11 @@ namespace Wintools
             try
             {
                 File.WriteAllText(dialog.FileName, Measurements.Csv(session), new UTF8Encoding(true));
-                measurementStatus.Text = "CSV сохранён. Пустые ячейки означают отсутствие замера, а не нулевую нагрузку.";
+                measurementStatus.Text = Lang.T("CSV сохранён. Пустые ячейки означают отсутствие замера, а не нулевую нагрузку.");
             }
             catch (Exception ex)
             {
-                measurementStatus.Text = "Не удалось сохранить CSV: " + ex.Message;
+                measurementStatus.Text = Lang.T("Не удалось сохранить CSV: ") + ex.Message;
             }
         }
     }

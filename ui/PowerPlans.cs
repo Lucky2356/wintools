@@ -17,7 +17,7 @@ namespace Wintools
         {
             get
             {
-                return Name + (Active ? " · Используется сейчас" : "");
+                return Name + (Active ? Lang.T(" · Используется сейчас") : "");
             }
         }
     }
@@ -53,7 +53,7 @@ namespace Wintools
             IntPtr pointer;
             Check(PowerGetActiveScheme(IntPtr.Zero, out pointer));
             if (pointer == IntPtr.Zero)
-                throw new InvalidOperationException("Windows не вернула схему питания.");
+                throw new InvalidOperationException(Lang.T("Windows не вернула схему питания."));
             try
             {
                 return ((Guid)Marshal.PtrToStructure(pointer, typeof(Guid))).ToString("D");
@@ -79,7 +79,7 @@ namespace Wintools
             if (size == 0)
                 return "";
             if (size > 65536)
-                throw new InvalidOperationException("Слишком длинное описание схемы питания.");
+                throw new InvalidOperationException(Lang.T("Слишком длинное описание схемы питания."));
             var buffer = new byte[size];
             code = description ? PowerReadDescription(IntPtr.Zero, ref id, IntPtr.Zero, IntPtr.Zero, buffer, ref size) : PowerReadFriendlyName(IntPtr.Zero, ref id, IntPtr.Zero, IntPtr.Zero, buffer, ref size);
             Check(code);
@@ -103,7 +103,7 @@ namespace Wintools
                     };
                 Check(code);
                 if (size != 16)
-                    throw new InvalidOperationException("Некорректный идентификатор схемы питания.");
+                    throw new InvalidOperationException(Lang.T("Некорректный идентификатор схемы питания."));
                 var guid = new Guid(buffer);
                 string name = Text(guid, false), description;
                 try
@@ -112,23 +112,23 @@ namespace Wintools
                 }
                 catch (Win32Exception)
                 {
-                    description = "Описание Windows недоступно.";
+                    description = Lang.T("Описание Windows недоступно.");
                 }
 
                 result.Add(new PowerPlan { Id = guid.ToString("D"), Name = string.IsNullOrWhiteSpace(name) ? guid.ToString("D") : name, Description = description, Active = guid.ToString("D") == active });
             }
 
-            throw new InvalidOperationException("Не удалось полностью перечислить схемы питания.");
+            throw new InvalidOperationException(Lang.T("Не удалось полностью перечислить схемы питания."));
         }
 
         internal static void Select(string id)
         {
             if (!ValidId(id))
-                throw new ArgumentException("Некорректная схема питания.");
+                throw new ArgumentException(Lang.T("Некорректная схема питания."));
             var guid = new Guid(id);
             Check(PowerSetActiveScheme(IntPtr.Zero, ref guid));
             if (Active() != id.ToLowerInvariant())
-                throw new InvalidOperationException("Windows не подтвердила переключение схемы. Обновите список.");
+                throw new InvalidOperationException(Lang.T("Windows не подтвердила переключение схемы. Обновите список."));
         }
     }
 }

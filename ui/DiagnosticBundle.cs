@@ -145,13 +145,13 @@ namespace Wintools
             {
                 var create = diagnosticCreate;
                 var path = await Task.Run(() => create());
-                Text("Status", "Пакет диагностики сохранён: " + Path.GetFileName(path) + ". Перед отправкой можно открыть архив и проверить содержимое.");
+                Text("Status", Lang.T("Пакет диагностики сохранён: ") + Path.GetFileName(path) + Lang.T(". Перед отправкой можно открыть архив и проверить содержимое."));
                 if (!smoke)
                     Process.Start(new ProcessStartInfo("explorer.exe", "/select," + Program.Quote(path)) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
-                Text("Status", "Пакет диагностики не создан: " + ex.Message);
+                Text("Status", Lang.T("Пакет диагностики не создан: ") + ex.Message);
             }
             finally
             {

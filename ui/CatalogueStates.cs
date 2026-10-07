@@ -35,7 +35,7 @@ namespace Wintools
                 if (!closed)
                 {
                     tweakStates = null;
-                    Text("Status", "Не удалось прочитать текущее состояние настроек: " + ex.Message);
+                    Text("Status", Lang.T("Не удалось прочитать текущее состояние настроек: ") + ex.Message);
                 }
             }
             finally
@@ -59,10 +59,10 @@ namespace Wintools
             if (item.Kind == "SVC")
             {
                 if (services == null)
-                    return TweakState.Unknown(readingServices ? "Читаем состояние службы…" : "Состояние неизвестно · нажмите ↻");
+                    return TweakState.Unknown(readingServices ? Lang.T("Читаем состояние службы…") : Lang.T("Состояние неизвестно · нажмите ↻"));
                 var service = services.FirstOrDefault(s => string.Equals(s.Name, item.Target, StringComparison.OrdinalIgnoreCase));
                 if (service == null)
-                    return TweakState.Unknown("Не установлена на этом ПК");
+                    return TweakState.Unknown(Lang.T("Не установлена на этом ПК"));
                 return item.Value == "disabled" ? new TweakState
                 {
                     Applied = service.Mode == "Disabled",
@@ -77,7 +77,7 @@ namespace Wintools
             TweakState state;
             if (tweakStates != null && tweakStates.TryGetValue(item.Id, out state))
                 return state;
-            return TweakState.Unknown(readingTweakStates ? "Читаем текущее состояние…" : "Состояние неизвестно · нажмите ↻");
+            return TweakState.Unknown(readingTweakStates ? Lang.T("Читаем текущее состояние…") : Lang.T("Состояние неизвестно · нажмите ↻"));
         }
 
         private string InlineStatus(Tweak item)
@@ -100,8 +100,8 @@ namespace Wintools
             if (state == null)
                 return "";
             if (item.Kind == "SVC")
-                return "\n" + (services == null ? "Состояние пока неизвестно. Нажмите «↻ Состояние» над списком." : state.Applied == null && state.Text.StartsWith("Не установлена") ? "Служба не установлена на этом ПК." : state.Text + " (снимок; обновить кнопкой ↻ над списком)");
-            return "\nСейчас: " + state.Text + (state.Applied == true ? ". Повторное применение ничего не изменит." : "");
+                return "\n" + (services == null ? Lang.T("Состояние пока неизвестно. Нажмите «↻ Состояние» над списком.") : state.Applied == null && state.Text == Lang.T("Не установлена на этом ПК") ? Lang.T("Служба не установлена на этом ПК.") : state.Text + Lang.T(" (снимок; обновить кнопкой ↻ над списком)"));
+            return Lang.T("\nСейчас: ") + state.Text + (state.Applied == true ? Lang.T(". Повторное применение ничего не изменит.") : "");
         }
     }
 }

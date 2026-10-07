@@ -18,11 +18,11 @@ namespace Wintools
             using (var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", false))
             {
                 if (key == null)
-                    throw new IOException("Сведения о версии Windows недоступны.");
+                    throw new IOException(Lang.T("Сведения о версии Windows недоступны."));
                 string build = Convert.ToString(key.GetValue("CurrentBuild", ""), CultureInfo.InvariantCulture);
                 object revision = key.GetValue("UBR");
                 if (!Regex.IsMatch(build, "^[0-9]{4,6}$"))
-                    throw new IOException("Некорректный номер сборки Windows.");
+                    throw new IOException(Lang.T("Некорректный номер сборки Windows."));
                 return build + "." + (revision is int ? ((int)revision).ToString(CultureInfo.InvariantCulture) : "0");
             }
         }
@@ -60,11 +60,11 @@ namespace Wintools
                     return;
                 if (verificationDrift.Length > 0)
                 {
-                    Text("Status", "Windows обновилась (" + previous + " → " + current + "). Изменились настройки: " + verificationDrift.Length + ". Их можно снова добавить в план.");
+                    Text("Status", Lang.T("Windows обновилась (") + previous + " → " + current + Lang.T("). Изменились настройки: ") + verificationDrift.Length + Lang.T(". Их можно снова добавить в план."));
                     ShowPage(7);
                 }
                 else
-                    Text("Status", "Windows обновилась (" + previous + " → " + current + "). Применённые настройки на месте.");
+                    Text("Status", Lang.T("Windows обновилась (") + previous + " → " + current + Lang.T("). Применённые настройки на месте."));
             }
 
             preferences.WindowsBuild = current;
@@ -80,7 +80,7 @@ namespace Wintools
             var next = previous.Concat(ids).Distinct().ToList();
             if (next.Count > 200)
             {
-                Text("Status", "В плане больше 200 действий. Сначала выполните часть плана.");
+                Text("Status", Lang.T("В плане больше 200 действий. Сначала выполните часть плана."));
                 return;
             }
 
@@ -92,7 +92,7 @@ namespace Wintools
             }
 
             RefreshPlan();
-            Text("Status", "Добавлено в план: " + (next.Count - previous.Count) + ". Выполните предпросмотр, чтобы увидеть, что вернётся.");
+            Text("Status", Lang.T("Добавлено в план: ") + (next.Count - previous.Count) + Lang.T(". Выполните предпросмотр, чтобы увидеть, что вернётся."));
             ShowPage(4);
         }
     }

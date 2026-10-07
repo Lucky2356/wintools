@@ -57,7 +57,7 @@ namespace Wintools
         {
             for (var item = new DirectoryInfo(path); item != null; item = item.Parent)
                 if (item.Exists && (item.Attributes & FileAttributes.ReparsePoint) != 0)
-                    throw new IOException("Папка ярлыков проходит через ссылку или junction.");
+                    throw new IOException(Lang.T("Папка ярлыков проходит через ссылку или junction."));
         }
 
         internal static bool Local(string path)
@@ -68,11 +68,11 @@ namespace Wintools
         internal static DesktopShortcut ReadShortcut(string path)
         {
             if (!Local(path) || !string.Equals(System.IO.Path.GetExtension(path), ".lnk", StringComparison.OrdinalIgnoreCase))
-                throw new IOException("Ярлык недоступен.");
+                throw new IOException(Lang.T("Ярлык недоступен."));
             SafeDirectory(System.IO.Path.GetDirectoryName(path));
             var file = new FileInfo(path);
             if (!file.Exists || file.Length > 1048576 || (file.Attributes & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("Ярлык недоступен или является ссылкой.");
+                throw new IOException(Lang.T("Ярлык недоступен или является ссылкой."));
             var value = (Link)new ShellLink();
             try
             {
@@ -84,7 +84,7 @@ namespace Wintools
                 value.GetArguments(args, args.Capacity);
                 value.GetWorkingDirectory(directory, directory.Capacity);
                 if (target.Length >= 259 || args.Length >= 32767 || directory.Length >= 32767)
-                    throw new IOException("Слишком длинная команда ярлыка.");
+                    throw new IOException(Lang.T("Слишком длинная команда ярлыка."));
                 return new DesktopShortcut
                 {
                     Name = System.IO.Path.GetFileNameWithoutExtension(path),
@@ -196,7 +196,7 @@ namespace Wintools
         internal static ProcessStartInfo StartInfo(DesktopShortcut before, DesktopShortcut current)
         {
             if (!Launchable(current) || before.Path != current.Path || before.Target != current.Target || before.Arguments != current.Arguments || before.Directory != current.Directory)
-                throw new IOException("Ярлык изменился или файл программы исчез. Обновите список и выберите его снова.");
+                throw new IOException(Lang.T("Ярлык изменился или файл программы исчез. Обновите список и выберите его снова."));
             return new ProcessStartInfo(current.Target, current.Arguments)
             {
                 UseShellExecute = true,

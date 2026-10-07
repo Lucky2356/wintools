@@ -25,7 +25,7 @@ namespace Wintools
         {
             get
             {
-                return Name + " · " + DateTime.Parse(StartedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + " · " + Points.Count + " замеров";
+                return Name + " · " + DateTime.Parse(StartedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + " · " + Points.Count + Lang.T(" замеров");
             }
         }
     }
@@ -55,7 +55,7 @@ namespace Wintools
                 "complete",
                 "interrupted"
             }.Contains(session.Status) || string.IsNullOrWhiteSpace(session.Name) || session.Name.Length > 80 || session.Points == null || session.Points.Count > Limit)
-                throw new IOException("Некорректная запись измерений.");
+                throw new IOException(Lang.T("Некорректная запись измерений."));
             foreach (var value in new[]
             {
                 session.NetworkId,
@@ -66,12 +66,12 @@ namespace Wintools
 
             )
                 if (value == null || value.Length > 512)
-                    throw new IOException("Некорректные сведения об адаптере.");
+                    throw new IOException(Lang.T("Некорректные сведения об адаптере."));
             double previous = -1;
             foreach (var point in session.Points)
             {
                 if (point == null || !Metric(point.Seconds, 660) || point.Seconds < previous || !Metric(point.Cpu, 100) || !Metric(point.Memory, 100) || !Metric(point.Gpu, 100) || !Metric(point.Receive, 1e15) || !Metric(point.Send, 1e15) || point.Error == null || point.Error.Length > 4096)
-                    throw new IOException("Некорректный замер.");
+                    throw new IOException(Lang.T("Некорректный замер."));
                 previous = point.Seconds;
             }
         }
@@ -83,10 +83,10 @@ namespace Wintools
             Directory.CreateDirectory(DirectoryPath);
             var path = Program.Under(DirectoryPath, session.Id + ".json");
             if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("Запись измерений является ссылкой.");
+                throw new IOException(Lang.T("Запись измерений является ссылкой."));
             var bytes = new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(session));
             if (bytes.Length > 1048576)
-                throw new IOException("Запись измерений слишком велика.");
+                throw new IOException(Lang.T("Запись измерений слишком велика."));
             var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
@@ -112,7 +112,7 @@ namespace Wintools
         {
             Program.SafeDirectory(DirectoryPath);
             if (!string.Equals(Path.GetFullPath(path), Program.Under(DirectoryPath, Path.GetFileName(path)), StringComparison.OrdinalIgnoreCase) || !File.Exists(path) || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0 || new FileInfo(path).Length > 1048576)
-                throw new IOException("Недоступный файл измерений.");
+                throw new IOException(Lang.T("Недоступный файл измерений."));
             try
             {
                 var session = new JavaScriptSerializer
@@ -121,16 +121,16 @@ namespace Wintools
                 }.Deserialize<MeasurementSession>(File.ReadAllText(path));
                 Validate(session);
                 if (Path.GetFileNameWithoutExtension(path) != session.Id)
-                    throw new IOException("Номер записи измерений не совпадает.");
+                    throw new IOException(Lang.T("Номер записи измерений не совпадает."));
                 return session;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Не удалось прочитать измерения.", ex);
+                throw new IOException(Lang.T("Не удалось прочитать измерения."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Не удалось прочитать измерения.", ex);
+                throw new IOException(Lang.T("Не удалось прочитать измерения."), ex);
             }
         }
 
@@ -164,7 +164,7 @@ namespace Wintools
         {
             var a = first.Where(v => v.HasValue).Select(v => v.Value).ToArray();
             var b = second.Where(v => v.HasValue).Select(v => v.Value).ToArray();
-            return (title.Length == 0 ? "" : title + ": ") + (a.Length == 0 || b.Length == 0 ? "недостаточно данных" : (b.Average() - a.Average()).ToString("+0.0;-0.0;0.0") + " " + unit + " (" + a.Length + " / " + b.Length + " замеров)");
+            return (title.Length == 0 ? "" : title + ": ") + (a.Length == 0 || b.Length == 0 ? Lang.T("недостаточно данных") : (b.Average() - a.Average()).ToString("+0.0;-0.0;0.0") + " " + unit + " (" + a.Length + " / " + b.Length + Lang.T(" замеров)"));
         }
 
         internal static string Csv(MeasurementSession session)

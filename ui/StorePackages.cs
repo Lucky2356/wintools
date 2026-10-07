@@ -50,18 +50,18 @@ namespace Wintools
         internal static void Validate(StorePackage package, string action)
         {
             if (package == null || !Identity(package.FullName) || !Identity(package.FamilyName))
-                throw new IOException("Некорректный идентификатор пакета.");
+                throw new IOException(Lang.T("Некорректный идентификатор пакета."));
             if (!new[]
             {
                 "remove",
                 "reset",
                 "register"
             }.Contains(action))
-                throw new IOException("Неизвестное действие пакета.");
+                throw new IOException(Lang.T("Неизвестное действие пакета."));
             if (package.Protected)
-                throw new IOException("Системный или защищённый пакет нельзя изменить этим действием.");
+                throw new IOException(Lang.T("Системный или защищённый пакет нельзя изменить этим действием."));
             if (action == "reset" && !package.ResetSupported)
-                throw new IOException("Эта версия Windows не поддерживает сброс через этот менеджер.");
+                throw new IOException(Lang.T("Эта версия Windows не поддерживает сброс через этот менеджер."));
         }
 
         internal static async Task<EngineResult> Script(object request, bool readOnly)
@@ -98,7 +98,7 @@ namespace Wintools
                         {
                         }
 
-                        throw new IOException("Чтение Store-приложений заняло слишком много времени. Повторите обновление списка.");
+                        throw new IOException(Lang.T("Чтение Store-приложений заняло слишком много времени. Повторите обновление списка."));
                     }
 
                     await Task.Delay(150);
@@ -106,7 +106,7 @@ namespace Wintools
 
                 string text = await output, detail = await error;
                 if (text.Length > 4194304 || detail.Length > 150000)
-                    throw new IOException("Ответ Windows слишком велик.");
+                    throw new IOException(Lang.T("Ответ Windows слишком велик."));
                 return new EngineResult
                 {
                     Code = process.ExitCode,
@@ -125,7 +125,7 @@ namespace Wintools
                 MaxJsonLength = 4194304
             }.Deserialize<StoreInventory>(result.Output);
             if (snapshot == null || snapshot.Rows == null || snapshot.Errors == null || snapshot.Rows.Any(p => p == null || !Identity(p.FullName) || !Identity(p.FamilyName) || p.Entries == null || p.Entries.Any(e => !EntryValid(p, e))))
-                throw new IOException("Некорректный список пакетов Windows.");
+                throw new IOException(Lang.T("Некорректный список пакетов Windows."));
             return snapshot;
         }
 

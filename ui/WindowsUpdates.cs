@@ -194,42 +194,42 @@ namespace Wintools
                 };
             }
             else
-                throw new ArgumentException("Неизвестное действие Windows Update.");
+                throw new ArgumentException(Lang.T("Неизвестное действие Windows Update."));
             return result;
         }
 
         internal static void Validate(string action, string argument, string expected, string restore)
         {
             if (!Regex.IsMatch(expected ?? "", "^[a-f0-9]{16}$"))
-                throw new ArgumentException("Некорректный запрос Windows Update.");
+                throw new ArgumentException(Lang.T("Некорректный запрос Windows Update."));
             if (action == "pause")
             {
                 int days;
                 if (!int.TryParse(argument, NumberStyles.None, CultureInfo.InvariantCulture, out days) || days < 1 || days > 35)
-                    throw new ArgumentException("Пауза возможна на 1–35 дней.");
+                    throw new ArgumentException(Lang.T("Пауза возможна на 1–35 дней."));
             }
             else if (action == "hours")
             {
                 var match = Regex.Match(argument ?? "", "^([0-9]{1,2})-([0-9]{1,2})$");
                 int a, b;
                 if (!match.Success || !int.TryParse(match.Groups[1].Value, out a) || !int.TryParse(match.Groups[2].Value, out b) || a > 23 || b > 23 || a == b || (b - a + 24) % 24 > 18)
-                    throw new ArgumentException("Часы активности: начало и конец от 0 до 23, не более 18 часов.");
+                    throw new ArgumentException(Lang.T("Часы активности: начало и конец от 0 до 23, не более 18 часов."));
             }
             else if (action == "resume")
             {
                 if (argument != "-")
-                    throw new ArgumentException("Некорректный запрос Windows Update.");
+                    throw new ArgumentException(Lang.T("Некорректный запрос Windows Update."));
             }
             else if (action == "restore")
             {
                 if (argument != "-" || restore == null || restore == "-")
-                    throw new ArgumentException("Не указана запись для возврата.");
+                    throw new ArgumentException(Lang.T("Не указана запись для возврата."));
                 RecordPath(restore);
             }
             else
-                throw new ArgumentException("Неизвестное действие Windows Update.");
+                throw new ArgumentException(Lang.T("Неизвестное действие Windows Update."));
             if (action != "restore" && restore != null && restore != "-")
-                throw new ArgumentException("Некорректный запрос Windows Update.");
+                throw new ArgumentException(Lang.T("Некорректный запрос Windows Update."));
         }
 
         private static void Write(IEnumerable<UpdateValue> values)
@@ -240,7 +240,7 @@ namespace Wintools
                 foreach (var value in values)
                 {
                     if (!Names.Contains(value.Name))
-                        throw new IOException("Недопустимое значение Windows Update.");
+                        throw new IOException(Lang.T("Недопустимое значение Windows Update."));
                     if (value.Data == null)
                     {
                         if (key.GetValueNames().Contains(value.Name, StringComparer.OrdinalIgnoreCase))
@@ -266,7 +266,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер изменения Windows Update.");
+                throw new IOException(Lang.T("Некорректный номер изменения Windows Update."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -299,16 +299,16 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись Windows Update.");
+                    throw new IOException(Lang.T("Некорректная запись Windows Update."));
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история Windows Update.", ex);
+                throw new IOException(Lang.T("Повреждена история Windows Update."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история Windows Update.", ex);
+                throw new IOException(Lang.T("Повреждена история Windows Update."), ex);
             }
         }
 
@@ -319,7 +319,7 @@ namespace Wintools
 
         internal static string Detail(string action, string argument)
         {
-            return action == "pause" ? "Пауза обновлений на " + argument + " дн." : action == "resume" ? "Возобновление обновлений" : action == "hours" ? "Часы активности " + argument.Replace("-", ":00–") + ":00" : "Возврат настроек обновлений";
+            return action == "pause" ? Lang.T("Пауза обновлений на ") + argument + Lang.T(" дн.") : action == "resume" ? Lang.T("Возобновление обновлений") : action == "hours" ? Lang.T("Часы активности ") + argument.Replace("-", ":00–") + ":00" : Lang.T("Возврат настроек обновлений");
         }
 
         internal static async Task<EngineResult> Run(string action, string argument, string expected, string restore)
@@ -341,7 +341,7 @@ namespace Wintools
                 return new EngineResult
                 {
                     Code = process.ExitCode,
-                    Output = File.Exists(path) ? File.ReadAllText(path) : "Изменение Windows Update завершилось без отчёта."
+                    Output = File.Exists(path) ? File.ReadAllText(path) : Lang.T("Изменение Windows Update завершилось без отчёта.")
                 };
             }
         }
@@ -349,11 +349,11 @@ namespace Wintools
         internal static int Worker(string[] args)
         {
             if (args.Length != 7 || !Regex.IsMatch(args[4], "^[a-f0-9]{32}$") || args[5] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос Windows Update некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос Windows Update некорректен или права повышены под другим пользователем."));
             Validate(args[1], args[2], args[3], args[6]);
             string action = args[1], argument = args[2], expected = args[3], id = args[4];
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -369,16 +369,16 @@ namespace Wintools
                     gate = new FileStream(lockPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     var before = Read();
                     if (before.Fingerprint != expected)
-                        throw new IOException("Настройки обновлений изменились после чтения. Обновите состояние и повторите.");
+                        throw new IOException(Lang.T("Настройки обновлений изменились после чтения. Обновите состояние и повторите."));
                     UpdateChange original = null;
                     IEnumerable<UpdateValue> target;
                     if (action == "restore")
                     {
                         original = ReadRecord(args[6]);
                         if (original.Action == "restore" || original.Status == "REVERTED" || original.AfterHash == null)
-                            throw new IOException("Запись не подходит для возврата.");
+                            throw new IOException(Lang.T("Запись не подходит для возврата."));
                         if (original.AfterHash != before.Fingerprint)
-                            throw new IOException("Настройки обновлений изменены после этой записи. Возврат отменён.");
+                            throw new IOException(Lang.T("Настройки обновлений изменены после этой записи. Возврат отменён."));
                         target = Names.Select(n => original.Before.FirstOrDefault(v => v.Name == n) ?? new UpdateValue { Name = n });
                     }
                     else
@@ -388,7 +388,7 @@ namespace Wintools
                         Schema = "wintools/update-change/1",
                         Id = id,
                         Action = action,
-                        Detail = original == null ? Detail(action, argument) : "Возврат: " + original.Detail,
+                        Detail = original == null ? Detail(action, argument) : Lang.T("Возврат: ") + original.Detail,
                         Before = before.Values,
                         BeforeHash = before.Fingerprint,
                         TimeUtc = DateTime.UtcNow.ToString("o"),
@@ -406,7 +406,7 @@ namespace Wintools
                         Save(original);
                     }
 
-                    log.WriteLine(record.Detail + ": выполнено." + (after.PausedUntil.HasValue ? " Обновления приостановлены до " + after.PausedUntil.Value.ToLocalTime().ToString("g") + "." : "") + " Запись истории: " + id);
+                    log.WriteLine(record.Detail + Lang.T(": выполнено.") + (after.PausedUntil.HasValue ? Lang.T(" Обновления приостановлены до ") + after.PausedUntil.Value.ToLocalTime().ToString("g") + "." : "") + Lang.T(" Запись истории: ") + id);
                     return 0;
                 }
                 catch (Exception ex)
@@ -422,11 +422,11 @@ namespace Wintools
                         }
                         catch (Exception saveError)
                         {
-                            log.WriteLine("История требует проверки: " + saveError.Message);
+                            log.WriteLine(Lang.T("История требует проверки: ") + saveError.Message);
                         }
                     }
 
-                    log.WriteLine("Не удалось изменить настройки обновлений: " + ex.Message);
+                    log.WriteLine(Lang.T("Не удалось изменить настройки обновлений: ") + ex.Message);
                     return 4;
                 }
                 finally
@@ -466,7 +466,7 @@ namespace Wintools
                         var date = (DateTime)StartupTasks.Get(entry, "Date");
                         int code = Convert.ToInt32(StartupTasks.Get(entry, "ResultCode"));
                         int operation = Convert.ToInt32(StartupTasks.Get(entry, "Operation"));
-                        result.Add(new UpdateHistoryRow { Title = title.Length > 160 ? title.Substring(0, 160) + "…" : title, Detail = date.ToLocalTime().ToString("g") + " · " + (operation == 2 ? "удаление" : "установка") + " · " + (code == 2 ? "успешно" : code == 3 ? "с ошибками" : code == 4 ? "ошибка" : code == 5 ? "отменено" : code == 1 ? "выполняется" : "не начато") });
+                        result.Add(new UpdateHistoryRow { Title = title.Length > 160 ? title.Substring(0, 160) + "…" : title, Detail = date.ToLocalTime().ToString("g") + " · " + (operation == 2 ? Lang.T("удаление") : Lang.T("установка")) + " · " + (code == 2 ? Lang.T("успешно") : code == 3 ? Lang.T("с ошибками") : code == 4 ? Lang.T("ошибка") : code == 5 ? Lang.T("отменено") : code == 1 ? Lang.T("выполняется") : Lang.T("не начато")) });
                     }
                     finally
                     {

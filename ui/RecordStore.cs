@@ -30,7 +30,7 @@ namespace Wintools
         {
             var bytes = new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(value));
             if (bytes.Length > limit)
-                throw new IOException("Запись истории (" + label + ") слишком велика.");
+                throw new IOException(Lang.T("Запись истории (") + label + Lang.T(") слишком велика."));
             Write(path, bytes);
         }
 
@@ -40,7 +40,7 @@ namespace Wintools
             Directory.CreateDirectory(Folder);
             string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("История (" + label + ") является ссылкой.");
+                throw new IOException(Lang.T("История (") + label + Lang.T(") является ссылкой."));
             try
             {
                 using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None))
@@ -66,7 +66,7 @@ namespace Wintools
             Program.SafeDirectory(Folder);
             var info = new FileInfo(path);
             if (info.Length > limit || (info.Attributes & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("Некорректный файл истории (" + label + ").");
+                throw new IOException(Lang.T("Некорректный файл истории (") + label + ").");
             return new JavaScriptSerializer().Deserialize<T>(File.ReadAllText(path));
         }
 

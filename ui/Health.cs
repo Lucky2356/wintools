@@ -84,7 +84,7 @@ namespace Wintools
         {
             get
             {
-                return State == "Running" ? "Работает" : State == "Stopped" ? "Остановлена" : State == "Paused" ? "Приостановлена" : "Переход: " + State;
+                return State == "Running" ? Lang.T("Работает") : State == "Stopped" ? Lang.T("Остановлена") : State == "Paused" ? Lang.T("Приостановлена") : Lang.T("Переход: ") + State;
             }
         }
 
@@ -92,7 +92,7 @@ namespace Wintools
         {
             get
             {
-                return Mode == "Auto" ? "Автоматический" : Mode == "Manual" ? "Вручную / по запросу" : Mode == "Disabled" ? "Отключён" : Mode;
+                return Mode == "Auto" ? Lang.T("Автоматический") : Mode == "Manual" ? Lang.T("Вручную / по запросу") : Mode == "Disabled" ? Lang.T("Отключён") : Mode;
             }
         }
 
@@ -108,7 +108,7 @@ namespace Wintools
         {
             get
             {
-                return "Сейчас: " + (State == "Running" ? "работает" : State == "Stopped" ? "остановлена" : State == "Paused" ? "приостановлена" : "переходное состояние: " + State) + " · Запуск: " + (Mode == "Auto" ? "автоматический" : Mode == "Manual" ? "вручную / по запросу Windows" : Mode == "Disabled" ? "отключён" : Mode);
+                return Lang.T("Сейчас: ") + (State == "Running" ? Lang.T("работает") : State == "Stopped" ? Lang.T("остановлена") : State == "Paused" ? Lang.T("приостановлена") : Lang.T("переходное состояние: ") + State) + Lang.T(" · Запуск: ") + (Mode == "Auto" ? Lang.T("автоматический") : Mode == "Manual" ? Lang.T("вручную / по запросу Windows") : Mode == "Disabled" ? Lang.T("отключён") : Mode);
             }
         }
 
@@ -187,8 +187,8 @@ namespace Wintools
             InitializeMonitor(panel);
             InitializeBoot(panel);
             InitializeBackups(panel);
-            panel.Children.Add(Paragraph("Проверка читает загрузку процессора, доступную оперативную память, свободное место на дисках, список автозагрузки и самые крупные процессы в памяти. Настройки не меняются, файлы не удаляются. Это снимок текущего состояния, а не тест скорости или оценка FPS."));
-            healthStart = ToolButton(panel, "Проверить состояние ПК", async () => await ReadHealth());
+            panel.Children.Add(Paragraph(Lang.T("Проверка читает загрузку процессора, доступную оперативную память, свободное место на дисках, список автозагрузки и самые крупные процессы в памяти. Настройки не меняются, файлы не удаляются. Это снимок текущего состояния, а не тест скорости или оценка FPS.")));
+            healthStart = ToolButton(panel, Lang.T("Проверить состояние ПК"), async () => await ReadHealth());
             healthProgress = new ProgressBar
             {
                 Height = 4,
@@ -197,33 +197,33 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 0, 14)
             };
             panel.Children.Add(healthProgress);
-            healthStatus = Paragraph("Проверка ещё не выполнялась.");
+            healthStatus = Paragraph(Lang.T("Проверка ещё не выполнялась."));
             panel.Children.Add(healthStatus);
             healthResult = Paragraph("");
             panel.Children.Add(healthResult);
-            ToolButton(panel, "Что можно улучшить →", () => ShowPage(8));
+            ToolButton(panel, Lang.T("Что можно улучшить →"), () => ShowPage(8));
             panel = ToolPage("VerificationPage");
-            panel.Children.Add(Paragraph("Сверяем записи истории Wintools с текущими настройками Windows: реестром, типом запуска служб и другими поддерживаемыми параметрами. Так можно заметить, что обновление Windows или другая программа изменила настройку. Проверка ничего не исправляет и не оценивает скорость ПК. Повторные записи одного действия проверяются отдельно."));
-            verificationStart = ToolButton(panel, "Сверить настройки с историей", async () => await ReadVerification());
-            verificationStatus = Paragraph("Совпадает — настройка соответствует каталогу. Изменилась — текущее значение отличается. Не проверено — для записи нет доступной проверки. Отменённые действия пропускаются.");
+            panel.Children.Add(Paragraph(Lang.T("Сверяем записи истории Wintools с текущими настройками Windows: реестром, типом запуска служб и другими поддерживаемыми параметрами. Так можно заметить, что обновление Windows или другая программа изменила настройку. Проверка ничего не исправляет и не оценивает скорость ПК. Повторные записи одного действия проверяются отдельно.")));
+            verificationStart = ToolButton(panel, Lang.T("Сверить настройки с историей"), async () => await ReadVerification());
+            verificationStatus = Paragraph(Lang.T("Совпадает — настройка соответствует каталогу. Изменилась — текущее значение отличается. Не проверено — для записи нет доступной проверки. Отменённые действия пропускаются."));
             panel.Children.Add(verificationStatus);
             verificationResult = Paragraph("");
             panel.Children.Add(verificationResult);
-            verificationPlan = ToolButton(panel, "Добавить изменившиеся в план", AddDriftToPlan);
+            verificationPlan = ToolButton(panel, Lang.T("Добавить изменившиеся в план"), AddDriftToPlan);
             verificationPlan.Visibility = Visibility.Collapsed;
-            ToolButton(panel, "Открыть историю и откат →", () => ShowPage(1));
+            ToolButton(panel, Lang.T("Открыть историю и откат →"), () => ShowPage(1));
             panel = ToolPage("OptimizationPage");
             InitializePowerManagement(panel);
             InitializeWindowsUpdate(panel);
-            panel.Children.Add(Paragraph("Начните со снимка состояния ПК, изменяйте по одному пункту и повторяйте проверку при той же нагрузке. Эти инструменты открывают штатные настройки Windows; решение об изменении остаётся за вами."));
-            ToolButton(panel, "Снять показатели ПК →", () => ShowPage(6));
-            AddAdvice(panel, "Ускорить вход в Windows", "В автозагрузке отключите приложения, которые не нужны сразу после входа. Сохраните защиту, драйверы и нужную синхронизацию. В Диспетчере задач можно посмотреть влияние приложения на запуск.", "ms-settings:startupapps");
-            AddAdvice(panel, "Освободить место на диске", "Просмотрите категории хранилища и настройте Контроль памяти. Перед очисткой проверьте корзину и загрузки: удаление файлов может быть необратимым.", "ms-settings:storagesense");
-            AddAdvice(panel, "Настроить визуальные эффекты", "На слабом ПК отключение анимации может сделать интерфейс отзывчивее. В окне параметров быстродействия можно сохранить сглаживание экранных шрифтов.", Path.Combine(Environment.SystemDirectory, "SystemPropertiesPerformance.exe"));
-            AddAdvice(panel, "Проверить питание", "Повышенная производительность расходует больше энергии и усиливает нагрев. На ноутбуке сравнивайте результат при подключённом питании.", "ms-settings:powersleep");
-            AddAdvice(panel, "Проверить обслуживание SSD и HDD", "Откройте «Оптимизация дисков» и проверьте расписание. Windows выбирает обслуживание по типу накопителя. Отключать эту службу ради ускорения не требуется.", Path.Combine(Environment.SystemDirectory, "dfrgui.exe"));
-            AddAdvice(panel, "Найти программу, создающую нагрузку", "Сортируйте процессы по ЦП, памяти или диску. Закрывайте только знакомые приложения с сохранёнными документами.", Path.Combine(Environment.SystemDirectory, "Taskmgr.exe"));
-            ToolButton(panel, "Рекомендации Microsoft ↗", () => OpenTool("https://support.microsoft.com/en-us/windows/experience/performance-optimization/tips-to-improve-pc-performance-in-windows"));
+            panel.Children.Add(Paragraph(Lang.T("Начните со снимка состояния ПК, изменяйте по одному пункту и повторяйте проверку при той же нагрузке. Эти инструменты открывают штатные настройки Windows; решение об изменении остаётся за вами.")));
+            ToolButton(panel, Lang.T("Снять показатели ПК →"), () => ShowPage(6));
+            AddAdvice(panel, Lang.T("Ускорить вход в Windows"), Lang.T("В автозагрузке отключите приложения, которые не нужны сразу после входа. Сохраните защиту, драйверы и нужную синхронизацию. В Диспетчере задач можно посмотреть влияние приложения на запуск."), "ms-settings:startupapps");
+            AddAdvice(panel, Lang.T("Освободить место на диске"), Lang.T("Просмотрите категории хранилища и настройте Контроль памяти. Перед очисткой проверьте корзину и загрузки: удаление файлов может быть необратимым."), "ms-settings:storagesense");
+            AddAdvice(panel, Lang.T("Настроить визуальные эффекты"), Lang.T("На слабом ПК отключение анимации может сделать интерфейс отзывчивее. В окне параметров быстродействия можно сохранить сглаживание экранных шрифтов."), Path.Combine(Environment.SystemDirectory, "SystemPropertiesPerformance.exe"));
+            AddAdvice(panel, Lang.T("Проверить питание"), Lang.T("Повышенная производительность расходует больше энергии и усиливает нагрев. На ноутбуке сравнивайте результат при подключённом питании."), "ms-settings:powersleep");
+            AddAdvice(panel, Lang.T("Проверить обслуживание SSD и HDD"), Lang.T("Откройте «Оптимизация дисков» и проверьте расписание. Windows выбирает обслуживание по типу накопителя. Отключать эту службу ради ускорения не требуется."), Path.Combine(Environment.SystemDirectory, "dfrgui.exe"));
+            AddAdvice(panel, Lang.T("Найти программу, создающую нагрузку"), Lang.T("Сортируйте процессы по ЦП, памяти или диску. Закрывайте только знакомые приложения с сохранёнными документами."), Path.Combine(Environment.SystemDirectory, "Taskmgr.exe"));
+            ToolButton(panel, Lang.T("Рекомендации Microsoft ↗"), () => OpenTool("https://support.microsoft.com/en-us/windows/experience/performance-optimization/tips-to-improve-pc-performance-in-windows"));
             ClickAsync("NavServices", async () =>
             {
                 if (services == null)
@@ -253,7 +253,7 @@ namespace Wintools
             heading.FontWeight = FontWeights.SemiBold;
             content.Children.Add(heading);
             content.Children.Add(Paragraph(description));
-            ToolButton(content, "Открыть настройки ↗", () => OpenTool(target));
+            ToolButton(content, Lang.T("Открыть настройки ↗"), () => OpenTool(target));
             panel.Children.Add(card);
         }
 
@@ -265,7 +265,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                Text("Status", "Не удалось открыть инструмент Windows: " + ex.Message);
+                Text("Status", Lang.T("Не удалось открыть инструмент Windows: ") + ex.Message);
             }
         }
 
@@ -277,7 +277,7 @@ namespace Wintools
             healthStart.IsEnabled = false;
             healthProgress.Visibility = Visibility.Visible;
             healthResult.Text = "";
-            healthStatus.Text = "Проверяем процессор, память, диски и автозагрузку… Обычно это занимает несколько секунд.";
+            healthStatus.Text = Lang.T("Проверяем процессор, память, диски и автозагрузку… Обычно это занимает несколько секунд.");
             try
             {
                 var result = await Engine.Run("diagnose", "-", "-", false, false, value =>
@@ -286,18 +286,18 @@ namespace Wintools
                 Get<TextBox>("Output").Text = result.Output;
                 var match = Regex.Match(result.Output, @"(?m)^Report:\s*(.+?)\r?$");
                 if (!match.Success)
-                    throw new IOException("Отчёт не создан. Подробности доступны в выводе операции.");
+                    throw new IOException(Lang.T("Отчёт не создан. Подробности доступны в выводе операции."));
                 var path = Path.GetFullPath(match.Groups[1].Value.Trim());
                 var root = Path.GetFullPath(Path.Combine(Program.Data, "reports")) + Path.DirectorySeparatorChar;
                 if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase) || new FileInfo(path).Length > 2097152)
-                    throw new IOException("Некорректный файл отчёта.");
+                    throw new IOException(Lang.T("Некорректный файл отчёта."));
                 var report = new JavaScriptSerializer().Deserialize<Dictionary<string, object>>(File.ReadAllText(path));
                 healthResult.Text = DescribeHealth(report);
-                healthStatus.Text = "Снимок получен в " + DateTime.Now.ToString("HH:mm:ss") + (result.Code == 0 ? ". Проверка завершена; настройки не менялись." : ". Часть данных недоступна; это не означает неисправность ПК.");
+                healthStatus.Text = Lang.T("Снимок получен в ") + DateTime.Now.ToString("HH:mm:ss") + (result.Code == 0 ? Lang.T(". Проверка завершена; настройки не менялись.") : Lang.T(". Часть данных недоступна; это не означает неисправность ПК."));
             }
             catch (Exception ex)
             {
-                healthStatus.Text = "Проверка не завершена: " + ex.Message;
+                healthStatus.Text = Lang.T("Проверка не завершена: ") + ex.Message;
             }
             finally
             {
@@ -318,32 +318,32 @@ namespace Wintools
             if (os != null)
             {
                 double total = Convert.ToDouble(os["totalMemoryMB"]), free = Convert.ToDouble(os["freeMemoryMB"]);
-                string memory = "Свободно памяти: " + (free / 1024).ToString("F1") + " из " + (total / 1024).ToString("F1") + " ГБ";
+                string memory = Lang.T("Свободно памяти: ") + (free / 1024).ToString("F1") + Lang.T(" из ") + (total / 1024).ToString("F1") + Lang.T(" ГБ");
                 text.AppendLine(memory);
                 if (priorMemory != null)
-                    text.AppendLine("Предыдущий снимок: " + priorMemory);
+                    text.AppendLine(Lang.T("Предыдущий снимок: ") + priorMemory);
                 priorMemory = memory + " (" + DateTime.Now.ToString("HH:mm:ss") + ")";
                 if (total > 0 && free / total < 0.15)
-                    text.AppendLine("Мало свободной памяти. Посмотрите крупные процессы ниже и закройте ненужные приложения.");
+                    text.AppendLine(Lang.T("Мало свободной памяти. Посмотрите крупные процессы ниже и закройте ненужные приложения."));
             }
             else
-                text.AppendLine("Память: данные недоступны.");
+                text.AppendLine(Lang.T("Память: данные недоступны."));
             foreach (var row in ReportRows(report, "cpu"))
-                text.AppendLine("Процессор: " + row["Name"] + " · Загрузка: " + (row["LoadPercentage"] == null ? "нет данных" : row["LoadPercentage"] + "%"));
-            text.AppendLine("\nМЕСТО НА ДИСКАХ");
+                text.AppendLine(Lang.T("Процессор: ") + row["Name"] + Lang.T(" · Загрузка: ") + (row["LoadPercentage"] == null ? Lang.T("нет данных") : row["LoadPercentage"] + "%"));
+            text.AppendLine(Lang.T("\nМЕСТО НА ДИСКАХ"));
             foreach (var row in ReportRows(report, "disks"))
             {
                 double total = Convert.ToDouble(row["Size"]), free = Convert.ToDouble(row["FreeSpace"]);
-                text.AppendLine(row["DeviceID"] + " · Свободно " + (free / 1073741824).ToString("F1") + " из " + (total / 1073741824).ToString("F1") + " ГБ" + (total > 0 && free / total < 0.1 ? " — мало места, проверьте хранилище" : ""));
+                text.AppendLine(row["DeviceID"] + Lang.T(" · Свободно ") + (free / 1073741824).ToString("F1") + Lang.T(" из ") + (total / 1073741824).ToString("F1") + Lang.T(" ГБ") + (total > 0 && free / total < 0.1 ? Lang.T(" — мало места, проверьте хранилище") : ""));
             }
 
-            text.AppendLine("\nБОЛЬШЕ ВСЕГО ПАМЯТИ СЕЙЧАС");
+            text.AppendLine(Lang.T("\nБОЛЬШЕ ВСЕГО ПАМЯТИ СЕЙЧАС"));
             foreach (var row in ReportRows(report, "topMemoryProcesses"))
-                text.AppendLine(row["ProcessName"] + " · " + row["workingSetMB"] + " МБ");
-            text.AppendLine("\nЗаписей автозагрузки найдено: " + ReportRows(report, "startupEntries").Count() + ". Это найденные записи, а не количество включённых приложений. Их состояние смотрите в настройках автозагрузки.");
+                text.AppendLine(row["ProcessName"] + " · " + row["workingSetMB"] + Lang.T(" МБ"));
+            text.AppendLine(Lang.T("\nЗаписей автозагрузки найдено: ") + ReportRows(report, "startupEntries").Count() + Lang.T(". Это найденные записи, а не количество включённых приложений. Их состояние смотрите в настройках автозагрузки."));
             if (report.TryGetValue("errors", out value) && value is System.Collections.IEnumerable)
                 foreach (var error in (System.Collections.IEnumerable)value)
-                    text.AppendLine("Недоступные данные: " + error);
+                    text.AppendLine(Lang.T("Недоступные данные: ") + error);
             return text.ToString();
         }
 
@@ -368,7 +368,7 @@ namespace Wintools
                 new ServiceState
                 {
                     Name = serviceTweak.Target,
-                    Label = "Тест",
+                    Label = Lang.T("Тест"),
                     State = "Running",
                     Mode = "Manual"
                 }
@@ -394,14 +394,14 @@ namespace Wintools
                 new ServiceState
                 {
                     Name = "manual-running",
-                    Label = "Служба по запросу",
+                    Label = Lang.T("Служба по запросу"),
                     State = "Running",
                     Mode = "Manual"
                 },
                 new ServiceState
                 {
                     Name = "auto-stopped",
-                    Label = "Автоматическая служба",
+                    Label = Lang.T("Автоматическая служба"),
                     State = "Stopped",
                     Mode = "Auto"
                 }
@@ -419,8 +419,8 @@ namespace Wintools
             healthResult.Text = DescribeHealth(fixture);
             Assert(healthResult.Text.Contains("Мало свободной памяти") && healthResult.Text.Contains("мало места") && healthResult.Text.Contains("24%"), "Diagnostic advice does not reflect metrics");
             Assert(DescribeHealth(fixture).Contains("Предыдущий снимок"), "Diagnostic comparison missing");
-            healthStatus.Text = "Тестовый снимок для проверки интерфейса";
-            serviceStatus.Text = "Тестовые службы: работа и способ запуска показаны отдельно";
+            healthStatus.Text = Lang.T("Тестовый снимок для проверки интерфейса");
+            serviceStatus.Text = Lang.T("Тестовые службы: работа и способ запуска показаны отдельно");
             foreach (var size in new[]
             {
                 new Size(800, 600),
@@ -467,7 +467,7 @@ namespace Wintools
             SetBusy(true);
             verificationStart.IsEnabled = false;
             verificationResult.Text = "";
-            verificationStatus.Text = "Сверяем записи истории с Windows… Ничего не изменяем.";
+            verificationStatus.Text = Lang.T("Сверяем записи истории с Windows… Ничего не изменяем.");
             try
             {
                 var result = await Engine.Run("verify", "-", "-", false, false, value =>
@@ -486,19 +486,19 @@ namespace Wintools
                     if (status == "MATCH")
                     {
                         matched++;
-                        label = "Совпадает";
+                        label = Lang.T("Совпадает");
                     }
                     else if (status == "DRIFT")
                     {
                         changed++;
-                        label = "Изменилась";
+                        label = Lang.T("Изменилась");
                         if (item != null && !drift.Contains(item.Id))
                             drift.Add(item.Id);
                     }
                     else
                     {
                         unknown++;
-                        label = "Не проверено";
+                        label = Lang.T("Не проверено");
                     }
 
                     text.AppendLine(label + " · " + (item == null ? row.Groups[1].Value : item.Title));
@@ -507,11 +507,11 @@ namespace Wintools
                 verificationDrift = drift.ToArray();
                 verificationPlan.Visibility = drift.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
                 verificationResult.Text = text.ToString();
-                verificationStatus.Text = rows.Count == 0 ? (result.Code == 0 ? "Нет активных записей для проверки. Сначала примените действие из каталога." : "Проверка не завершена. Откройте вывод операции для подробностей.") : "Совпадает: " + matched + " · Изменилось: " + changed + " · Не проверено: " + unknown + ". Ничего не исправлялось автоматически.";
+                verificationStatus.Text = rows.Count == 0 ? (result.Code == 0 ? Lang.T("Нет активных записей для проверки. Сначала примените действие из каталога.") : Lang.T("Проверка не завершена. Откройте вывод операции для подробностей.")) : Lang.T("Совпадает: ") + matched + Lang.T(" · Изменилось: ") + changed + Lang.T(" · Не проверено: ") + unknown + Lang.T(". Ничего не исправлялось автоматически.");
             }
             catch (Exception ex)
             {
-                verificationStatus.Text = "Не удалось выполнить проверку: " + ex.Message;
+                verificationStatus.Text = Lang.T("Не удалось выполнить проверку: ") + ex.Message;
             }
             finally
             {

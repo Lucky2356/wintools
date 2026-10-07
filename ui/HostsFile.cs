@@ -24,7 +24,7 @@ namespace Wintools
         {
             get
             {
-                return Host + " → " + Address + (Managed ? " · добавлено Wintools" : "");
+                return Host + " → " + Address + (Managed ? Lang.T(" · добавлено Wintools") : "");
             }
         }
     }
@@ -67,7 +67,7 @@ namespace Wintools
             if (!info.Exists)
                 return new byte[0];
             if (info.Length > 4194304)
-                throw new IOException("Файл hosts больше 4 МБ: изменять его автоматически небезопасно.");
+                throw new IOException(Lang.T("Файл hosts больше 4 МБ: изменять его автоматически небезопасно."));
             return File.ReadAllBytes(Path);
         }
 
@@ -76,18 +76,18 @@ namespace Wintools
         {
             var text = (value ?? "").Trim().TrimEnd('.');
             if (text.Length == 0 || text.Length > 253)
-                throw new ArgumentException("Введите имя сайта, например ads.example.com.");
+                throw new ArgumentException(Lang.T("Введите имя сайта, например ads.example.com."));
             try
             {
                 text = new IdnMapping().GetAscii(text).ToLowerInvariant();
             }
             catch (ArgumentException)
             {
-                throw new ArgumentException("Имя сайта содержит недопустимые символы.");
+                throw new ArgumentException(Lang.T("Имя сайта содержит недопустимые символы."));
             }
 
             if (!Regex.IsMatch(text, @"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,62}$") || text == "localhost")
-                throw new ArgumentException("Введите имя сайта без http://, порта и пути, например ads.example.com.");
+                throw new ArgumentException(Lang.T("Введите имя сайта без http://, порта и пути, например ads.example.com."));
             return text;
         }
 
@@ -128,7 +128,7 @@ namespace Wintools
         {
             domain = NormalizeDomain(domain);
             if (Parse(content).Any(e => e.Host.Equals(domain, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("Для " + domain + " в hosts уже есть запись.");
+                throw new InvalidOperationException(Lang.T("Для ") + domain + Lang.T(" в hosts уже есть запись."));
             var prefix = content.Length > 0 && content[content.Length - 1] != (byte)'\n' ? "\r\n" : "";
             var addition = Encoding.ASCII.GetBytes(prefix + Line(domain) + "\r\n");
             return content.Concat(addition).ToArray();
@@ -143,7 +143,7 @@ namespace Wintools
             var lines = text.Split('\n').ToList();
             int removed = lines.RemoveAll(l => l.TrimEnd('\r').Trim() == target);
             if (removed == 0)
-                throw new InvalidOperationException("Запись Wintools для " + domain + " не найдена.");
+                throw new InvalidOperationException(Lang.T("Запись Wintools для ") + domain + Lang.T(" не найдена."));
             var bytes = new UTF8Encoding(false).GetBytes(string.Join("\n", lines));
             return bom ? new byte[]
             {
@@ -156,7 +156,7 @@ namespace Wintools
         private static string RecordPath(string id, string extension)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер изменения hosts.");
+                throw new IOException(Lang.T("Некорректный номер изменения hosts."));
             return Program.Under(DirectoryPath, id + extension);
         }
 
@@ -188,16 +188,16 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись hosts.");
+                    throw new IOException(Lang.T("Некорректная запись hosts."));
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история hosts.", ex);
+                throw new IOException(Lang.T("Повреждена история hosts."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история hosts.", ex);
+                throw new IOException(Lang.T("Повреждена история hosts."), ex);
             }
         }
 
@@ -206,7 +206,7 @@ namespace Wintools
             string path = RecordPath(id, ".hosts");
             var info = new FileInfo(path);
             if (!info.Exists || info.Length > 4194304 || (info.Attributes & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("Резервная копия hosts не найдена.");
+                throw new IOException(Lang.T("Резервная копия hosts не найдена."));
             return File.ReadAllBytes(path);
         }
 
@@ -218,20 +218,20 @@ namespace Wintools
         internal static void Validate(string action, string domain, string expected, string restore)
         {
             if (!Regex.IsMatch(expected ?? "", "^[a-f0-9]{16}$"))
-                throw new ArgumentException("Некорректный запрос hosts.");
+                throw new ArgumentException(Lang.T("Некорректный запрос hosts."));
             if (action == "restore")
             {
                 if (domain != "-" || restore == null || restore == "-")
-                    throw new ArgumentException("Не указана запись для возврата hosts.");
+                    throw new ArgumentException(Lang.T("Не указана запись для возврата hosts."));
                 RecordPath(restore, ".json");
             }
             else if (action == "block" || action == "unblock")
             {
                 if (NormalizeDomain(domain) != domain || (restore != null && restore != "-"))
-                    throw new ArgumentException("Некорректный запрос hosts.");
+                    throw new ArgumentException(Lang.T("Некорректный запрос hosts."));
             }
             else
-                throw new ArgumentException("Неизвестное действие hosts.");
+                throw new ArgumentException(Lang.T("Неизвестное действие hosts."));
         }
 
         internal static async Task<EngineResult> Run(string action, string domain, string expected, string restore)
@@ -253,7 +253,7 @@ namespace Wintools
                 return new EngineResult
                 {
                     Code = process.ExitCode,
-                    Output = File.Exists(path) ? File.ReadAllText(path) : "Изменение hosts завершилось без отчёта."
+                    Output = File.Exists(path) ? File.ReadAllText(path) : Lang.T("Изменение hosts завершилось без отчёта.")
                 };
             }
         }
@@ -284,11 +284,11 @@ namespace Wintools
         internal static int Worker(string[] args)
         {
             if (args.Length != 7 || !Regex.IsMatch(args[4], "^[a-f0-9]{32}$") || args[5] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос hosts некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос hosts некорректен или права повышены под другим пользователем."));
             Validate(args[1], args[2], args[3], args[6]);
             string action = args[1], domain = args[2], expected = args[3], id = args[4];
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = System.IO.Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -303,19 +303,19 @@ namespace Wintools
                 {
                     gate = new FileStream(lockPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
                     if (!File.Exists(Path) || (File.GetAttributes(Path) & FileAttributes.ReparsePoint) != 0)
-                        throw new IOException("Файл hosts отсутствует или является ссылкой.");
+                        throw new IOException(Lang.T("Файл hosts отсутствует или является ссылкой."));
                     var before = ReadBytes();
                     if (Hash(before) != expected)
-                        throw new IOException("Файл hosts изменился после чтения. Обновите список и повторите.");
+                        throw new IOException(Lang.T("Файл hosts изменился после чтения. Обновите список и повторите."));
                     HostsChange original = null;
                     byte[] next;
                     if (action == "restore")
                     {
                         original = Read(args[6]);
                         if (original.Action == "restore" || original.Status == "REVERTED" || original.AfterHash == null)
-                            throw new IOException("Запись не подходит для возврата hosts.");
+                            throw new IOException(Lang.T("Запись не подходит для возврата hosts."));
                         if (original.AfterHash != Hash(before))
-                            throw new IOException("Файл hosts изменён после этой записи. Возврат отменён, чтобы не потерять более поздние изменения.");
+                            throw new IOException(Lang.T("Файл hosts изменён после этой записи. Возврат отменён, чтобы не потерять более поздние изменения."));
                         next = Backup(original.Id);
                     }
                     else
@@ -335,7 +335,7 @@ namespace Wintools
                     Write(next);
                     var after = ReadBytes();
                     if (!after.SequenceEqual(next))
-                        throw new IOException("Windows не подтвердила запись hosts. Возможно, файл защищён антивирусом.");
+                        throw new IOException(Lang.T("Windows не подтвердила запись hosts. Возможно, файл защищён антивирусом."));
                     record.AfterHash = Hash(after);
                     record.Status = "OK";
                     Save(record);
@@ -345,7 +345,7 @@ namespace Wintools
                         Save(original);
                     }
 
-                    log.WriteLine((action == "block" ? "Заблокирован " : action == "unblock" ? "Разблокирован " : "Восстановлен прежний hosts для ") + record.Domain + ". Запись истории: " + id);
+                    log.WriteLine((action == "block" ? Lang.T("Заблокирован ") : action == "unblock" ? Lang.T("Разблокирован ") : Lang.T("Восстановлен прежний hosts для ")) + record.Domain + Lang.T(". Запись истории: ") + id);
                     return 0;
                 }
                 catch (Exception ex)
@@ -361,11 +361,11 @@ namespace Wintools
                         }
                         catch (Exception saveError)
                         {
-                            log.WriteLine("История требует проверки: " + saveError.Message);
+                            log.WriteLine(Lang.T("История требует проверки: ") + saveError.Message);
                         }
                     }
 
-                    log.WriteLine("Не удалось изменить hosts: " + ex.Message);
+                    log.WriteLine(Lang.T("Не удалось изменить hosts: ") + ex.Message);
                     return 4;
                 }
                 finally

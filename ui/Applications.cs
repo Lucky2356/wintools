@@ -24,7 +24,7 @@ namespace Wintools
         {
             get
             {
-                return SizeKb.HasValue ? (SizeKb.Value / 1024.0).ToString("N0") + " МБ" : "Не указан";
+                return SizeKb.HasValue ? (SizeKb.Value / 1024.0).ToString("N0") + Lang.T(" МБ") : Lang.T("Не указан");
             }
         }
 
@@ -34,7 +34,7 @@ namespace Wintools
         {
             get
             {
-                return Package == null ? "Обычная программа" : "Store / MSIX";
+                return Package == null ? Lang.T("Обычная программа") : "Store / MSIX";
             }
         }
 
@@ -155,7 +155,7 @@ namespace Wintools
         internal static ProcessStartInfo Removal(InstalledApplication row)
         {
             if (!row.CanRemove)
-                throw new IOException("Установщик не разрешает удаление этой записи.");
+                throw new IOException(Lang.T("Установщик не разрешает удаление этой записи."));
             Guid product;
             if (row.Msi && Guid.TryParse(row.Key, out product))
                 return new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "msiexec.exe"), "/x {" + product.ToString() + "} /norestart")
@@ -173,7 +173,7 @@ namespace Wintools
             {
                 int end = command.IndexOf('"', 1);
                 if (end < 0)
-                    throw new IOException("Установщик записал некорректную команду удаления.");
+                    throw new IOException(Lang.T("Установщик записал некорректную команду удаления."));
                 executable = command.Substring(1, end - 1);
                 arguments = command.Substring(end + 1).TrimStart();
             }
@@ -181,7 +181,7 @@ namespace Wintools
             {
                 var match = Regex.Match(command, @"^(?<exe>.*?\.exe)(?<args>\s.*)?$", RegexOptions.IgnoreCase);
                 if (!match.Success)
-                    throw new IOException("Команда удаления не содержит поддерживаемый EXE-файл.");
+                    throw new IOException(Lang.T("Команда удаления не содержит поддерживаемый EXE-файл."));
                 executable = match.Groups["exe"].Value;
                 arguments = match.Groups["args"].Value.TrimStart();
             }
@@ -189,7 +189,7 @@ namespace Wintools
             if (string.Equals(executable, "msiexec.exe", StringComparison.OrdinalIgnoreCase))
                 executable = Path.Combine(Environment.SystemDirectory, "msiexec.exe");
             if (!Path.IsPathRooted(executable) || executable.StartsWith(@"\\") || Path.GetExtension(executable).ToLowerInvariant() != ".exe" || !File.Exists(executable))
-                throw new IOException("Файл программы удаления недоступен. Переустановите приложение или используйте его официальный установщик.");
+                throw new IOException(Lang.T("Файл программы удаления недоступен. Переустановите приложение или используйте его официальный установщик."));
             return new ProcessStartInfo(executable, arguments)
             {
                 UseShellExecute = true,
@@ -249,14 +249,14 @@ namespace Wintools
             {
                 Width = 260,
                 Margin = new Thickness(0, 0, 10, 8),
-                ToolTip = "Название или издатель"
+                ToolTip = Lang.T("Название или издатель")
             };
-            System.Windows.Automation.AutomationProperties.SetName(applicationSearch, "Поиск установленных приложений");
+            System.Windows.Automation.AutomationProperties.SetName(applicationSearch, Lang.T("Поиск установленных приложений"));
             var searchFrame = new Grid();
             searchFrame.Children.Add(applicationSearch);
             var searchHint = new TextBlock
             {
-                Text = "Название или издатель",
+                Text = Lang.T("Название или издатель"),
                 IsHitTestVisible = false,
                 Margin = new Thickness(12, 0, 20, 8),
                 VerticalAlignment = VerticalAlignment.Center
@@ -275,13 +275,13 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 10, 8),
                 ItemsSource = new[]
                 {
-                    "По названию",
-                    "Сначала крупные",
-                    "По издателю"
+                    Lang.T("По названию"),
+                    Lang.T("Сначала крупные"),
+                    Lang.T("По издателю")
                 },
                 SelectedIndex = 0
             };
-            System.Windows.Automation.AutomationProperties.SetName(applicationSort, "Сортировка приложений");
+            System.Windows.Automation.AutomationProperties.SetName(applicationSort, Lang.T("Сортировка приложений"));
             toolbar.Children.Add(applicationSort);
             applicationSort.SelectionChanged += (s, e) => FilterApplications();
             applicationKind = new ComboBox
@@ -290,23 +290,23 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 10, 8),
                 ItemsSource = new[]
                 {
-                    "Все приложения",
-                    "Обычные программы",
+                    Lang.T("Все приложения"),
+                    Lang.T("Обычные программы"),
                     "Store / MSIX"
                 },
                 SelectedIndex = 0
             };
             toolbar.Children.Add(applicationKind);
-            System.Windows.Automation.AutomationProperties.SetName(applicationKind, "Тип приложения");
+            System.Windows.Automation.AutomationProperties.SetName(applicationKind, Lang.T("Тип приложения"));
             applicationKind.SelectionChanged += (s, e) => FilterApplications();
             var refresh = new Button
             {
-                Content = "Обновить список",
+                Content = Lang.T("Обновить список"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             toolbar.Children.Add(refresh);
             refresh.Click += async (s, e) => await ReadApplications();
-            applicationStatus = Paragraph("Обычные программы и Store / MSIX текущего пользователя. Portable-программы без регистрации здесь не показываются.");
+            applicationStatus = Paragraph(Lang.T("Обычные программы и Store / MSIX текущего пользователя. Portable-программы без регистрации здесь не показываются."));
             Grid.SetRow(applicationStatus, 1);
             root.Children.Add(applicationStatus);
             applicationList = new ListBox();
@@ -322,20 +322,20 @@ namespace Wintools
             };
             Grid.SetRow(footer, 3);
             root.Children.Add(footer);
-            applicationDetail = Paragraph("Выберите программу. Размер сообщён установщиком и может отличаться от занятого места.");
+            applicationDetail = Paragraph(Lang.T("Выберите программу. Размер сообщён установщиком и может отличаться от занятого места."));
             footer.Children.Add(applicationDetail);
             var actions = new WrapPanel();
             footer.Children.Add(actions);
             applicationFolder = new Button
             {
-                Content = "Папка программы",
+                Content = Lang.T("Папка программы"),
                 IsEnabled = false,
                 Margin = new Thickness(0, 0, 10, 0)
             };
             actions.Children.Add(applicationFolder);
             applicationRemove = new Button
             {
-                Content = "Удалить программу…",
+                Content = Lang.T("Удалить программу…"),
                 IsEnabled = false
             };
             actions.Children.Add(applicationRemove);
@@ -350,12 +350,12 @@ namespace Wintools
                 {
                     var location = Environment.ExpandEnvironmentVariables(row.Location);
                     if (!Path.IsPathRooted(location) || !Directory.Exists(location))
-                        throw new IOException("Папка не найдена.");
+                        throw new IOException(Lang.T("Папка не найдена."));
                     Process.Start(new ProcessStartInfo(location) { UseShellExecute = true });
                 }
                 catch (Exception ex)
                 {
-                    applicationStatus.Text = "Не удалось открыть папку: " + ex.Message;
+                    applicationStatus.Text = Lang.T("Не удалось открыть папку: ") + ex.Message;
                 }
             };
             applicationRemove.Click += async (s, e) => await RemoveApplication();
@@ -367,7 +367,7 @@ namespace Wintools
                 return;
             readingApplications = true;
             ApplicationSelection();
-            applicationStatus.Text = "Читаем обычные программы и Store / MSIX…";
+            applicationStatus.Text = Lang.T("Читаем обычные программы и Store / MSIX…");
             try
             {
                 int unavailable = 0;
@@ -385,7 +385,7 @@ namespace Wintools
                 }
                 catch (Exception ex)
                 {
-                    storeInventoryError = "Store / MSIX недоступны: " + ex.Message;
+                    storeInventoryError = Lang.T("Store / MSIX недоступны: ") + ex.Message;
                 }
 
                 var rows = await desktop;
@@ -401,7 +401,7 @@ namespace Wintools
             catch (Exception ex)
             {
                 if (!closed)
-                    applicationStatus.Text = "Не удалось прочитать приложения: " + ex.Message;
+                    applicationStatus.Text = Lang.T("Не удалось прочитать приложения: ") + ex.Message;
             }
             finally
             {
@@ -418,7 +418,7 @@ namespace Wintools
             var query = applicationSearch.Text.Trim();
             var rows = installedApplications.Where(r => (applicationKind == null || applicationKind.SelectedIndex == 0 || (applicationKind.SelectedIndex == 1) == (r.Package == null)) && (r.Name + " " + r.Publisher).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0);
             applicationList.ItemsSource = (applicationSort.SelectedIndex == 1 ? rows.OrderByDescending(r => r.SizeKb ?? -1).ThenBy(r => r.Name) : applicationSort.SelectedIndex == 2 ? rows.OrderBy(r => r.Publisher).ThenBy(r => r.Name) : rows.OrderBy(r => r.Name)).ToArray();
-            applicationStatus.Text = "Показано: " + applicationList.Items.Count + " из " + installedApplications.Length + ". Обычных: " + installedApplications.Count(r => r.Package == null) + " · Store / MSIX: " + installedApplications.Count(r => r.Package != null) + " · Недоступных записей реестра: " + inaccessibleApplications + ". " + storeInventoryError;
+            applicationStatus.Text = Lang.T("Показано: ") + applicationList.Items.Count + Lang.T(" из ") + installedApplications.Length + Lang.T(". Обычных: ") + installedApplications.Count(r => r.Package == null) + " · Store / MSIX: " + installedApplications.Count(r => r.Package != null) + Lang.T(" · Недоступных записей реестра: ") + inaccessibleApplications + ". " + storeInventoryError;
             if (previous != null)
                 applicationList.SelectedItem = applicationList.Items.Cast<InstalledApplication>().FirstOrDefault(r => (r.Package == null) == (previous.Package == null) && r.Hive == previous.Hive && r.View == previous.View && r.Key == previous.Key);
         }
@@ -428,7 +428,7 @@ namespace Wintools
             var row = applicationList.SelectedItem as InstalledApplication;
             applicationRemove.IsEnabled = !busy && !readingApplications && row != null && row.CanRemove && (row.Msi || !string.IsNullOrWhiteSpace(row.Command));
             applicationFolder.IsEnabled = !busy && !readingApplications && row != null && !string.IsNullOrWhiteSpace(row.Location);
-            applicationDetail.Text = row == null ? "Выберите программу. Размер сообщён установщиком и может отличаться от занятого места." : row.Name + " · " + (row.Hive == RegistryHive.CurrentUser ? "Для текущего пользователя" : "Для компьютера") + "\n" + (string.IsNullOrEmpty(row.Location) ? "Папка установки не указана." : row.Location);
+            applicationDetail.Text = row == null ? Lang.T("Выберите программу. Размер сообщён установщиком и может отличаться от занятого места.") : row.Name + " · " + (row.Hive == RegistryHive.CurrentUser ? Lang.T("Для текущего пользователя") : Lang.T("Для компьютера")) + "\n" + (string.IsNullOrEmpty(row.Location) ? Lang.T("Папка установки не указана.") : row.Location);
             StoreSelection(row);
         }
 
@@ -447,23 +447,23 @@ namespace Wintools
             {
                 var current = applicationReload(selected);
                 if (current == null)
-                    throw new IOException("Запись уже удалена. Обновите список.");
+                    throw new IOException(Lang.T("Запись уже удалена. Обновите список."));
                 var start = ApplicationInventory.Removal(current);
-                if (!await Confirm("Удалить «" + current.Name + "»?\n\nОткроется программа удаления издателя. Она может удалить настройки и данные приложения. Откат Wintools для удаления программ недоступен.\n\n" + start.FileName + "\n" + start.Arguments))
+                if (!await Confirm(Lang.T("Удалить «") + current.Name + Lang.T("»?\n\nОткроется программа удаления издателя. Она может удалить настройки и данные приложения. Откат Wintools для удаления программ недоступен.\n\n") + start.FileName + "\n" + start.Arguments))
                     return;
                 var checkedRow = applicationReload(current);
                 if (checkedRow == null || checkedRow.Command != current.Command || checkedRow.Msi != current.Msi || checkedRow.CanRemove != current.CanRemove)
-                    throw new IOException("Запись изменилась после подтверждения. Обновите список и повторите.");
+                    throw new IOException(Lang.T("Запись изменилась после подтверждения. Обновите список и повторите."));
                 SetBusy(true);
                 ApplicationSelection();
-                applicationStatus.Text = "Открыта программа удаления. Завершите её шаги.";
+                applicationStatus.Text = Lang.T("Открыта программа удаления. Завершите её шаги.");
                 var code = await applicationRun(start);
-                applicationStatus.Text = code.HasValue ? "Программа удаления завершилась с кодом " + code.Value + ". Обновите список: некоторые установщики продолжают работу в другом процессе." : "Команда передана установщику. Проверьте его окно и обновите список после завершения.";
-                Text("Status", "Программа удаления закрыта. Проверьте её результат и обновите список приложений.");
+                applicationStatus.Text = code.HasValue ? Lang.T("Программа удаления завершилась с кодом ") + code.Value + Lang.T(". Обновите список: некоторые установщики продолжают работу в другом процессе.") : Lang.T("Команда передана установщику. Проверьте его окно и обновите список после завершения.");
+                Text("Status", Lang.T("Программа удаления закрыта. Проверьте её результат и обновите список приложений."));
             }
             catch (Exception ex)
             {
-                applicationStatus.Text = "Удаление не выполнено или прервано: " + ex.Message;
+                applicationStatus.Text = Lang.T("Удаление не выполнено или прервано: ") + ex.Message;
             }
             finally
             {

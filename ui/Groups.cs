@@ -16,7 +16,7 @@ namespace Wintools
         private static readonly Dictionary<string, string[]> services = new Dictionary<string, string[]>
         {
             {
-                "Печать и сканирование",
+                Lang.T("Печать и сканирование"),
                 new[]
                 {
                     "SPOOLER",
@@ -29,7 +29,7 @@ namespace Wintools
                 }
             },
             {
-                "Bluetooth и камера",
+                Lang.T("Bluetooth и камера"),
                 new[]
                 {
                     "BTHSERV",
@@ -40,7 +40,7 @@ namespace Wintools
                 }
             },
             {
-                "Xbox и игры",
+                Lang.T("Xbox и игры"),
                 new[]
                 {
                     "XBL-AUTH",
@@ -52,7 +52,7 @@ namespace Wintools
                 }
             },
             {
-                "Сеть и удалённый доступ",
+                Lang.T("Сеть и удалённый доступ"),
                 new[]
                 {
                     "SESSIONENV",
@@ -78,7 +78,7 @@ namespace Wintools
                 }
             },
             {
-                "Диагностика и обслуживание",
+                Lang.T("Диагностика и обслуживание"),
                 new[]
                 {
                     "DPS",
@@ -94,7 +94,7 @@ namespace Wintools
                 }
             },
             {
-                "Вход, безопасность и датчики",
+                Lang.T("Вход, безопасность и датчики"),
                 new[]
                 {
                     "SCARDSVR",
@@ -111,7 +111,7 @@ namespace Wintools
                 }
             },
             {
-                "Обновления и уведомления",
+                Lang.T("Обновления и уведомления"),
                 new[]
                 {
                     "DOSVC",
@@ -129,22 +129,22 @@ namespace Wintools
             if (item.Category == "SVC")
             {
                 if (id.StartsWith("PERF-"))
-                    return "Диск и поиск";
+                    return Lang.T("Диск и поиск");
                 foreach (var pair in services)
                     if (pair.Value.Contains(id.Substring(4)))
                         return pair.Key;
-                return "Дополнительные возможности";
+                return Lang.T("Дополнительные возможности");
             }
 
             if (item.Category == "PRIV")
             {
                 if (id.Contains("CDM") || id.Contains("ADVID") || id == "PRIV-CONSUMER" || id == "PRIV-SOFTLANDING" || id == "PRIV-TAILORED")
-                    return "Реклама и советы";
+                    return Lang.T("Реклама и советы");
                 if (id.Contains("SEARCH") || id.Contains("CLOUD"))
-                    return "Поиск и облако";
+                    return Lang.T("Поиск и облако");
                 if (id.Contains("INK"))
-                    return "Ввод текста";
-                return "Диагностика и активность";
+                    return Lang.T("Ввод текста");
+                return Lang.T("Диагностика и активность");
             }
 
             if (item.Category == "UI")
@@ -161,20 +161,20 @@ namespace Wintools
                     "UI-NO-FREQUENT",
                     "UI-HIDE-GALLERY"
                 }.Contains(id))
-                    return "Проводник";
+                    return Lang.T("Проводник");
                 if (id.Contains("BING") || id.Contains("CORTANA"))
-                    return "Поиск";
+                    return Lang.T("Поиск");
                 if (id.Contains("DARK") || id.Contains("SPOTLIGHT"))
-                    return "Тема и экран блокировки";
+                    return Lang.T("Тема и экран блокировки");
                 if (id.Contains("TASKBAR") || id.Contains("SEARCHBOX") || id.Contains("WIDGETS") || id.Contains("FEEDS") || id.Contains("CHATICON") || id.Contains("SECONDS") || id.Contains("END-TASK") || id.Contains("TASKVIEW") || id.Contains("COPILOT-BUTTON"))
-                    return "Панель задач";
-                return "Меню и запуск";
+                    return Lang.T("Панель задач");
+                return Lang.T("Меню и запуск");
             }
 
             if (item.Category == "APPS")
             {
                 if (id.Contains("XBOX") || id.Contains("GAMEASSIST") || id.Contains("SOLITAIRE"))
-                    return "Игры и Xbox";
+                    return Lang.T("Игры и Xbox");
                 if (new[]
                 {
                     "APP-TEAMS",
@@ -184,7 +184,7 @@ namespace Wintools
                     "APP-PHONELINK",
                     "APP-CROSSDEVICE"
                 }.Contains(id))
-                    return "Общение и телефон";
+                    return Lang.T("Общение и телефон");
                 if (new[]
                 {
                     "APP-MEDIAPLAYER",
@@ -195,21 +195,21 @@ namespace Wintools
                     "APP-CAMERA",
                     "APP-MIXEDREALITY"
                 }.Contains(id))
-                    return "Фото, видео и творчество";
-                return "Приложения Microsoft";
+                    return Lang.T("Фото, видео и творчество");
+                return Lang.T("Приложения Microsoft");
             }
 
             if (item.Category == "SYS")
-                return id.Contains("POWER") || id.Contains("HIBERNATE") || id.Contains("FASTSTARTUP") ? "Питание и запуск" : "Сеть и файловая система";
+                return id.Contains("POWER") || id.Contains("HIBERNATE") || id.Contains("FASTSTARTUP") ? Lang.T("Питание и запуск") : Lang.T("Сеть и файловая система");
             if (item.Category == "CLEAN")
                 return new[]
                 {
                     "CLN-DO-CACHE",
                     "CLN-WU-DOWNLOAD",
                     "CLN-DISM"
-                }.Contains(id) ? "Обновления и компоненты" : "Временные файлы и корзина";
+                }.Contains(id) ? Lang.T("Обновления и компоненты") : Lang.T("Временные файлы и корзина");
             if (item.Category == "EDGE")
-                return id.Contains("TASK") ? "Обновление браузера" : "Работа браузера";
+                return id.Contains("TASK") ? Lang.T("Обновление браузера") : Lang.T("Работа браузера");
             return Catalogue.Categories[item.Category];
         }
     }

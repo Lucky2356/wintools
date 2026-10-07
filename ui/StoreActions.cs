@@ -26,7 +26,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", @"\A[a-f0-9]{32}\z"))
-                throw new IOException("Некорректный номер операции приложения.");
+                throw new IOException(Lang.T("Некорректный номер операции приложения."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -36,12 +36,12 @@ namespace Wintools
             Directory.CreateDirectory(DirectoryPath);
             string path = RecordPath(record.Id), temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
-                throw new IOException("История приложения является ссылкой.");
+                throw new IOException(Lang.T("История приложения является ссылкой."));
             try
             {
                 byte[] bytes = new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));
                 if (bytes.Length > 65536)
-                    throw new IOException("Запись слишком велика.");
+                    throw new IOException(Lang.T("Запись слишком велика."));
                 using (var file = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
                     file.Write(bytes, 0, bytes.Length);
@@ -63,12 +63,12 @@ namespace Wintools
         internal static string Title(string action)
         {
             if (action == "reset")
-                return "Сброс данных приложения";
+                return Lang.T("Сброс данных приложения");
             if (action == "register")
-                return "Исправление регистрации приложения";
+                return Lang.T("Исправление регистрации приложения");
             if (action == "remove")
-                return "Удаление приложения пользователя";
-            throw new IOException("Неизвестная операция приложения.");
+                return Lang.T("Удаление приложения пользователя");
+            throw new IOException(Lang.T("Неизвестная операция приложения."));
         }
 
         internal static StoreRecord Read(string id)
@@ -78,7 +78,7 @@ namespace Wintools
                 Program.SafeDirectory(DirectoryPath);
                 string path = RecordPath(id);
                 if (new FileInfo(path).Length > 65536 || (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0)
-                    throw new IOException("Некорректная история приложения.");
+                    throw new IOException(Lang.T("Некорректная история приложения."));
                 var record = new JavaScriptSerializer().Deserialize<StoreRecord>(File.ReadAllText(path));
                 DateTime time;
                 if (record == null || record.Schema != "wintools/store-operation/1" || record.Id != id || !StorePackages.Identity(record.Package) || !new[]
@@ -87,17 +87,17 @@ namespace Wintools
                     "OK",
                     "FAILED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Повреждена история приложения.");
+                    throw new IOException(Lang.T("Повреждена история приложения."));
                 Title(record.Action);
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история приложения.", ex);
+                throw new IOException(Lang.T("Повреждена история приложения."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история приложения.", ex);
+                throw new IOException(Lang.T("Повреждена история приложения."), ex);
             }
         }
 
@@ -133,7 +133,7 @@ namespace Wintools
                     Action = action,
                     TimeUtc = DateTime.UtcNow.ToString("o"),
                     Status = "PENDING",
-                    Summary = "Операция начата. Итог ещё не получен; не повторяйте её без проверки состояния приложения."
+                    Summary = Lang.T("Операция начата. Итог ещё не получен; не повторяйте её без проверки состояния приложения.")
                 };
                 Save(record);
                 var result = await execute(new { Action = action, FullName = package.FullName, FamilyName = package.FamilyName }, false);
@@ -144,7 +144,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                string message = "Не удалось подтвердить завершение операции: " + ex.Message + " Проверьте состояние приложения перед повтором.";
+                string message = Lang.T("Не удалось подтвердить завершение операции: ") + ex.Message + Lang.T(" Проверьте состояние приложения перед повтором.");
                 if (record != null)
                 {
                     record.Status = "FAILED";
@@ -155,7 +155,7 @@ namespace Wintools
                     }
                     catch (Exception save)
                     {
-                        message += " Не удалось записать итог: " + save.Message;
+                        message += Lang.T(" Не удалось записать итог: ") + save.Message;
                     }
                 }
 

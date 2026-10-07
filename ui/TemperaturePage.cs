@@ -16,13 +16,13 @@ namespace Wintools
         private void InitializeTemperatures(StackPanel parent)
         {
             var panel = new StackPanel();
-            temperatureStatus = Paragraph("Температура кристалла GPU из установленного драйвера NVIDIA. CPU, AMD и Intel здесь пока не поддерживаются. Обновление каждые 2 с, пока этот блок открыт.");
+            temperatureStatus = Paragraph(Lang.T("Температура кристалла GPU из установленного драйвера NVIDIA. CPU, AMD и Intel здесь пока не поддерживаются. Обновление каждые 2 с, пока этот блок открыт."));
             panel.Children.Add(temperatureStatus);
             temperatureRows = new StackPanel();
             panel.Children.Add(temperatureRows);
             temperatureExpander = new Expander
             {
-                Header = "Температуры видеокарт · NVIDIA",
+                Header = Lang.T("Температуры видеокарт · NVIDIA"),
                 Content = panel,
                 Margin = new Thickness(0, 0, 0, 16)
             };
@@ -52,14 +52,14 @@ namespace Wintools
                     temperatureRows.Children.Add(text);
                 }
 
-                temperatureStatus.Text = "Замер " + DateTime.Now.ToString("HH:mm:ss") + " · Кристалл GPU, источник — драйвер NVIDIA. " + sample.Error + " CPU, AMD и Intel пока не поддерживаются. Пауза показателей останавливает обновление.";
+                temperatureStatus.Text = Lang.T("Замер ") + DateTime.Now.ToString("HH:mm:ss") + Lang.T(" · Кристалл GPU, источник — драйвер NVIDIA. ") + sample.Error + Lang.T(" CPU, AMD и Intel пока не поддерживаются. Пауза показателей останавливает обновление.");
             }
             catch (Exception ex)
             {
                 if (!closed && page == 6 && temperatureExpander.IsExpanded && !resourcesPaused)
                 {
                     temperatureRows.Children.Clear();
-                    temperatureStatus.Text = "Температуры недоступны: " + ex.Message;
+                    temperatureStatus.Text = Lang.T("Температуры недоступны: ") + ex.Message;
                 }
             }
             finally

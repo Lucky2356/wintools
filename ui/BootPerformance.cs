@@ -46,23 +46,23 @@ namespace Wintools
         {
             {
                 101,
-                "Программа"
+                Lang.T("Программа")
             },
             {
                 102,
-                "Драйвер"
+                Lang.T("Драйвер")
             },
             {
                 103,
-                "Служба"
+                Lang.T("Служба")
             },
             {
                 106,
-                "Фоновая оптимизация"
+                Lang.T("Фоновая оптимизация")
             },
             {
                 109,
-                "Устройство"
+                Lang.T("Устройство")
             }
         };
         internal static BootReport Read()
@@ -178,21 +178,21 @@ namespace Wintools
 
         internal static string Seconds(long milliseconds)
         {
-            return (milliseconds / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + " с";
+            return (milliseconds / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" с");
         }
 
         internal static BootCulprit[] Culprits(BootReport report)
         {
-            return report.Delays.GroupBy(d => d.Kind + "|" + d.Name, StringComparer.OrdinalIgnoreCase).Select(g => new { Kind = g.First().Kind, Name = g.First().Name, Count = g.Count(), Max = g.Max(d => d.DegradationMs), Average = (long)g.Average(d => d.DegradationMs), Last = g.Max(d => d.TimeUtc) }).OrderByDescending(g => g.Average * g.Count).Take(15).Select(g => new BootCulprit { Title = g.Name + " · " + g.Kind.ToLowerInvariant(), Detail = "Замедлял загрузку " + g.Count + " раз(а): в среднем на " + Seconds(g.Average) + ", максимум " + Seconds(g.Max) + ". Последний раз " + DateTime.Parse(g.Last, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("d") }).ToArray();
+            return report.Delays.GroupBy(d => d.Kind + "|" + d.Name, StringComparer.OrdinalIgnoreCase).Select(g => new { Kind = g.First().Kind, Name = g.First().Name, Count = g.Count(), Max = g.Max(d => d.DegradationMs), Average = (long)g.Average(d => d.DegradationMs), Last = g.Max(d => d.TimeUtc) }).OrderByDescending(g => g.Average * g.Count).Take(15).Select(g => new BootCulprit { Title = g.Name + " · " + g.Kind.ToLowerInvariant(), Detail = Lang.T("Замедлял загрузку ") + g.Count + Lang.T(" раз(а): в среднем на ") + Seconds(g.Average) + Lang.T(", максимум ") + Seconds(g.Max) + Lang.T(". Последний раз ") + DateTime.Parse(g.Last, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("d") }).ToArray();
         }
 
         internal static string Summary(BootReport report)
         {
             if (report.Boots.Length == 0)
-                return "Windows ещё не записала ни одной измеренной загрузки. Записи появляются после обычного включения ПК (не после перезапуска из спящего режима и быстрого запуска).";
+                return Lang.T("Windows ещё не записала ни одной измеренной загрузки. Записи появляются после обычного включения ПК (не после перезапуска из спящего режима и быстрого запуска).");
             var last = report.Boots[0];
             var average = (long)report.Boots.Average(b => b.TotalMs);
-            return "Последняя загрузка " + DateTime.Parse(last.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + ": " + Seconds(last.TotalMs) + " (до рабочего стола " + Seconds(last.MainPathMs) + ", фоновый запуск после входа " + Seconds(last.PostBootMs) + ").\nСреднее по " + report.Boots.Length + " загрузкам: " + Seconds(average) + ". Быстрее всего: " + Seconds(report.Boots.Min(b => b.TotalMs)) + ", медленнее всего: " + Seconds(report.Boots.Max(b => b.TotalMs)) + ".";
+            return Lang.T("Последняя загрузка ") + DateTime.Parse(last.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + ": " + Seconds(last.TotalMs) + Lang.T(" (до рабочего стола ") + Seconds(last.MainPathMs) + Lang.T(", фоновый запуск после входа ") + Seconds(last.PostBootMs) + Lang.T(").\nСреднее по ") + report.Boots.Length + Lang.T(" загрузкам: ") + Seconds(average) + Lang.T(". Быстрее всего: ") + Seconds(report.Boots.Min(b => b.TotalMs)) + Lang.T(", медленнее всего: ") + Seconds(report.Boots.Max(b => b.TotalMs)) + ".";
         }
 
         // The operational log usually requires elevation; the worker writes the parsed report for the non-elevated UI.
@@ -214,9 +214,9 @@ namespace Wintools
                 try
                 {
                     if (process.ExitCode != 0 || !File.Exists(path))
-                        throw new IOException(File.Exists(path) ? File.ReadAllText(path) : "Журнал загрузки не прочитан.");
+                        throw new IOException(File.Exists(path) ? File.ReadAllText(path) : Lang.T("Журнал загрузки не прочитан."));
                     if (new FileInfo(path).Length > 4194304)
-                        throw new IOException("Отчёт о загрузке слишком велик.");
+                        throw new IOException(Lang.T("Отчёт о загрузке слишком велик."));
                     return Validate(new JavaScriptSerializer { MaxJsonLength = 4194304 }.Deserialize<BootReport>(File.ReadAllText(path)));
                 }
                 finally
@@ -236,23 +236,23 @@ namespace Wintools
         internal static BootReport Validate(BootReport report)
         {
             if (report == null || report.Boots == null || report.Delays == null || report.Boots.Length > 30 || report.Delays.Length > 500)
-                throw new IOException("Некорректный отчёт о загрузке.");
+                throw new IOException(Lang.T("Некорректный отчёт о загрузке."));
             DateTime time;
             foreach (var boot in report.Boots)
                 if (boot == null || boot.TotalMs <= 0 || boot.TotalMs >= 86400000 || boot.MainPathMs < 0 || boot.PostBootMs < 0 || !DateTime.TryParse(boot.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись загрузки.");
+                    throw new IOException(Lang.T("Некорректная запись загрузки."));
             foreach (var delay in report.Delays)
                 if (delay == null || string.IsNullOrWhiteSpace(delay.Name) || delay.Name.Length > 120 || !Kinds.ContainsValue(delay.Kind) || delay.DegradationMs < 0 || delay.DegradationMs >= 86400000 || !DateTime.TryParse(delay.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись замедления.");
+                    throw new IOException(Lang.T("Некорректная запись замедления."));
             return report;
         }
 
         internal static int Worker(string[] args)
         {
             if (args.Length != 3 || !Regex.IsMatch(args[1], "^[a-f0-9]{32}$") || args[2] != WindowsIdentity.GetCurrent().User.Value)
-                throw new ArgumentException("Запрос журнала загрузки некорректен или права повышены под другим пользователем.");
+                throw new ArgumentException(Lang.T("Запрос журнала загрузки некорректен или права повышены под другим пользователем."));
             if (!Directory.Exists(Program.Data))
-                throw new IOException("Сначала запустите интерфейс Wintools.");
+                throw new IOException(Lang.T("Сначала запустите интерфейс Wintools."));
             Program.SafeDirectory(Program.Data);
             string runtime = Path.Combine(Program.Data, "runtime");
             Program.SafeDirectory(runtime);
@@ -269,7 +269,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                text = "Журнал загрузки не прочитан: " + ex.Message;
+                text = Lang.T("Журнал загрузки не прочитан: ") + ex.Message;
                 code = 4;
             }
 

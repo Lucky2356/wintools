@@ -30,11 +30,11 @@ namespace Wintools
             };
             Card(card);
             parent.Children.Add(card);
-            var heading = Paragraph("Блокировка сайтов через hosts");
+            var heading = Paragraph(Lang.T("Блокировка сайтов через hosts"));
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
-            panel.Children.Add(Paragraph("Запись в файле hosts направляет сайт на несуществующий адрес 0.0.0.0, и программы на этом ПК не смогут к нему подключиться. Подходит для отдельных рекламных или отвлекающих доменов; поддомены блокируются отдельно. Microsoft Defender может пометить блокировку популярных сайтов как подозрительное изменение."));
+            panel.Children.Add(Paragraph(Lang.T("Запись в файле hosts направляет сайт на несуществующий адрес 0.0.0.0, и программы на этом ПК не смогут к нему подключиться. Подходит для отдельных рекламных или отвлекающих доменов; поддомены блокируются отдельно. Microsoft Defender может пометить блокировку популярных сайтов как подозрительное изменение.")));
             var controls = new WrapPanel
             {
                 Margin = new Thickness(0, 0, 0, 8)
@@ -45,12 +45,12 @@ namespace Wintools
                 Width = 280,
                 Margin = new Thickness(0, 0, 10, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(hostsDomain, "Домен для блокировки");
+            System.Windows.Automation.AutomationProperties.SetName(hostsDomain, Lang.T("Домен для блокировки"));
             hostsDomain.TextChanged += (s, e) => RefreshHostsEnabled();
             controls.Children.Add(hostsDomain);
             hostsBlock = new Button
             {
-                Content = "Заблокировать",
+                Content = Lang.T("Заблокировать"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             hostsBlock.Style = (Style)Window.FindResource("Primary");
@@ -58,21 +58,21 @@ namespace Wintools
             controls.Children.Add(hostsBlock);
             hostsUnblock = new Button
             {
-                Content = "Снять выбранную блокировку",
+                Content = Lang.T("Снять выбранную блокировку"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             hostsUnblock.Click += async (s, e) => await ChangeHosts("unblock");
             controls.Children.Add(hostsUnblock);
             hostsRefresh = new Button
             {
-                Content = "Обновить",
+                Content = Lang.T("Обновить"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             hostsRefresh.Click += async (s, e) => await RefreshHosts();
             controls.Children.Add(hostsRefresh);
             hostsRestore = new Button
             {
-                Content = "Вернуть прежний hosts",
+                Content = Lang.T("Вернуть прежний hosts"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             hostsRestore.Click += async (s, e) =>
@@ -87,10 +87,10 @@ namespace Wintools
                 MaxHeight = 220,
                 Margin = new Thickness(0, 0, 0, 8)
             };
-            System.Windows.Automation.AutomationProperties.SetName(hostsList, "Записи файла hosts");
+            System.Windows.Automation.AutomationProperties.SetName(hostsList, Lang.T("Записи файла hosts"));
             hostsList.SelectionChanged += (s, e) => RefreshHostsEnabled();
             panel.Children.Add(hostsList);
-            hostsStatus = Paragraph("Нажмите «Обновить», чтобы прочитать файл hosts.");
+            hostsStatus = Paragraph(Lang.T("Нажмите «Обновить», чтобы прочитать файл hosts."));
             hostsStatus.FontSize = 12;
             panel.Children.Add(hostsStatus);
             Get<ScrollViewer>("NetworkPage").IsVisibleChanged += async (s, e) =>
@@ -141,7 +141,7 @@ namespace Wintools
                 hostsContent = content;
                 var entries = HostsFile.Parse(content);
                 hostsList.ItemsSource = entries.OrderByDescending(e => e.Managed).ThenBy(e => e.Host, StringComparer.OrdinalIgnoreCase).ToArray();
-                hostsStatus.Text = "Записей в hosts: " + entries.Length + ", из них добавлено Wintools: " + entries.Count(e => e.Managed) + ". Снять можно только блокировки Wintools; прочие записи показаны для сведения.";
+                hostsStatus.Text = Lang.T("Записей в hosts: ") + entries.Length + Lang.T(", из них добавлено Wintools: ") + entries.Count(e => e.Managed) + Lang.T(". Снять можно только блокировки Wintools; прочие записи показаны для сведения.");
                 hostsRestoreRecord = null;
                 try
                 {
@@ -150,7 +150,7 @@ namespace Wintools
                 }
                 catch (Exception ex)
                 {
-                    hostsStatus.Text += " История hosts недоступна: " + ex.Message;
+                    hostsStatus.Text += Lang.T(" История hosts недоступна: ") + ex.Message;
                 }
             }
             catch (Exception ex)
@@ -158,7 +158,7 @@ namespace Wintools
                 hostsContent = null;
                 hostsRestoreRecord = null;
                 hostsList.ItemsSource = null;
-                hostsStatus.Text = "Не удалось прочитать hosts: " + ex.Message;
+                hostsStatus.Text = Lang.T("Не удалось прочитать hosts: ") + ex.Message;
             }
             finally
             {
@@ -181,7 +181,7 @@ namespace Wintools
                     return;
                 if (HostsFile.Parse(content).Any(e => e.Host.Equals(domain, StringComparison.OrdinalIgnoreCase)))
                 {
-                    hostsStatus.Text = "Для " + domain + " в hosts уже есть запись.";
+                    hostsStatus.Text = Lang.T("Для ") + domain + Lang.T(" в hosts уже есть запись.");
                     return;
                 }
             }
@@ -193,7 +193,7 @@ namespace Wintools
                 domain = entry.Host;
             }
 
-            if (!await Confirm(action == "block" ? "Заблокировать " + domain + " на этом ПК?\n\nПрограммы и браузеры не смогут подключиться к этому домену. Поддомены не блокируются. Прежний файл hosts сохраним для возврата." : "Снять блокировку " + domain + "?\n\nУдалим только строку, добавленную Wintools. Прежний файл hosts сохраним для возврата."))
+            if (!await Confirm(action == "block" ? Lang.T("Заблокировать ") + domain + Lang.T(" на этом ПК?\n\nПрограммы и браузеры не смогут подключиться к этому домену. Поддомены не блокируются. Прежний файл hosts сохраним для возврата.") : Lang.T("Снять блокировку ") + domain + Lang.T("?\n\nУдалим только строку, добавленную Wintools. Прежний файл hosts сохраним для возврата.")))
                 return;
             await RunHostsChange(action, domain, HostsFile.Hash(content), null);
             if (action == "block")
@@ -205,18 +205,18 @@ namespace Wintools
             if (busy)
                 return;
             SetBusy(true);
-            hostsStatus.Text = "Изменяем hosts…";
+            hostsStatus.Text = Lang.T("Изменяем hosts…");
             try
             {
                 var result = await hostsRun(action, domain, expected, restore);
                 Get<TextBox>("Output").Text = result.Output;
-                Text("Status", result.Code == 0 ? "Файл hosts изменён." : "Изменение hosts требует внимания. Подробности — в выводе.");
+                Text("Status", result.Code == 0 ? Lang.T("Файл hosts изменён.") : Lang.T("Изменение hosts требует внимания. Подробности — в выводе."));
                 if (result.Code != 0)
                     ExpandOutput(true);
             }
             catch (Exception ex)
             {
-                Text("Status", "hosts не изменён: " + ex.Message);
+                Text("Status", Lang.T("hosts не изменён: ") + ex.Message);
             }
             finally
             {
@@ -235,24 +235,24 @@ namespace Wintools
             {
                 var record = HostsFile.Read(id);
                 if (record.Action == "restore" || record.Status == "REVERTED")
-                    throw new InvalidOperationException("Это изменение hosts уже отменено или не поддерживает повторный откат.");
+                    throw new InvalidOperationException(Lang.T("Это изменение hosts уже отменено или не поддерживает повторный откат."));
                 var read = hostsRead;
                 var content = await Task.Run(() => read());
                 if (record.AfterHash != HostsFile.Hash(content))
-                    throw new InvalidOperationException("Файл hosts изменён после этой записи. Возврат отменён, чтобы не потерять более поздние изменения.");
-                if (!await Confirm("Вернуть файл hosts к состоянию до изменения «" + record.Domain + "»?\n\nФайл будет полностью заменён сохранённой копией."))
+                    throw new InvalidOperationException(Lang.T("Файл hosts изменён после этой записи. Возврат отменён, чтобы не потерять более поздние изменения."));
+                if (!await Confirm(Lang.T("Вернуть файл hosts к состоянию до изменения «") + record.Domain + Lang.T("»?\n\nФайл будет полностью заменён сохранённой копией.")))
                     return;
                 await RunHostsChange("restore", "-", HostsFile.Hash(content), id);
             }
             catch (Exception ex)
             {
-                Text("Status", "Возврат hosts невозможен: " + ex.Message);
+                Text("Status", Lang.T("Возврат hosts невозможен: ") + ex.Message);
             }
         }
 
         private static HistoryRow[] HostsHistoryRows()
         {
-            return HostsFile.History().Select(r => new HistoryRow { Run = r.Id, HostsChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), Title = (r.Action == "block" ? "Блокировка в hosts: " : r.Action == "unblock" ? "Снятие блокировки hosts: " : "Возврат hosts: ") + r.Domain, Status = r.Status == "OK" ? "Применено" : r.Status == "REVERTED" ? "Откат выполнен" : "Требует внимания", CanRevert = r.Action != "restore" && r.Status != "REVERTED" && r.AfterHash != null }).ToArray();
+            return HostsFile.History().Select(r => new HistoryRow { Run = r.Id, HostsChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind), Title = (r.Action == "block" ? Lang.T("Блокировка в hosts: ") : r.Action == "unblock" ? Lang.T("Снятие блокировки hosts: ") : Lang.T("Возврат hosts: ")) + r.Domain, Status = r.Status == "OK" ? Lang.T("Применено") : r.Status == "REVERTED" ? Lang.T("Откат выполнен") : Lang.T("Требует внимания"), CanRevert = r.Action != "restore" && r.Status != "REVERTED" && r.AfterHash != null }).ToArray();
         }
     }
 }

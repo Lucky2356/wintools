@@ -26,36 +26,36 @@ namespace Wintools
     {
         internal static readonly PackageInfo[] Catalog =
         {
-            P("Mozilla.Firefox", "Firefox", "Браузеры", "Браузер Mozilla с открытым исходным кодом."),
-            P("Google.Chrome", "Google Chrome", "Браузеры", "Браузер Google."),
-            P("Brave.Brave", "Brave", "Браузеры", "Браузер на основе Chromium со встроенной блокировкой рекламы."),
-            P("Vivaldi.Vivaldi", "Vivaldi", "Браузеры", "Браузер на основе Chromium с гибкой настройкой интерфейса."),
-            P("7zip.7zip", "7-Zip", "Файлы и система", "Архиватор: 7z, zip, rar и другие форматы."),
-            P("voidtools.Everything", "Everything", "Файлы и система", "Мгновенный поиск файлов по имени на дисках NTFS."),
-            P("Notepad++.Notepad++", "Notepad++", "Файлы и система", "Текстовый редактор с подсветкой синтаксиса."),
-            P("Microsoft.PowerToys", "PowerToys", "Файлы и система", "Утилиты Microsoft: раскладка окон, переименование файлов, палитра цветов и другие."),
-            P("WinDirStat.WinDirStat", "WinDirStat", "Файлы и система", "Показывает, какие папки и файлы занимают место на диске."),
-            P("Klocman.BulkCrapUninstaller", "Bulk Crap Uninstaller", "Файлы и система", "Удаление нескольких программ и поиск их остатков."),
-            P("CrystalDewWorld.CrystalDiskInfo", "CrystalDiskInfo", "Файлы и система", "Состояние SMART и температура дисков."),
-            P("REALiX.HWiNFO", "HWiNFO", "Файлы и система", "Подробные сведения об оборудовании и датчиках."),
-            P("CPUID.CPU-Z", "CPU-Z", "Файлы и система", "Сведения о процессоре, памяти и материнской плате."),
-            P("ShareX.ShareX", "ShareX", "Файлы и система", "Снимки и запись экрана."),
-            P("VideoLAN.VLC", "VLC", "Медиа", "Видеоплеер, открывающий большинство форматов без кодеков."),
-            P("OBSProject.OBSStudio", "OBS Studio", "Медиа", "Запись экрана и трансляции."),
-            P("Audacity.Audacity", "Audacity", "Медиа", "Запись и редактирование звука."),
-            P("HandBrake.HandBrake", "HandBrake", "Медиа", "Перекодирование видео."),
-            P("IrfanSkiljan.IrfanView", "IrfanView", "Медиа", "Быстрый просмотр изображений."),
-            P("Telegram.TelegramDesktop", "Telegram", "Общение", "Мессенджер Telegram для компьютера."),
-            P("Discord.Discord", "Discord", "Общение", "Голосовой и текстовый чат."),
-            P("Zoom.Zoom", "Zoom", "Общение", "Видеоконференции."),
-            P("TheDocumentFoundation.LibreOffice", "LibreOffice", "Документы и безопасность", "Офисный пакет: тексты, таблицы, презентации."),
-            P("SumatraPDF.SumatraPDF", "SumatraPDF", "Документы и безопасность", "Лёгкий просмотрщик PDF, EPUB и DjVu."),
-            P("KeePassXCTeam.KeePassXC", "KeePassXC", "Документы и безопасность", "Менеджер паролей с локальной базой."),
-            P("Bitwarden.Bitwarden", "Bitwarden", "Документы и безопасность", "Менеджер паролей с синхронизацией."),
-            P("Valve.Steam", "Steam", "Игры", "Магазин и библиотека игр Valve."),
-            P("EpicGames.EpicGamesLauncher", "Epic Games Launcher", "Игры", "Магазин и библиотека игр Epic Games."),
-            P("Microsoft.VisualStudioCode", "Visual Studio Code", "Разработка", "Редактор кода Microsoft."),
-            P("Git.Git", "Git", "Разработка", "Система контроля версий.")
+            P("Mozilla.Firefox", "Firefox", Lang.T("Браузеры"), Lang.T("Браузер Mozilla с открытым исходным кодом.")),
+            P("Google.Chrome", "Google Chrome", Lang.T("Браузеры"), Lang.T("Браузер Google.")),
+            P("Brave.Brave", "Brave", Lang.T("Браузеры"), Lang.T("Браузер на основе Chromium со встроенной блокировкой рекламы.")),
+            P("Vivaldi.Vivaldi", "Vivaldi", Lang.T("Браузеры"), Lang.T("Браузер на основе Chromium с гибкой настройкой интерфейса.")),
+            P("7zip.7zip", "7-Zip", Lang.T("Файлы и система"), Lang.T("Архиватор: 7z, zip, rar и другие форматы.")),
+            P("voidtools.Everything", "Everything", Lang.T("Файлы и система"), Lang.T("Мгновенный поиск файлов по имени на дисках NTFS.")),
+            P("Notepad++.Notepad++", "Notepad++", Lang.T("Файлы и система"), Lang.T("Текстовый редактор с подсветкой синтаксиса.")),
+            P("Microsoft.PowerToys", "PowerToys", Lang.T("Файлы и система"), Lang.T("Утилиты Microsoft: раскладка окон, переименование файлов, палитра цветов и другие.")),
+            P("WinDirStat.WinDirStat", "WinDirStat", Lang.T("Файлы и система"), Lang.T("Показывает, какие папки и файлы занимают место на диске.")),
+            P("Klocman.BulkCrapUninstaller", "Bulk Crap Uninstaller", Lang.T("Файлы и система"), Lang.T("Удаление нескольких программ и поиск их остатков.")),
+            P("CrystalDewWorld.CrystalDiskInfo", "CrystalDiskInfo", Lang.T("Файлы и система"), Lang.T("Состояние SMART и температура дисков.")),
+            P("REALiX.HWiNFO", "HWiNFO", Lang.T("Файлы и система"), Lang.T("Подробные сведения об оборудовании и датчиках.")),
+            P("CPUID.CPU-Z", "CPU-Z", Lang.T("Файлы и система"), Lang.T("Сведения о процессоре, памяти и материнской плате.")),
+            P("ShareX.ShareX", "ShareX", Lang.T("Файлы и система"), Lang.T("Снимки и запись экрана.")),
+            P("VideoLAN.VLC", "VLC", Lang.T("Медиа"), Lang.T("Видеоплеер, открывающий большинство форматов без кодеков.")),
+            P("OBSProject.OBSStudio", "OBS Studio", Lang.T("Медиа"), Lang.T("Запись экрана и трансляции.")),
+            P("Audacity.Audacity", "Audacity", Lang.T("Медиа"), Lang.T("Запись и редактирование звука.")),
+            P("HandBrake.HandBrake", "HandBrake", Lang.T("Медиа"), Lang.T("Перекодирование видео.")),
+            P("IrfanSkiljan.IrfanView", "IrfanView", Lang.T("Медиа"), Lang.T("Быстрый просмотр изображений.")),
+            P("Telegram.TelegramDesktop", "Telegram", Lang.T("Общение"), Lang.T("Мессенджер Telegram для компьютера.")),
+            P("Discord.Discord", "Discord", Lang.T("Общение"), Lang.T("Голосовой и текстовый чат.")),
+            P("Zoom.Zoom", "Zoom", Lang.T("Общение"), Lang.T("Видеоконференции.")),
+            P("TheDocumentFoundation.LibreOffice", "LibreOffice", Lang.T("Документы и безопасность"), Lang.T("Офисный пакет: тексты, таблицы, презентации.")),
+            P("SumatraPDF.SumatraPDF", "SumatraPDF", Lang.T("Документы и безопасность"), Lang.T("Лёгкий просмотрщик PDF, EPUB и DjVu.")),
+            P("KeePassXCTeam.KeePassXC", "KeePassXC", Lang.T("Документы и безопасность"), Lang.T("Менеджер паролей с локальной базой.")),
+            P("Bitwarden.Bitwarden", "Bitwarden", Lang.T("Документы и безопасность"), Lang.T("Менеджер паролей с синхронизацией.")),
+            P("Valve.Steam", "Steam", Lang.T("Игры"), Lang.T("Магазин и библиотека игр Valve.")),
+            P("EpicGames.EpicGamesLauncher", "Epic Games Launcher", Lang.T("Игры"), Lang.T("Магазин и библиотека игр Epic Games.")),
+            P("Microsoft.VisualStudioCode", "Visual Studio Code", Lang.T("Разработка"), Lang.T("Редактор кода Microsoft.")),
+            P("Git.Git", "Git", Lang.T("Разработка"), Lang.T("Система контроля версий."))
         };
         private static PackageInfo P(string id, string name, string group, string description)
         {
@@ -84,14 +84,14 @@ namespace Wintools
             if (action == "upgrade-all")
                 return "upgrade --all --silent " + Agreements;
             if (!ValidId(id) || Find(id) == null)
-                throw new ArgumentException("Неизвестная программа.");
+                throw new ArgumentException(Lang.T("Неизвестная программа."));
             if (action == "install")
                 return "install --id " + id + " --exact --source winget --silent " + Agreements;
             if (action == "upgrade")
                 return "upgrade --id " + id + " --exact --source winget --silent " + Agreements;
             if (action == "uninstall")
                 return "uninstall --id " + id + " --exact --source winget --silent --accept-source-agreements --disable-interactivity";
-            throw new ArgumentException("Неизвестное действие winget.");
+            throw new ArgumentException(Lang.T("Неизвестное действие winget."));
         }
 
         // winget result codes that mean the requested state is already reached.
@@ -100,18 +100,18 @@ namespace Wintools
             switch (unchecked((uint)code))
             {
                 case 0:
-                    return action == "install" ? "Установлено" : action == "upgrade" ? "Обновлено" : action == "uninstall" ? "Удалено" : "Готово";
+                    return action == "install" ? Lang.T("Установлено") : action == "upgrade" ? Lang.T("Обновлено") : action == "uninstall" ? Lang.T("Удалено") : Lang.T("Готово");
                 case 0x8A150061:
-                    return "Уже установлено";
+                    return Lang.T("Уже установлено");
                 case 0x8A15002B:
-                    return "Обновление не требуется";
+                    return Lang.T("Обновление не требуется");
                 case 0x8A150109:
                 case 0x8A15010A:
-                    return "Готово, нужна перезагрузка";
+                    return Lang.T("Готово, нужна перезагрузка");
                 case 0x8A150014:
-                    return action == "uninstall" ? "Уже удалено" : "Не установлено: обновлять нечего";
+                    return action == "uninstall" ? Lang.T("Уже удалено") : Lang.T("Не установлено: обновлять нечего");
                 default:
-                    return "Ошибка winget 0x" + unchecked((uint)code).ToString("X8");
+                    return Lang.T("Ошибка winget 0x") + unchecked((uint)code).ToString("X8");
             }
         }
 
@@ -160,7 +160,7 @@ namespace Wintools
         {
             var path = Locate();
             if (path == null)
-                throw new FileNotFoundException("winget не найден. Установите «Установщик приложений» из Microsoft Store.");
+                throw new FileNotFoundException(Lang.T("winget не найден. Установите «Установщик приложений» из Microsoft Store."));
             var info = new ProcessStartInfo(path, arguments)
             {
                 UseShellExecute = false,
@@ -244,9 +244,9 @@ namespace Wintools
                 {
                 });
                 if (!File.Exists(file))
-                    throw new IOException("winget не создал список установленных программ (код 0x" + unchecked((uint)code).ToString("X8") + ").");
+                    throw new IOException(Lang.T("winget не создал список установленных программ (код 0x") + unchecked((uint)code).ToString("X8") + ").");
                 if (new FileInfo(file).Length > 8388608)
-                    throw new IOException("Список установленных программ слишком велик.");
+                    throw new IOException(Lang.T("Список установленных программ слишком велик."));
                 return ParseExport(File.ReadAllText(file));
             }
             finally
@@ -271,7 +271,7 @@ namespace Wintools
             }.Deserialize<Dictionary<string, object>>(json);
             object sources;
             if (root == null || !root.TryGetValue("Sources", out sources) || !(sources is System.Collections.ArrayList))
-                throw new IOException("Некорректный список winget.");
+                throw new IOException(Lang.T("Некорректный список winget."));
             foreach (var source in ((System.Collections.ArrayList)sources).OfType<Dictionary<string, object>>())
             {
                 object packages;
@@ -300,7 +300,7 @@ namespace Wintools
         private static string RecordPath(string id)
         {
             if (!Regex.IsMatch(id ?? "", "^[a-f0-9]{32}$"))
-                throw new IOException("Некорректный номер записи winget.");
+                throw new IOException(Lang.T("Некорректный номер записи winget."));
             return Program.Under(DirectoryPath, id + ".json");
         }
 
@@ -328,16 +328,16 @@ namespace Wintools
                     "FAILED",
                     "REVERTED"
                 }.Contains(record.Status) || !DateTime.TryParseExact(record.TimeUtc, "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out time))
-                    throw new IOException("Некорректная запись winget.");
+                    throw new IOException(Lang.T("Некорректная запись winget."));
                 return record;
             }
             catch (ArgumentException ex)
             {
-                throw new IOException("Повреждена история winget.", ex);
+                throw new IOException(Lang.T("Повреждена история winget."), ex);
             }
             catch (InvalidOperationException ex)
             {
-                throw new IOException("Повреждена история winget.", ex);
+                throw new IOException(Lang.T("Повреждена история winget."), ex);
             }
         }
 

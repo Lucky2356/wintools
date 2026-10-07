@@ -38,11 +38,11 @@ namespace Wintools
             };
             Card(border);
             panel.Children.Add(border);
-            var heading = Paragraph("Что занимает место");
+            var heading = Paragraph(Lang.T("Что занимает место"));
             heading.FontSize = 18;
             heading.FontWeight = FontWeights.SemiBold;
             card.Children.Add(heading);
-            card.Children.Add(Paragraph("Показывает самые крупные папки внутри выбранной. Только чтение: удалять найденное нужно вручную и осознанно. Ссылки и junction не учитываются, системные папки без прав доступа считаются частично."));
+            card.Children.Add(Paragraph(Lang.T("Показывает самые крупные папки внутри выбранной. Только чтение: удалять найденное нужно вручную и осознанно. Ссылки и junction не учитываются, системные папки без прав доступа считаются частично.")));
             var controls = new WrapPanel();
             card.Children.Add(controls);
             usageRoot = new ComboBox
@@ -51,24 +51,24 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 10, 8),
                 ItemsSource = new[]
                 {
-                    "Папка пользователя",
-                    "Загрузки",
-                    "Системный диск"
+                    Lang.T("Папка пользователя"),
+                    Lang.T("Загрузки"),
+                    Lang.T("Системный диск")
                 },
                 SelectedIndex = 0
             };
-            System.Windows.Automation.AutomationProperties.SetName(usageRoot, "Где искать крупные папки");
+            System.Windows.Automation.AutomationProperties.SetName(usageRoot, Lang.T("Где искать крупные папки"));
             controls.Children.Add(usageRoot);
             usageScan = new Button
             {
-                Content = "Показать крупные папки",
+                Content = Lang.T("Показать крупные папки"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             usageScan.Click += async (s, e) => await MeasureUsage();
             controls.Children.Add(usageScan);
             usageStop = new Button
             {
-                Content = "Остановить",
+                Content = Lang.T("Остановить"),
                 Margin = new Thickness(0, 0, 10, 8),
                 Visibility = Visibility.Collapsed
             };
@@ -80,7 +80,7 @@ namespace Wintools
             controls.Children.Add(usageStop);
             usageOpen = new Button
             {
-                Content = "Открыть выбранную папку",
+                Content = Lang.T("Открыть выбранную папку"),
                 Margin = new Thickness(0, 0, 0, 8),
                 IsEnabled = false
             };
@@ -97,7 +97,7 @@ namespace Wintools
             {
                 MaxHeight = 360
             };
-            System.Windows.Automation.AutomationProperties.SetName(usageList, "Крупные папки");
+            System.Windows.Automation.AutomationProperties.SetName(usageList, Lang.T("Крупные папки"));
             usageList.ItemTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><StackPanel><TextBlock Text='{Binding Name}' FontWeight='SemiBold'/><TextBlock Text='{Binding Detail}' Foreground='{DynamicResource Muted}' FontSize='12'/></StackPanel></DataTemplate>");
             usageList.SelectionChanged += (s, e) => usageOpen.IsEnabled = usageList.SelectedItem != null;
             card.Children.Add(usageList);
@@ -112,7 +112,7 @@ namespace Wintools
             usageScan.IsEnabled = false;
             usageStop.Visibility = Visibility.Visible;
             usageList.ItemsSource = null;
-            usageStatus.Text = "Считаем размеры в " + root + "… Это может занять минуту.";
+            usageStatus.Text = Lang.T("Считаем размеры в ") + root + Lang.T("… Это может занять минуту.");
             try
             {
                 var measure = usageMeasure;
@@ -123,21 +123,21 @@ namespace Wintools
                 try
                 {
                     var drive = new DriveInfo(Path.GetPathRoot(root));
-                    free = " Свободно на диске " + drive.Name.TrimEnd('\\') + ": " + DiskUsage.Size(drive.AvailableFreeSpace) + " из " + DiskUsage.Size(drive.TotalSize) + ".";
+                    free = Lang.T(" Свободно на диске ") + drive.Name.TrimEnd('\\') + ": " + DiskUsage.Size(drive.AvailableFreeSpace) + Lang.T(" из ") + DiskUsage.Size(drive.TotalSize) + ".";
                 }
                 catch (Exception)
                 {
                 }
 
-                usageStatus.Text = root + ": " + DiskUsage.Size(report.Bytes) + " в показанных папках." + free + (report.Partial ? " Часть объектов недоступна или их слишком много — итог неполный." : "");
+                usageStatus.Text = root + ": " + DiskUsage.Size(report.Bytes) + Lang.T(" в показанных папках.") + free + (report.Partial ? Lang.T(" Часть объектов недоступна или их слишком много — итог неполный.") : "");
             }
             catch (OperationCanceledException)
             {
-                usageStatus.Text = "Расчёт остановлен.";
+                usageStatus.Text = Lang.T("Расчёт остановлен.");
             }
             catch (Exception ex)
             {
-                usageStatus.Text = "Не удалось посчитать: " + ex.Message;
+                usageStatus.Text = Lang.T("Не удалось посчитать: ") + ex.Message;
             }
             finally
             {

@@ -44,7 +44,7 @@ namespace Wintools
                 days = 7;
             }
             else
-                throw new ArgumentException("Неизвестная категория очистки.");
+                throw new ArgumentException(Lang.T("Неизвестная категория очистки."));
             return Scan(directory, DateTime.Now.AddDays(-days), cancel, 250000);
         }
 
@@ -59,16 +59,16 @@ namespace Wintools
             {
                 cancel.ThrowIfCancellationRequested();
                 if (!Path.IsPathRooted(directory) || directory.StartsWith(@"\\"))
-                    throw new IOException("Расчёт поддерживает только локальные папки.");
+                    throw new IOException(Lang.T("Расчёт поддерживает только локальные папки."));
                 string root = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar);
                 if (root == Path.GetPathRoot(root).TrimEnd(Path.DirectorySeparatorChar))
-                    throw new IOException("Корень диска не является папкой временных файлов.");
+                    throw new IOException(Lang.T("Корень диска не является папкой временных файлов."));
                 for (var ancestor = new DirectoryInfo(root); ancestor != null; ancestor = ancestor.Parent)
                 {
                     try
                     {
                         if ((File.GetAttributes(ancestor.FullName) & FileAttributes.ReparsePoint) != 0)
-                            throw new IOException("Папка проходит через ссылку или junction.");
+                            throw new IOException(Lang.T("Папка проходит через ссылку или junction."));
                     }
                     catch (DirectoryNotFoundException)
                     {
@@ -103,12 +103,12 @@ namespace Wintools
                         {
                             cancel.ThrowIfCancellationRequested();
                             if (++visited > limit)
-                                throw new InvalidOperationException("Папка содержит слишком много объектов; расчёт неполный.");
+                                throw new InvalidOperationException(Lang.T("Папка содержит слишком много объектов; расчёт неполный."));
                             try
                             {
                                 string path = Path.GetFullPath(child);
                                 if (!path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                                    throw new IOException("Объект вне папки очистки.");
+                                    throw new IOException(Lang.T("Объект вне папки очистки."));
                                 var attributes = File.GetAttributes(path);
                                 if ((attributes & FileAttributes.ReparsePoint) != 0)
                                 {
@@ -149,7 +149,7 @@ namespace Wintools
                 }
 
                 if (result.Errors > 0)
-                    result.Error = "Не удалось прочитать часть файлов или папок. Для системных папок могут понадобиться права администратора.";
+                    result.Error = Lang.T("Не удалось прочитать часть файлов или папок. Для системных папок могут понадобиться права администратора.");
             }
             catch (OperationCanceledException)
             {
@@ -166,7 +166,7 @@ namespace Wintools
 
         internal static string Size(long bytes)
         {
-            return (bytes / 1048576.0).ToString("N1") + " МБ";
+            return (bytes / 1048576.0).ToString("N1") + Lang.T(" МБ");
         }
     }
 }

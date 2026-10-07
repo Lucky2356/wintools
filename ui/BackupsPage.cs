@@ -30,7 +30,7 @@ namespace Wintools
             };
             Card(card);
             parent.Children.Add(card);
-            var heading = Paragraph("Батарея ноутбука");
+            var heading = Paragraph(Lang.T("Батарея ноутбука"));
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
@@ -38,14 +38,14 @@ namespace Wintools
             panel.Children.Add(buttons);
             batteryRead = new Button
             {
-                Content = "Проверить износ батареи",
+                Content = Lang.T("Проверить износ батареи"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             batteryRead.Click += async (s, e) => await ReadBattery();
             buttons.Children.Add(batteryRead);
             batteryOpen = new Button
             {
-                Content = "Подробный отчёт Windows ↗",
+                Content = Lang.T("Подробный отчёт Windows ↗"),
                 Margin = new Thickness(0, 0, 0, 8),
                 IsEnabled = false
             };
@@ -55,7 +55,7 @@ namespace Wintools
                     OpenTool(batteryHtml);
             };
             buttons.Children.Add(batteryOpen);
-            batteryStatus = Paragraph("Сравним текущую полную ёмкость с заводской по отчёту powercfg. Права администратора не нужны.");
+            batteryStatus = Paragraph(Lang.T("Сравним текущую полную ёмкость с заводской по отчёту powercfg. Права администратора не нужны."));
             panel.Children.Add(batteryStatus);
             var backups = new StackPanel();
             var backupCard = new Border
@@ -67,37 +67,37 @@ namespace Wintools
             };
             Card(backupCard);
             parent.Children.Add(backupCard);
-            var title = Paragraph("Точки восстановления и драйверы");
+            var title = Paragraph(Lang.T("Точки восстановления и драйверы"));
             title.FontSize = 21;
             title.FontWeight = FontWeights.SemiBold;
             backups.Children.Add(title);
-            backups.Children.Add(Paragraph("Точка восстановления позволяет вернуть системные файлы, драйверы и реестр к прежнему состоянию через «Восстановление системы»; личные файлы она не затрагивает. Копия драйверов пригодится после переустановки Windows: папку можно указать в диспетчере устройств. Действия требуют подтверждения Windows."));
+            backups.Children.Add(Paragraph(Lang.T("Точка восстановления позволяет вернуть системные файлы, драйверы и реестр к прежнему состоянию через «Восстановление системы»; личные файлы она не затрагивает. Копия драйверов пригодится после переустановки Windows: папку можно указать в диспетчере устройств. Действия требуют подтверждения Windows.")));
             var actions = new WrapPanel();
             backups.Children.Add(actions);
             backupList = new Button
             {
-                Content = "Показать точки",
+                Content = Lang.T("Показать точки"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             backupList.Click += async (s, e) => await RunBackup("list");
             actions.Children.Add(backupList);
             backupCreate = new Button
             {
-                Content = "Создать точку восстановления",
+                Content = Lang.T("Создать точку восстановления"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             backupCreate.Click += async (s, e) => await RunBackup("create");
             actions.Children.Add(backupCreate);
             backupDrivers = new Button
             {
-                Content = "Сохранить драйверы",
+                Content = Lang.T("Сохранить драйверы"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
             backupDrivers.Click += async (s, e) => await RunBackup("drivers");
             actions.Children.Add(backupDrivers);
             backupFolder = new Button
             {
-                Content = "Открыть папку драйверов",
+                Content = Lang.T("Открыть папку драйверов"),
                 Margin = new Thickness(0, 0, 10, 8),
                 IsEnabled = false
             };
@@ -109,7 +109,7 @@ namespace Wintools
             actions.Children.Add(backupFolder);
             var restore = new Button
             {
-                Content = "Восстановление системы ↗",
+                Content = Lang.T("Восстановление системы ↗"),
                 Margin = new Thickness(0, 0, 0, 8)
             };
             restore.Click += (s, e) => OpenTool(Path.Combine(Environment.SystemDirectory, "rstrui.exe"));
@@ -136,7 +136,7 @@ namespace Wintools
                 return;
             readingBattery = true;
             RefreshBackupsEnabled();
-            batteryStatus.Text = "Создаём отчёт о батарее…";
+            batteryStatus.Text = Lang.T("Создаём отчёт о батарее…");
             try
             {
                 string reports = Path.Combine(Program.Data, "reports");
@@ -150,7 +150,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                batteryStatus.Text = "Не удалось получить отчёт о батарее: " + ex.Message;
+                batteryStatus.Text = Lang.T("Не удалось получить отчёт о батарее: ") + ex.Message;
             }
             finally
             {
@@ -164,26 +164,26 @@ namespace Wintools
         {
             if (busy || runningBackup)
                 return;
-            if (action == "create" && !await Confirm("Создать точку восстановления Windows?\n\nПонадобится подтверждение администратора. Windows может отказаться создавать новую точку, если последняя создана меньше суток назад."))
+            if (action == "create" && !await Confirm(Lang.T("Создать точку восстановления Windows?\n\nПонадобится подтверждение администратора. Windows может отказаться создавать новую точку, если последняя создана меньше суток назад.")))
                 return;
-            if (action == "drivers" && !await Confirm("Сохранить копию установленных драйверов в папку WintoolsData\\drivers?\n\nКопия может занять сотни мегабайт. Понадобится подтверждение администратора."))
+            if (action == "drivers" && !await Confirm(Lang.T("Сохранить копию установленных драйверов в папку WintoolsData\\drivers?\n\nКопия может занять сотни мегабайт. Понадобится подтверждение администратора.")))
                 return;
             runningBackup = true;
             RefreshBackupsEnabled();
-            backupStatus.Text = action == "drivers" ? "Сохраняем драйверы… Это может занять несколько минут." : action == "create" ? "Создаём точку восстановления…" : "Читаем точки восстановления…";
+            backupStatus.Text = action == "drivers" ? Lang.T("Сохраняем драйверы… Это может занять несколько минут.") : action == "create" ? Lang.T("Создаём точку восстановления…") : Lang.T("Читаем точки восстановления…");
             try
             {
                 var result = await backupRun(action);
                 backupPoints.ItemsSource = result.Points;
                 if (result.Folder != null)
                     driverFolder = result.Folder;
-                string storage = result.MaxBytes > 0 ? " Занято под точки: " + (result.UsedBytes / 1073741824.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + " из " + (result.MaxBytes / 1073741824.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + " ГБ." : "";
-                backupStatus.Text = (result.Message == null ? "" : result.Message + " ") + (result.Points.Length == 0 ? "Точек восстановления нет: возможно, защита системы выключена." : "Точек восстановления: " + result.Points.Length + ".") + storage;
+                string storage = result.MaxBytes > 0 ? Lang.T(" Занято под точки: ") + (result.UsedBytes / 1073741824.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" из ") + (result.MaxBytes / 1073741824.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" ГБ.") : "";
+                backupStatus.Text = (result.Message == null ? "" : result.Message + " ") + (result.Points.Length == 0 ? Lang.T("Точек восстановления нет: возможно, защита системы выключена.") : Lang.T("Точек восстановления: ") + result.Points.Length + ".") + storage;
                 Text("Status", backupStatus.Text);
             }
             catch (Exception ex)
             {
-                backupStatus.Text = "Не выполнено: " + ex.Message;
+                backupStatus.Text = Lang.T("Не выполнено: ") + ex.Message;
             }
             finally
             {

@@ -16,7 +16,7 @@ namespace Wintools
             return new TweakState
             {
                 Applied = applied,
-                Text = (applied ? "✓ Уже применено" : "Не применено") + (string.IsNullOrEmpty(detail) ? "" : " · " + detail)
+                Text = (applied ? Lang.T("✓ Уже применено") : Lang.T("Не применено")) + (string.IsNullOrEmpty(detail) ? "" : " · " + detail)
             };
         }
 
@@ -49,7 +49,7 @@ namespace Wintools
                 }
                 catch (Exception ex)
                 {
-                    result[item.Id] = TweakState.Unknown("Состояние не прочитано: " + ex.Message);
+                    result[item.Id] = TweakState.Unknown(Lang.T("Состояние не прочитано: ") + ex.Message);
                 }
             }
 
@@ -71,7 +71,7 @@ namespace Wintools
                 path = path.Substring(5);
             }
             else
-                return TweakState.Unknown("Состояние этого раздела реестра не проверяется");
+                return TweakState.Unknown(Lang.T("Состояние этого раздела реестра не проверяется"));
             string name = item.ValueName == "@DEFAULT@" ? "" : item.ValueName;
             using (var root = RegistryKey.OpenBaseKey(hive, RegistryView.Registry64))
             using (var key = root.OpenSubKey(path, false))
@@ -85,28 +85,28 @@ namespace Wintools
         internal static TweakState Compare(Tweak item, RegistryValueKind kind, object value)
         {
             if (value == null)
-                return TweakState.Known(false, "значение не задано, действует поведение Windows по умолчанию");
+                return TweakState.Known(false, Lang.T("значение не задано, действует поведение Windows по умолчанию"));
             if (item.ValueType == "REG_DWORD")
             {
                 uint wanted;
                 if (!TryDword(item.Value, out wanted))
-                    return TweakState.Unknown("Ожидаемое значение не распознано");
+                    return TweakState.Unknown(Lang.T("Ожидаемое значение не распознано"));
                 if (kind != RegistryValueKind.DWord)
-                    return TweakState.Known(false, "сейчас значение другого типа (" + kind + ")");
+                    return TweakState.Known(false, Lang.T("сейчас значение другого типа (") + kind + ")");
                 uint current = unchecked((uint)(int)value);
-                return TweakState.Known(current == wanted, current == wanted ? null : "сейчас " + current.ToString(CultureInfo.InvariantCulture));
+                return TweakState.Known(current == wanted, current == wanted ? null : Lang.T("сейчас ") + current.ToString(CultureInfo.InvariantCulture));
             }
 
             if (item.ValueType == "REG_SZ")
             {
                 string wanted = item.Value == "@EMPTY@" ? "" : item.Value;
                 if (kind != RegistryValueKind.String)
-                    return TweakState.Known(false, "сейчас значение другого типа (" + kind + ")");
+                    return TweakState.Known(false, Lang.T("сейчас значение другого типа (") + kind + ")");
                 string current = Convert.ToString(value, CultureInfo.InvariantCulture);
-                return TweakState.Known(current == wanted, current == wanted ? null : "сейчас «" + (current.Length > 40 ? current.Substring(0, 40) + "…" : current) + "»");
+                return TweakState.Known(current == wanted, current == wanted ? null : Lang.T("сейчас «") + (current.Length > 40 ? current.Substring(0, 40) + "…" : current) + "»");
             }
 
-            return TweakState.Unknown("Тип значения не проверяется");
+            return TweakState.Unknown(Lang.T("Тип значения не проверяется"));
         }
 
         internal static bool TryDword(string text, out uint value)
@@ -140,12 +140,12 @@ namespace Wintools
                 catch (IOException ex)
                 {
                     if (Missing(ex))
-                        return TweakState.Unknown("Задача отсутствует на этом ПК");
+                        return TweakState.Unknown(Lang.T("Задача отсутствует на этом ПК"));
                     throw;
                 }
 
                 bool enabled = (bool)StartupTasks.Get(task, "Enabled");
-                return TweakState.Known(!enabled, enabled ? "задача включена" : "задача отключена");
+                return TweakState.Known(!enabled, enabled ? Lang.T("задача включена") : Lang.T("задача отключена"));
             }
             finally
             {

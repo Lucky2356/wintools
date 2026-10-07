@@ -22,20 +22,20 @@ namespace Wintools
         private void InitializeHardware(StackPanel parent)
         {
             var panel = new StackPanel();
-            hardwareStatus = Paragraph("Модели устройств и версии драйверов из сведений Windows. ГиБ = 1024³ байт; ёмкость диска может отличаться от числа на упаковке. Температуры и объём видеопамяти здесь не измеряются.");
+            hardwareStatus = Paragraph(Lang.T("Модели устройств и версии драйверов из сведений Windows. ГиБ = 1024³ байт; ёмкость диска может отличаться от числа на упаковке. Температуры и объём видеопамяти здесь не измеряются."));
             panel.Children.Add(hardwareStatus);
             var controls = new WrapPanel();
             panel.Children.Add(controls);
             hardwareRefresh = new Button
             {
-                Content = "Обновить характеристики",
+                Content = Lang.T("Обновить характеристики"),
                 Margin = new Thickness(0, 0, 10, 12)
             };
             controls.Children.Add(hardwareRefresh);
             hardwareRefresh.Click += async (s, e) => await ReadHardware();
             hardwareExport = new Button
             {
-                Content = "Сохранить в файл…",
+                Content = Lang.T("Сохранить в файл…"),
                 IsEnabled = false,
                 Margin = new Thickness(0, 0, 0, 12)
             };
@@ -45,7 +45,7 @@ namespace Wintools
             panel.Children.Add(hardwareCards);
             hardwareExpander = new Expander
             {
-                Header = "Характеристики ПК · процессор, память, видеокарты и диски",
+                Header = Lang.T("Характеристики ПК · процессор, память, видеокарты и диски"),
                 Content = panel,
                 Margin = new Thickness(0, 0, 0, 18)
             };
@@ -75,7 +75,7 @@ namespace Wintools
             hardwareReading = true;
             hardwareRefresh.IsEnabled = false;
             hardwareExport.IsEnabled = false;
-            hardwareStatus.Text = "Читаем сведения об оборудовании… Настройки не меняются.";
+            hardwareStatus.Text = Lang.T("Читаем сведения об оборудовании… Настройки не меняются.");
             try
             {
                 var snapshot = await hardwareRead();
@@ -87,7 +87,7 @@ namespace Wintools
             }
             catch (Exception ex)
             {
-                hardwareStatus.Text = "Не удалось обновить характеристики: " + ex.Message + (hardwareSnapshot == null ? "" : ". Ниже остался предыдущий снимок от " + hardwareCaptured.ToString("HH:mm:ss") + ".");
+                hardwareStatus.Text = Lang.T("Не удалось обновить характеристики: ") + ex.Message + (hardwareSnapshot == null ? "" : Lang.T(". Ниже остался предыдущий снимок от ") + hardwareCaptured.ToString("HH:mm:ss") + ".");
             }
             finally
             {
@@ -100,7 +100,7 @@ namespace Wintools
         private void RenderHardware()
         {
             LayoutHardware();
-            hardwareStatus.Text = "Снимок от " + hardwareCaptured.ToString("HH:mm:ss") + " · Разделов: " + hardwareSnapshot.Length + " · С неполными данными: " + hardwareSnapshot.Count(s => s.Unavailable) + ". ГиБ = 1024³ байт. Температуры и объём видеопамяти не измеряются.";
+            hardwareStatus.Text = Lang.T("Снимок от ") + hardwareCaptured.ToString("HH:mm:ss") + Lang.T(" · Разделов: ") + hardwareSnapshot.Length + Lang.T(" · С неполными данными: ") + hardwareSnapshot.Count(s => s.Unavailable) + Lang.T(". ГиБ = 1024³ байт. Температуры и объём видеопамяти не измеряются.");
         }
 
         private void LayoutHardware()
@@ -145,8 +145,8 @@ namespace Wintools
                 return;
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
-                Title = "Сохранить характеристики ПК",
-                Filter = "Текстовый отчёт (*.txt)|*.txt",
+                Title = Lang.T("Сохранить характеристики ПК"),
+                Filter = Lang.T("Текстовый отчёт (*.txt)|*.txt"),
                 FileName = "Wintools-PC-" + hardwareCaptured.ToString("yyyyMMdd-HHmmss") + ".txt",
                 DefaultExt = ".txt"
             };
@@ -155,11 +155,11 @@ namespace Wintools
             try
             {
                 File.WriteAllText(dialog.FileName, HardwareReader.Report(hardwareSnapshot, hardwareCaptured), new UTF8Encoding(true));
-                hardwareStatus.Text = "Отчёт сохранён: " + dialog.FileName;
+                hardwareStatus.Text = Lang.T("Отчёт сохранён: ") + dialog.FileName;
             }
             catch (Exception ex)
             {
-                hardwareStatus.Text = "Не удалось сохранить отчёт: " + ex.Message;
+                hardwareStatus.Text = Lang.T("Не удалось сохранить отчёт: ") + ex.Message;
             }
         }
     }

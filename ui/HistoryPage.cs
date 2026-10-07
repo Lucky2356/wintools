@@ -13,19 +13,19 @@ namespace Wintools
             var rows = new List<HistoryRow>();
             var failed = new List<string>();
             var errors = new List<string>();
-            ReadHistorySource("Каталог", () => HistoryRows(Path.Combine(Program.Data, "state", "applied.dat"), catalogue), rows, failed, errors);
-            ReadHistorySource("Службы", ServiceHistoryRows, rows, failed, errors);
-            ReadHistorySource("Питание", PowerHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Каталог"), () => HistoryRows(Path.Combine(Program.Data, "state", "applied.dat"), catalogue), rows, failed, errors);
+            ReadHistorySource(Lang.T("Службы"), ServiceHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Питание"), PowerHistoryRows, rows, failed, errors);
             ReadHistorySource("DNS", DnsHistoryRows, rows, failed, errors);
-            ReadHistorySource("Файл hosts", HostsHistoryRows, rows, failed, errors);
-            ReadHistorySource("Обновления Windows", UpdateHistoryRows, rows, failed, errors);
-            ReadHistorySource("Установка программ", PackageHistoryRows, rows, failed, errors);
-            ReadHistorySource("Обслуживание", IntegrityHistoryRows, rows, failed, errors);
-            ReadHistorySource("Автозагрузка", StartupHistoryRows, rows, failed, errors);
-            ReadHistorySource("Процессы", ProcessHistoryRows, rows, failed, errors);
-            ReadHistorySource("Приложения Store", StoreHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Файл hosts"), HostsHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Обновления Windows"), UpdateHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Установка программ"), PackageHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Обслуживание"), IntegrityHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Автозагрузка"), StartupHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Процессы"), ProcessHistoryRows, rows, failed, errors);
+            ReadHistorySource(Lang.T("Приложения Store"), StoreHistoryRows, rows, failed, errors);
             Get<ListBox>("History").ItemsSource = rows.OrderByDescending(r => r.TimeUtc).ToArray();
-            Text("HistoryStatus", failed.Count > 0 ? "Журнал частично недоступен: " + string.Join(", ", failed) + ". Доступно записей: " + rows.Count + ". Записи недоступных разделов скрыты. Повторите чтение позже; подробности — в подсказке." : rows.Count == 0 ? "Изменений пока нет. После выполнения действия здесь появится запись." : "Запусков: " + rows.Count + ". Сначала откатывайте самые новые изменения.");
+            Text("HistoryStatus", failed.Count > 0 ? Lang.T("Журнал частично недоступен: ") + string.Join(", ", failed) + Lang.T(". Доступно записей: ") + rows.Count + Lang.T(". Записи недоступных разделов скрыты. Повторите чтение позже; подробности — в подсказке.") : rows.Count == 0 ? Lang.T("Изменений пока нет. После выполнения действия здесь появится запись.") : Lang.T("Запусков: ") + rows.Count + Lang.T(". Сначала откатывайте самые новые изменения."));
             Get<TextBlock>("HistoryStatus").ToolTip = errors.Count == 0 ? null : string.Join("\n\n", errors);
             RefreshEnabled();
         }
@@ -45,7 +45,7 @@ namespace Wintools
             catch (UnauthorizedAccessException ex)
             {
                 failed.Add(name);
-                errors.Add(name + ": нет доступа. " + ex.Message);
+                errors.Add(name + Lang.T(": нет доступа. ") + ex.Message);
             }
         }
     }

@@ -42,7 +42,7 @@ namespace Wintools
         {
             get
             {
-                return (Static4.Length + Static6.Length == 0 ? "автоматически (адреса выдаёт сеть)" : "вручную: " + string.Join(", ", Static4.Concat(Static6))) + (Effective.Length > 0 ? ". Используются: " + string.Join(", ", Effective.Take(4)) : "");
+                return (Static4.Length + Static6.Length == 0 ? Lang.T("автоматически (адреса выдаёт сеть)") : Lang.T("вручную: ") + string.Join(", ", Static4.Concat(Static6))) + (Effective.Length > 0 ? Lang.T(". Используются: ") + string.Join(", ", Effective.Take(4)) : "");
             }
         }
     }
@@ -64,8 +64,8 @@ namespace Wintools
             new DnsProvider
             {
                 Key = "auto",
-                Name = "Автоматически (от роутера или провайдера)",
-                Description = "DNS-серверы выдаёт сеть. Так Windows настроена по умолчанию.",
+                Name = Lang.T("Автоматически (от роутера или провайдера)"),
+                Description = Lang.T("DNS-серверы выдаёт сеть. Так Windows настроена по умолчанию."),
                 V4 = new string[0],
                 V6 = new string[0]
             },
@@ -73,7 +73,7 @@ namespace Wintools
             {
                 Key = "cloudflare",
                 Name = "Cloudflare · 1.1.1.1",
-                Description = "Публичный DNS Cloudflare без фильтрации сайтов.",
+                Description = Lang.T("Публичный DNS Cloudflare без фильтрации сайтов."),
                 V4 = new[]
                 {
                     "1.1.1.1",
@@ -89,7 +89,7 @@ namespace Wintools
             {
                 Key = "google",
                 Name = "Google · 8.8.8.8",
-                Description = "Публичный DNS Google без фильтрации сайтов.",
+                Description = Lang.T("Публичный DNS Google без фильтрации сайтов."),
                 V4 = new[]
                 {
                     "8.8.8.8",
@@ -105,7 +105,7 @@ namespace Wintools
             {
                 Key = "quad9",
                 Name = "Quad9 · 9.9.9.9",
-                Description = "Не открывает домены из списков вредоносных сайтов Quad9. Обычные сайты не фильтруются.",
+                Description = Lang.T("Не открывает домены из списков вредоносных сайтов Quad9. Обычные сайты не фильтруются."),
                 V4 = new[]
                 {
                     "9.9.9.9",
@@ -121,7 +121,7 @@ namespace Wintools
             {
                 Key = "adguard",
                 Name = "AdGuard DNS · 94.140.14.14",
-                Description = "Блокирует домены рекламы и трекеров во всех программах. Отдельные сайты и приложения могут работать неправильно.",
+                Description = Lang.T("Блокирует домены рекламы и трекеров во всех программах. Отдельные сайты и приложения могут работать неправильно."),
                 V4 = new[]
                 {
                     "94.140.14.14",
@@ -136,8 +136,8 @@ namespace Wintools
             new DnsProvider
             {
                 Key = "yandex",
-                Name = "Яндекс DNS · 77.88.8.8",
-                Description = "Базовый Яндекс DNS без фильтрации сайтов.",
+                Name = Lang.T("Яндекс DNS · 77.88.8.8"),
+                Description = Lang.T("Базовый Яндекс DNS без фильтрации сайтов."),
                 V4 = new[]
                 {
                     "77.88.8.8",
@@ -175,14 +175,14 @@ namespace Wintools
             {
                 IPAddress address;
                 if (value == null || !IPAddress.TryParse(value, out address) || address.AddressFamily != family || (family == AddressFamily.InterNetworkV6 && address.ScopeId != 0))
-                    throw new ArgumentException("Некорректный адрес DNS: " + value);
+                    throw new ArgumentException(Lang.T("Некорректный адрес DNS: ") + value);
                 string text = address.ToString();
                 if (!result.Contains(text))
                     result.Add(text);
             }
 
             if (result.Count > 8)
-                throw new ArgumentException("Слишком много адресов DNS.");
+                throw new ArgumentException(Lang.T("Слишком много адресов DNS."));
             return result.ToArray();
         }
 
@@ -244,7 +244,7 @@ namespace Wintools
         {
             var adapter = Read().FirstOrDefault(a => string.Equals(a.Id, id, StringComparison.OrdinalIgnoreCase));
             if (adapter == null)
-                throw new IOException("Сетевой адаптер отключён или больше не найден.");
+                throw new IOException(Lang.T("Сетевой адаптер отключён или больше не найден."));
             return adapter;
         }
 
@@ -259,7 +259,7 @@ namespace Wintools
             if (adapter.Index6 > 0)
                 SetFamily("ipv6", adapter.Index6, v6, log);
             else if (v6.Length > 0)
-                log.WriteLine("IPv6 на адаптере выключен: адреса IPv6 не заданы.");
+                log.WriteLine(Lang.T("IPv6 на адаптере выключен: адреса IPv6 не заданы."));
             try
             {
                 DnsFlushResolverCache();
@@ -273,13 +273,13 @@ namespace Wintools
 
             var after = Find(adapter.Id);
             if (!after.Static4.SequenceEqual(v4) || (adapter.Index6 > 0 && !after.Static6.SequenceEqual(v6)))
-                throw new IOException("Windows не подтвердила новые адреса DNS. Сейчас: " + after.Summary);
+                throw new IOException(Lang.T("Windows не подтвердила новые адреса DNS. Сейчас: ") + after.Summary);
         }
 
         private static void SetFamily(string family, int index, string[] servers, TextWriter log)
         {
             if (index <= 0)
-                throw new IOException("Windows не сообщила номер сетевого интерфейса.");
+                throw new IOException(Lang.T("Windows не сообщила номер сетевого интерфейса."));
             if (servers.Length == 0)
             {
                 Netsh("interface " + family + " set dnsservers name=" + index + " source=dhcp", log);
@@ -314,12 +314,12 @@ namespace Wintools
                     {
                     }
 
-                    throw new IOException("netsh не ответил за 30 секунд.");
+                    throw new IOException(Lang.T("netsh не ответил за 30 секунд."));
                 }
 
                 string text = (output + " " + error.Result).Trim();
                 if (process.ExitCode != 0)
-                    throw new IOException("netsh " + arguments + " завершился с кодом " + process.ExitCode + (text.Length > 0 ? ": " + text : "."));
+                    throw new IOException("netsh " + arguments + Lang.T(" завершился с кодом ") + process.ExitCode + (text.Length > 0 ? ": " + text : "."));
                 if (text.Length > 0)
                     log.WriteLine(text);
             }

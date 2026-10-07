@@ -46,7 +46,7 @@ namespace Wintools
             };
             Card(card);
             searchOverlay.Children.Add(card);
-            var title = Paragraph("Поиск везде");
+            var title = Paragraph(Lang.T("Поиск везде"));
             title.FontSize = 18;
             title.FontWeight = FontWeights.SemiBold;
             title.Margin = new Thickness(0, 0, 0, 8);
@@ -56,16 +56,16 @@ namespace Wintools
                 Height = 40,
                 Margin = new Thickness(0, 0, 0, 10)
             };
-            System.Windows.Automation.AutomationProperties.SetName(searchQuery, "Поиск по разделам, настройкам, службам и программам");
+            System.Windows.Automation.AutomationProperties.SetName(searchQuery, Lang.T("Поиск по разделам, настройкам, службам и программам"));
             panel.Children.Add(searchQuery);
             searchResults = new ListBox
             {
                 MaxHeight = 420
             };
-            System.Windows.Automation.AutomationProperties.SetName(searchResults, "Результаты поиска");
+            System.Windows.Automation.AutomationProperties.SetName(searchResults, Lang.T("Результаты поиска"));
             searchResults.ItemTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><StackPanel><TextBlock Text='{Binding Title}' FontWeight='SemiBold' TextTrimming='CharacterEllipsis'/><TextBlock Text='{Binding Detail}' Foreground='{DynamicResource Muted}' FontSize='12' TextTrimming='CharacterEllipsis'/></StackPanel></DataTemplate>");
             panel.Children.Add(searchResults);
-            var hint = Paragraph("↑↓ — выбор, Enter — открыть, Esc — закрыть. Ищет по разделам, настройкам каталога, службам, установленным программам и программам для установки.");
+            var hint = Paragraph(Lang.T("↑↓ — выбор, Enter — открыть, Esc — закрыть. Ищет по разделам, настройкам каталога, службам, установленным программам и программам для установки."));
             hint.FontSize = 12;
             hint.Margin = new Thickness(0, 8, 0, 0);
             hint.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
@@ -157,7 +157,7 @@ namespace Wintools
                 int index = i;
                 var label = Get<Button>(nav[i]).Content as string ?? PageTitles[i];
                 if (Matches(query, label, PageTitles[i]))
-                    hits.Add(new SearchHit { Title = label, Detail = "Раздел · " + PageTitles[i], Open = () => ShowPage(index) });
+                    hits.Add(new SearchHit { Title = label, Detail = Lang.T("Раздел · ") + PageTitles[i], Open = () => ShowPage(index) });
             }
 
             if (query.Length < 2)
@@ -165,7 +165,7 @@ namespace Wintools
             foreach (var item in catalogue.Where(t => Matches(query, t.Title, t.Id, t.Description)).Take(15))
             {
                 var id = item.Id;
-                hits.Add(new SearchHit { Title = item.Title, Detail = "Настройка · " + Catalogue.Categories[item.Category] + " · " + Risk(item), Open = () =>
+                hits.Add(new SearchHit { Title = item.Title, Detail = Lang.T("Настройка · ") + Catalogue.Categories[item.Category] + " · " + Risk(item), Open = () =>
                 {
                     ShowPage(0);
                     showAll = true;
@@ -177,7 +177,7 @@ namespace Wintools
             foreach (var service in (services ?? new ServiceState[0]).Where(s => Matches(query, s.Label, s.Name)).Take(8))
             {
                 var name = service.Name;
-                hits.Add(new SearchHit { Title = service.Title, Detail = "Служба · " + service.RunningLabel, Open = () =>
+                hits.Add(new SearchHit { Title = service.Title, Detail = Lang.T("Служба · ") + service.RunningLabel, Open = () =>
                 {
                     ShowPage(5);
                     if (serviceSearch != null)
@@ -188,7 +188,7 @@ namespace Wintools
             foreach (var application in installedApplications.Where(a => Matches(query, a.Name, a.Publisher)).Take(8))
             {
                 var name = application.Name;
-                hits.Add(new SearchHit { Title = application.Name, Detail = "Установленная программа · " + application.Publisher, Open = () =>
+                hits.Add(new SearchHit { Title = application.Name, Detail = Lang.T("Установленная программа · ") + application.Publisher, Open = () =>
                 {
                     ShowPage(9);
                     if (applicationSearch != null)
@@ -199,7 +199,7 @@ namespace Wintools
             foreach (var package in Packages.Catalog.Where(p => Matches(query, p.Name, p.Id, p.Description)))
             {
                 var id = package.Id;
-                hits.Add(new SearchHit { Title = package.Name, Detail = "Установка программ · " + package.Group, Open = () =>
+                hits.Add(new SearchHit { Title = package.Name, Detail = Lang.T("Установка программ · ") + package.Group, Open = () =>
                 {
                     ShowPage(14);
                     CheckBox check;
