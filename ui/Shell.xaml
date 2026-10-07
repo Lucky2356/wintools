@@ -361,6 +361,7 @@
        <TextBlock Text="ИНСТРУМЕНТЫ" Style="{StaticResource NavHeader}"/>
        <Border Style="{StaticResource NavSeparator}"/>
        <Button x:Name="NavApplications" Content="Приложения" ToolTip="Приложения" Tag="&#xE71D;" Style="{StaticResource Nav}"/>
+       <Button x:Name="NavPackages" Content="Установка программ" ToolTip="Установка программ" Tag="&#xE896;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavStartup" Content="Автозагрузка" ToolTip="Автозагрузка" Tag="&#xE768;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavProcesses" Content="Процессы" ToolTip="Процессы" Tag="&#xE7C4;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavServices" Content="Службы" ToolTip="Службы" Tag="&#xE713;" Style="{StaticResource Nav}"/>
