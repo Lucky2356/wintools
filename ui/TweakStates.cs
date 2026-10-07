@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
 namespace Wintools {
@@ -69,6 +68,7 @@ namespace Wintools {
             }finally{StartupTasks.Release(task);StartupTasks.Release(folder);StartupTasks.Release(service);}
         }
         // ERROR_FILE_NOT_FOUND / ERROR_PATH_NOT_FOUND from the scheduler mean the task or its folder is absent.
-        private static bool Missing(Exception ex){for(var inner=ex;inner!=null;inner=inner.InnerException){var com=inner as COMException;if(com!=null&&(com.ErrorCode==unchecked((int)0x80070002)||com.ErrorCode==unchecked((int)0x80070003)))return true;}return false;}
+        // COM interop surfaces them as FileNotFoundException / DirectoryNotFoundException, so the HRESULT is checked on every wrapper.
+        private static bool Missing(Exception ex){for(var inner=ex;inner!=null;inner=inner.InnerException){if(inner.HResult==unchecked((int)0x80070002)||inner.HResult==unchecked((int)0x80070003))return true;}return false;}
     }
 }
