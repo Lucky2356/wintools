@@ -6,9 +6,9 @@ using System.Threading;
 namespace Wintools {
     internal sealed class CleanupEstimate {internal long Bytes;internal int Files,SkippedLinks,Errors;internal string Error="",Source;internal DateTime Captured;}
     internal static class CleanupPreview {
-        internal static readonly string[] Ids={"CLN-USERTEMP","CLN-WINTEMP","CLN-CRASHDUMPS"};
+        internal static readonly string[] Ids={"CLN-USERTEMP","CLN-WINTEMP","CLN-CRASHDUMPS","CLN-BROWSER"};
         internal static CleanupEstimate Read(string id,CancellationToken cancel){
-            string directory;int days;if(id==Ids[0]){directory=Environment.GetEnvironmentVariable("TEMP");days=3;}else if(id==Ids[1]){directory=Path.Combine(Environment.GetEnvironmentVariable("SystemRoot"),"Temp");days=3;}else if(id==Ids[2]){directory=Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA"),"CrashDumps");days=7;}else throw new ArgumentException("Неизвестная категория очистки.");
+            if(id==Ids[3])return BrowserCache.Estimate(cancel);string directory;int days;if(id==Ids[0]){directory=Environment.GetEnvironmentVariable("TEMP");days=3;}else if(id==Ids[1]){directory=Path.Combine(Environment.GetEnvironmentVariable("SystemRoot"),"Temp");days=3;}else if(id==Ids[2]){directory=Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA"),"CrashDumps");days=7;}else throw new ArgumentException("Неизвестная категория очистки.");
             return Scan(directory,DateTime.Now.AddDays(-days),cancel,250000);
         }
         internal static CleanupEstimate Scan(string directory,DateTime cutoff,CancellationToken cancel,int limit){
