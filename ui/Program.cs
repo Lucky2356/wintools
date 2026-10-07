@@ -25,6 +25,7 @@ namespace Wintools {
                 if (args.Length > 0 && args[0] == "--power-worker") return PowerActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--dns-worker") return DnsActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--hosts-worker") return HostsFile.Worker(args);
+                if (args.Length > 0 && args[0] == "--boot-worker") return BootPerformance.Worker(args);
                 if (args.Length > 0 && args[0] == "--service-worker") return ServiceActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--worker") return Engine.Worker(args);
                 bool test = args.Length == 1 && args[0] == "--self-test";

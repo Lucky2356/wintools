@@ -1,0 +1,33 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+
+namespace Wintools {
+    internal sealed partial class MainWindow {
+        private const string BootXml="<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><EventID>100</EventID></System><EventData><Data Name='BootTsVersion'>2</Data><Data Name='BootTime'>{0}</Data><Data Name='MainPathBootTime'>{1}</Data><Data Name='BootPostBootTime'>{2}</Data></EventData></Event>";
+        private const string DelayXml="<Event xmlns='http://schemas.microsoft.com/win/2004/08/events/event'><System><EventID>101</EventID></System><EventData><Data Name='Name'>C:\\Program Files\\Updater\\updater.exe</Data><Data Name='FriendlyName'>{0}</Data><Data Name='TotalTime'>{1}</Data><Data Name='DegradationTime'>{2}</Data></EventData></Event>";
+        private async Task BootSmoke(){
+            var now=DateTime.UtcNow;var boot=BootPerformance.ParseBoot(string.Format(BootXml,42000,30000,12000),now);
+            Assert(boot!=null&&boot.TotalMs==42000&&boot.MainPathMs==30000&&boot.PostBootMs==12000,"Boot event parsed incorrectly");
+            Assert(BootPerformance.ParseBoot(string.Format(BootXml,0,0,0),now)==null&&BootPerformance.ParseBoot(string.Format(BootXml,"bad",1,1),now)==null,"Invalid boot event accepted");
+            var delay=BootPerformance.ParseDelay(101,string.Format(DelayXml,"Updater Service",9000,4000),now);Assert(delay!=null&&delay.Kind=="Программа"&&delay.Name=="Updater Service"&&delay.DegradationMs==4000,"Delay event parsed incorrectly");
+            Assert(BootPerformance.ParseDelay(101,string.Format(DelayXml,"",9000,4000),now).Name=="updater.exe"&&BootPerformance.ParseDelay(150,string.Format(DelayXml,"x",1,1),now)==null,"Delay name fallback or unknown event wrong");
+            bool rejected=false;try{BootPerformance.Validate(new BootReport{Boots=new[]{new BootRecord{TimeUtc="bad",TotalMs=1}},Delays=new BootDelay[0]});}catch(IOException){rejected=true;}Assert(rejected,"Corrupt boot report accepted");
+            var report=new BootReport{Boots=new[]{boot,new BootRecord{TimeUtc=now.AddDays(-1).ToString("o"),TotalMs=60000,MainPathMs=40000,PostBootMs=20000}},Delays=new[]{delay,BootPerformance.ParseDelay(101,string.Format(DelayXml,"Updater Service",8000,2000),now.AddDays(-1)),BootPerformance.ParseDelay(103,string.Format(DelayXml,"Print Spooler",500,300),now)}};
+            var culprits=BootPerformance.Culprits(report);Assert(culprits.Length==2&&culprits[0].Title.StartsWith("Updater Service")&&culprits[0].Detail.Contains("2 раз")&&culprits[0].Detail.Contains("3,0 с"),"Boot culprits aggregated incorrectly: "+string.Join(" | ",culprits.Select(c=>c.Detail)));
+            Assert(BootPerformance.Summary(report).Contains("42,0 с")&&BootPerformance.Summary(report).Contains("Среднее по 2")&&BootPerformance.Summary(new BootReport()).Contains("ещё не записала"),"Boot summary incorrect");
+            var direct=bootReadDirect;var elevated=bootReadElevated;int elevations=0;
+            try{
+                bootReadDirect=()=>{throw new UnauthorizedAccessException();};bootReadElevated=()=>{elevations++;return Task.FromResult(report);};
+                ShowPage(6);await ReadBoot();Assert(elevations==1&&bootSummary.Text.Contains("42,0 с")&&bootCulprits.Items.Count==2,"Elevated boot read not used or shown");
+                SetBusy(true);Assert(!bootRead.IsEnabled,"Boot analysis ignored operation lock");SetBusy(false);
+                bootReadDirect=()=>new BootReport();await ReadBoot();Assert(elevations==1&&bootSummary.Text.Contains("ещё не записала")&&bootCulprits.Items.Count==0,"Empty boot log not explained");
+                bootReadDirect=()=>{throw new UnauthorizedAccessException();};bootReadElevated=()=>{throw new IOException("Тест отказа UAC");};await ReadBoot();Assert(bootSummary.Text.Contains("Тест отказа UAC")&&bootRead.IsEnabled,"Elevation failure not reported");
+                bootReadDirect=()=>report;await ReadBoot();bootRead.BringIntoView();Window.UpdateLayout();await Task.Delay(80);Capture("portable-ui-boot.png");
+            }finally{bootReadDirect=direct;bootReadElevated=elevated;}
+            ShowPage(0);
+        }
+    }
+}
