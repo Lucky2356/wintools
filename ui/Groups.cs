@@ -32,10 +32,10 @@ namespace Wintools {
                 return "Диагностика и активность";
             }
             if(item.Category=="UI"){
-                if(new[]{"UI-FILEEXT","UI-HIDDEN","UI-LAUNCHTO","UI-CLASSIC-CONTEXT","UI-SYNC-NOTIFY","UI-COMPACT-VIEW","UI-NO-RECENT","UI-NO-FREQUENT"}.Contains(id))return "Проводник";
+                if(new[]{"UI-FILEEXT","UI-HIDDEN","UI-LAUNCHTO","UI-CLASSIC-CONTEXT","UI-SYNC-NOTIFY","UI-COMPACT-VIEW","UI-NO-RECENT","UI-NO-FREQUENT","UI-HIDE-GALLERY"}.Contains(id))return "Проводник";
                 if(id.Contains("BING")||id.Contains("CORTANA"))return "Поиск";
                 if(id.Contains("DARK")||id.Contains("SPOTLIGHT"))return "Тема и экран блокировки";
-                if(id.Contains("TASKBAR")||id.Contains("SEARCHBOX")||id.Contains("WIDGETS")||id.Contains("FEEDS")||id.Contains("CHATICON")||id.Contains("SECONDS")||id.Contains("END-TASK"))return "Панель задач";
+                if(id.Contains("TASKBAR")||id.Contains("SEARCHBOX")||id.Contains("WIDGETS")||id.Contains("FEEDS")||id.Contains("CHATICON")||id.Contains("SECONDS")||id.Contains("END-TASK")||id.Contains("TASKVIEW")||id.Contains("COPILOT-BUTTON"))return "Панель задач";
                 return "Меню и запуск";
             }
             if(item.Category=="APPS"){

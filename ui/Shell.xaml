@@ -399,9 +399,10 @@
        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <WrapPanel VerticalAlignment="Center">
         <Button x:Name="BackToGroups" Content="← Разделы" Style="{StaticResource Ghost}" Padding="10,4" MinHeight="30" Margin="0,0,8,0"/>
-        <Button x:Name="RefreshCatalogueServices" Content="↻ Состояние служб" ToolTip="Повторно прочитать состояние служб Windows" Visibility="Collapsed" Style="{StaticResource Ghost}" Padding="10,4" MinHeight="30" Margin="0,0,8,0"/>
+        <Button x:Name="RefreshCatalogueServices" Content="↻ Состояние" ToolTip="Повторно прочитать текущее состояние настроек и служб Windows" Visibility="Collapsed" Style="{StaticResource Ghost}" Padding="10,4" MinHeight="30" Margin="0,0,8,0"/>
         <CheckBox x:Name="Favorites" Content="Избранное"/>
         <CheckBox x:Name="Risky" Content="Высокий риск"/>
+        <CheckBox x:Name="HideApplied" Content="Скрыть применённые" ToolTip="Не показывать действия, которые уже действуют в Windows"/>
         <Button x:Name="ClearCollection" Content="Подборка ×" ToolTip="Показать все действия, а не только выбранные в подборке" Visibility="Collapsed" Style="{StaticResource Link}" Padding="10,4" MinHeight="30"/>
        </WrapPanel>
        <TextBlock x:Name="Count" Grid.Column="1" Foreground="{DynamicResource Muted}" FontSize="12" VerticalAlignment="Center" TextWrapping="NoWrap"/>
@@ -440,12 +441,13 @@
            <StackPanel Grid.Column="1">
             <TextBlock Text="{Binding DisplayTitle}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
             <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-            <TextBlock Text="{Binding ServiceStatus}" Visibility="{Binding ServiceVisibility}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,6,0,0"/>
+            <TextBlock x:Name="State" Text="{Binding ServiceStatus}" Visibility="{Binding ServiceVisibility}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
            </StackPanel>
           </Grid>
           <DataTemplate.Triggers>
            <DataTrigger Binding="{Binding RiskLevel}" Value="med"><Setter TargetName="Risk" Property="Fill" Value="{DynamicResource Warning}"/></DataTrigger>
            <DataTrigger Binding="{Binding RiskLevel}" Value="high"><Setter TargetName="Risk" Property="Fill" Value="{DynamicResource Danger}"/></DataTrigger>
+           <DataTrigger Binding="{Binding Applied}" Value="True"><Setter TargetName="State" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
           </DataTemplate.Triggers>
          </DataTemplate></ListBox.ItemTemplate>
         </ListBox>
