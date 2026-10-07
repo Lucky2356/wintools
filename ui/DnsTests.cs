@@ -31,13 +31,7 @@ namespace Wintools {
     }
     internal sealed partial class MainWindow {
         private async Task DnsSmoke(){
-            Assert(DnsSettings.Normalize(new[]{"1.1.1.1","1.1.1.1"},AddressFamily.InterNetwork).SequenceEqual(new[]{"1.1.1.1"})&&DnsSettings.Normalize(new[]{"2a02:6b8::feed:0ff"},AddressFamily.InterNetworkV6).SequenceEqual(new[]{"2a02:6b8::feed:ff"}),"DNS addresses not normalized");
-            foreach(var unsafeValue in new[]{new[]{"1.1.1.1 & whoami","4"},new[]{"8.8.8.8;","4"},new[]{"::1","4"},new[]{"fe80::1%12","6"},new[]{"1.1.1.1","6"}}){bool rejected=false;try{DnsSettings.Normalize(new[]{unsafeValue[0]},unsafeValue[1]=="4"?AddressFamily.InterNetwork:AddressFamily.InterNetworkV6);}catch(ArgumentException){rejected=true;}Assert(rejected,"Unsafe DNS address accepted: "+unsafeValue[0]);}
-            Assert(DnsSettings.ParseRegistry("1.1.1.1,1.0.0.1 bogus",AddressFamily.InterNetwork).SequenceEqual(new[]{"1.1.1.1","1.0.0.1"})&&DnsSettings.ParseRegistry("",AddressFamily.InterNetwork).Length==0,"Registry DNS list parsed incorrectly");
-            Assert(DnsSettings.Providers.All(p=>DnsSettings.Normalize(p.V4,AddressFamily.InterNetwork).Length==p.V4.Length&&DnsSettings.Normalize(p.V6,AddressFamily.InterNetworkV6).Length==p.V6.Length),"Provider list contains invalid addresses");
-            Assert(DnsSettings.Fingerprint(new string[0],new string[0])!=DnsSettings.Fingerprint(new[]{"1.1.1.1"},new string[0]),"DNS fingerprint ignores servers");
             string adapterId=Guid.NewGuid().ToString("B");
-            foreach(var call in new Action[]{()=>DnsActions.Validate("eth0","cloudflare",new string('a',16),null),()=>DnsActions.Validate(adapterId,"evil",new string('a',16),null),()=>DnsActions.Validate(adapterId,"restore",new string('a',16),"-"),()=>DnsActions.Validate(adapterId,"cloudflare","zz",null)}){bool rejected=false;try{call();}catch(ArgumentException){rejected=true;}catch(IOException){rejected=true;}Assert(rejected,"Unsafe DNS request accepted");}
             var live=await Task.Run(()=>DnsSettings.Read());Assert(live.All(a=>DnsSettings.ValidAdapter(a.Id)&&a.Index4>0),"Read-only DNS inventory failed");
             var read=dnsRead;var run=dnsRun;int calls=0;var adapter=new DnsAdapter{Id=adapterId,Name="Ethernet",Description="Тестовый адаптер",Index4=7,Index6=7,Gateway=true,Effective=new[]{"192.168.1.1"}};
             string id=Guid.NewGuid().ToString("N"),directory=Path.Combine(Program.Data,"dns-history"),path=Path.Combine(directory,id+".json");

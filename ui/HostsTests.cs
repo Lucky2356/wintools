@@ -28,15 +28,7 @@ namespace Wintools {
     }
     internal sealed partial class MainWindow {
         private async Task HostsSmoke(){
-            Assert(HostsFile.NormalizeDomain(" Ads.Example.COM. ")=="ads.example.com"&&HostsFile.NormalizeDomain("пример.рф")=="xn--e1afmkfd.xn--p1ai","Domain normalization failed");
-            foreach(var invalid in new[]{"http://ads.example.com","ads.example.com/path","*.example.com","example","localhost","a b.com","ads.example.com:80","1.2.3.4"}){bool rejected=false;try{HostsFile.NormalizeDomain(invalid);}catch(ArgumentException){rejected=true;}Assert(rejected,"Invalid domain accepted: "+invalid);}
             var sample=Encoding.ASCII.GetBytes("# comment\r\n127.0.0.1 localhost\r\n10.0.0.1 nas.local media.local # home");
-            var parsed=HostsFile.Parse(sample);Assert(parsed.Length==3&&parsed.All(e=>!e.Managed),"Hosts parsing incorrect");
-            var added=HostsFile.Add(sample,"ads.example.com");Assert(Encoding.ASCII.GetString(added).EndsWith("# home\r\n0.0.0.0 ads.example.com # wintools\r\n")&&HostsFile.Parse(added).Single(e=>e.Host=="ads.example.com").Managed,"Hosts block line incorrect");
-            Assert(HostsFile.Remove(added,"ads.example.com").SequenceEqual(Encoding.UTF8.GetBytes("# comment\r\n127.0.0.1 localhost\r\n10.0.0.1 nas.local media.local # home\r\n")),"Hosts unblock changed other lines");
-            bool duplicate=false;try{HostsFile.Add(added,"ADS.example.com");}catch(InvalidOperationException){duplicate=true;}Assert(duplicate,"Duplicate hosts entry accepted");
-            bool foreign=false;try{HostsFile.Remove(sample,"nas.local");}catch(ArgumentException){foreign=true;}catch(InvalidOperationException){foreign=true;}Assert(foreign,"Foreign hosts entry removed");
-            foreach(var call in new Action[]{()=>HostsFile.Validate("block","ads.example.com & del",new string('a',16),null),()=>HostsFile.Validate("delete","ads.example.com",new string('a',16),null),()=>HostsFile.Validate("restore","ads.example.com",new string('a',16),Guid.NewGuid().ToString("N")),()=>HostsFile.Validate("block","ads.example.com","zz",null)}){bool rejected=false;try{call();}catch(ArgumentException){rejected=true;}catch(IOException){rejected=true;}Assert(rejected,"Unsafe hosts request accepted");}
             var live=await Task.Run(()=>HostsFile.ReadBytes());HostsFile.Parse(live);
             var read=hostsRead;var run=hostsRun;var content=sample;int calls=0;string id=Guid.NewGuid().ToString("N"),directory=Path.Combine(Program.Data,"hosts-history");
             try{

@@ -10,13 +10,6 @@ using System.Windows.Controls;
 namespace Wintools {
     internal sealed partial class MainWindow {
         private async Task PackageSmoke(){
-            Assert(Packages.Catalog.All(p=>Packages.ValidId(p.Id))&&Packages.Catalog.Select(p=>p.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count()==Packages.Catalog.Length,"Package catalogue IDs invalid or duplicated");
-            foreach(var unsafeId in new[]{"7zip.7zip --override x","a&b","\"x\"","../x"})Assert(!Packages.ValidId(unsafeId),"Unsafe package ID accepted: "+unsafeId);
-            bool rejected=false;try{Packages.Arguments("install","Unknown.Package");}catch(ArgumentException){rejected=true;}Assert(rejected,"Package outside the catalogue accepted");
-            Assert(Packages.Arguments("install","7zip.7zip")=="install --id 7zip.7zip --exact --source winget --silent "+Packages.Agreements,"Install arguments changed");
-            Assert(Packages.Succeeded(0)&&Packages.Succeeded(unchecked((int)0x8A150061))&&Packages.Succeeded(unchecked((int)0x8A15002B))&&!Packages.Succeeded(1)&&Packages.Describe(unchecked((int)0x8A150061),"install")=="Уже установлено","winget result codes misread");
-            Assert(Packages.ParseExport("{\"Sources\":[{\"Packages\":[{\"PackageIdentifier\":\"7zip.7zip\"},{\"PackageIdentifier\":\"bad id\"}],\"SourceDetails\":{\"Name\":\"winget\"}}]}").SetEquals(new[]{"7zip.7zip"}),"winget export parsed incorrectly");
-            Assert(!Packages.Meaningful("  \\ ")&&!Packages.Meaningful("██████▒▒▒  1.2 MB / 3 MB")&&Packages.Meaningful("Successfully installed"),"winget progress filter incorrect");
             var locate=wingetLocate;var inventory=packageInventory;var run=packageRun;var calls=new List<string>();var installed=new HashSet<string>(StringComparer.OrdinalIgnoreCase){"VideoLAN.VLC"};
             try{
                 wingetLocate=()=>null;ShowPage(14);await RefreshPackages();Assert(!packageUpgradeAll.IsEnabled&&packageStore.Visibility==Visibility.Visible&&packageStatus.Text.Contains("не найден"),"Missing winget not explained");

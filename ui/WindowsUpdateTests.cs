@@ -31,12 +31,6 @@ namespace Wintools {
     }
     internal sealed partial class MainWindow {
         private async Task WindowsUpdateSmoke(){
-            foreach(var call in new Action[]{()=>WindowsUpdates.Validate("pause","36",new string('a',16),null),()=>WindowsUpdates.Validate("pause","7 & x",new string('a',16),null),()=>WindowsUpdates.Validate("hours","8-8",new string('a',16),null),()=>WindowsUpdates.Validate("hours","0-23",new string('a',16),null),()=>WindowsUpdates.Validate("disable","-",new string('a',16),null),()=>WindowsUpdates.Validate("restore","-",new string('a',16),"-"),()=>WindowsUpdates.Validate("resume","-","zz",null)}){bool rejected=false;try{call();}catch(ArgumentException){rejected=true;}catch(IOException){rejected=true;}Assert(rejected,"Unsafe update request accepted");}
-            WindowsUpdates.Validate("hours","20-8",new string('a',16),null);
-            var now=new DateTime(2026,1,1,12,0,0,DateTimeKind.Utc);var plan=WindowsUpdates.Plan("pause","14",now);Assert(plan["PauseUpdatesExpiryTime"].Data=="2026-01-15T12:00:00Z"&&plan["PauseQualityUpdatesStartTime"].Data=="2026-01-01T12:00:00Z"&&plan.Count==6,"Pause plan incorrect");
-            Assert(WindowsUpdates.Plan("resume","-",now).Values.All(v=>v.Data==null)&&WindowsUpdates.Plan("hours","9-21",now)["SmartActiveHoursState"].Data=="0","Resume or hours plan incorrect");
-            var described=WindowsUpdates.Describe(new[]{new UpdateValue{Name="PauseUpdatesExpiryTime",Kind="string",Data=WindowsUpdates.Iso(DateTime.UtcNow.AddDays(3))},new UpdateValue{Name="ActiveHoursStart",Kind="dword",Data="9"},new UpdateValue{Name="ActiveHoursEnd",Kind="dword",Data="21"}});
-            Assert(described.PausedUntil.HasValue&&described.ActiveStart==9&&described.ActiveEnd==21&&!WindowsUpdates.Describe(new[]{new UpdateValue{Name="PauseUpdatesExpiryTime",Kind="string",Data="2001-01-01T00:00:00Z"}}).PausedUntil.HasValue,"Update settings description incorrect");
             var live=await Task.Run(()=>WindowsUpdates.Read());Assert(live.Values.All(v=>WindowsUpdates.Names.Contains(v.Name)),"Read-only update settings failed");
             var read=updateRead;var installed=updateInstalled;var run=updateRun;var values=new UpdateValue[0];int calls=0;string id=Guid.NewGuid().ToString("N"),directory=Path.Combine(Program.Data,"update-history");
             try{

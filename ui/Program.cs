@@ -30,6 +30,7 @@ namespace Wintools {
                 if (args.Length > 0 && args[0] == "--backup-worker") return Backups.Worker(args);
                 if (args.Length > 0 && args[0] == "--service-worker") return ServiceActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--worker") return Engine.Worker(args);
+                if (args.Length == 1 && args[0] == "--unit-test") return UnitTests.Run();
                 bool test = args.Length == 1 && args[0] == "--self-test";
                 bool smoke = args.Length == 1 && args[0] == "--ui-smoke";
                 if (test && !Hosted) throw new InvalidOperationException("System integration tests run only on GitHub-hosted runners.");

@@ -8,15 +8,6 @@ using Microsoft.Win32;
 namespace Wintools {
     internal sealed partial class MainWindow {
         private async Task CatalogueStateSmoke(){
-            var dword=new Tweak{Id="SMOKE-DWORD",Kind="REG",ValueType="REG_DWORD",Value="0"};
-            Assert(TweakStates.Compare(dword,RegistryValueKind.DWord,0).Applied==true,"Matching DWORD not recognised as applied");
-            var other=TweakStates.Compare(dword,RegistryValueKind.DWord,1);Assert(other.Applied==false&&other.Text.Contains("сейчас 1"),"Different DWORD not reported");
-            Assert(TweakStates.Compare(dword,RegistryValueKind.Unknown,null).Applied==false,"Missing value reported as applied");
-            Assert(TweakStates.Compare(dword,RegistryValueKind.String,"0").Applied==false,"Value of another type reported as applied");
-            uint parsed;Assert(TweakStates.TryDword("0xffffffff",out parsed)&&parsed==uint.MaxValue&&TweakStates.TryDword("4294967295",out parsed)&&parsed==uint.MaxValue&&!TweakStates.TryDword("abc",out parsed),"DWORD parsing differs from the engine");
-            Assert(TweakStates.Compare(dword,RegistryValueKind.DWord,-1).Text.Contains("4294967295"),"Negative DWORD shown incorrectly");
-            var empty=new Tweak{Id="SMOKE-SZ",Kind="REG",ValueType="REG_SZ",Value="@EMPTY@"};
-            Assert(TweakStates.Compare(empty,RegistryValueKind.String,"").Applied==true&&TweakStates.Compare(empty,RegistryValueKind.String,"x").Applied==false,"Empty string placeholder misread");
             // Live read of a disposable key proves hive mapping, the default value and absent keys.
             string key="Software\\Wintools-smoke-"+Guid.NewGuid().ToString("N");
             try{

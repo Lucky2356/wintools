@@ -22,10 +22,7 @@ namespace Wintools {
     internal sealed partial class MainWindow {
         private async Task BackupSmoke(){
             const string xml="<?xml version='1.0' encoding='utf-8'?><BatteryReport xmlns='http://schemas.microsoft.com/battery/2012'><Batteries><Battery><Id>DELL 1234</Id><Manufacturer>SMP</Manufacturer><DesignCapacity>60000</DesignCapacity><FullChargeCapacity>45000</FullChargeCapacity><CycleCount>310</CycleCount></Battery></Batteries></BatteryReport>";
-            var batteries=Backups.ParseBatteries(xml);Assert(batteries.Length==1&&batteries[0].DesignMWh==60000&&Math.Abs(batteries[0].Health.Value-75)<0.01&&batteries[0].Cycles==310,"Battery report parsed incorrectly");
-            Assert(Backups.Describe(batteries).Contains("75 %")&&Backups.Describe(batteries).Contains("310")&&Backups.Describe(new BatteryInfo[0]).Contains("не найдена"),"Battery description incorrect");
-            bool rejected=false;try{Backups.Validate(new BackupResult{Folder=Path.Combine(Program.Home,"elsewhere")});}catch(IOException){rejected=true;}Assert(rejected,"Driver folder outside WintoolsData accepted");
-            rejected=false;try{Backups.Run("format").GetAwaiter().GetResult();}catch(ArgumentException){rejected=true;}Assert(rejected,"Unknown backup action accepted");
+            var batteries=Backups.ParseBatteries(xml);
             var reader=batteryReader;var run=backupRun;var actions=new System.Collections.Generic.List<string>();string folder=Path.Combine(Program.Data,"drivers","20260101-000000");
             try{
                 batteryReader=html=>Task.FromResult(batteries);ShowPage(6);await ReadBattery();Assert(batteryStatus.Text.Contains("75 %")&&!batteryOpen.IsEnabled,"Battery result not shown or missing report enabled");
