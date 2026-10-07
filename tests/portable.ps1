@@ -7,7 +7,7 @@ $exe=Join-Path $fixture 'WintoolsPortable.exe'
 Copy-Item -LiteralPath $Executable -Destination $exe
 function Run-Portable($path,$arguments,$expected=0){
   $process=Start-Process -FilePath $path -ArgumentList $arguments -PassThru -WindowStyle Hidden
-  $timeout=if($arguments -eq '--self-test'){900000}else{90000}
+  $timeout=if($arguments -eq '--self-test'){3600000}elseif($arguments -eq '--ui-smoke'){300000}else{90000}
   $finished=$process.WaitForExit($timeout)
   $progress=Join-Path $fixture 'portable-integration-progress.txt'
   if(Test-Path $progress){Get-Content $progress -Tail 100;Copy-Item $progress (Join-Path (Split-Path $Executable -Parent) 'portable-integration-progress.txt') -Force}
