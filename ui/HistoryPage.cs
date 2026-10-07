@@ -13,6 +13,7 @@ namespace Wintools {
             ReadHistorySource("Питание",PowerHistoryRows,rows,failed,errors);
             ReadHistorySource("DNS",DnsHistoryRows,rows,failed,errors);
             ReadHistorySource("Файл hosts",HostsHistoryRows,rows,failed,errors);
+            ReadHistorySource("Обновления Windows",UpdateHistoryRows,rows,failed,errors);
             ReadHistorySource("Установка программ",PackageHistoryRows,rows,failed,errors);
             ReadHistorySource("Обслуживание",IntegrityHistoryRows,rows,failed,errors);
             ReadHistorySource("Автозагрузка",StartupHistoryRows,rows,failed,errors);
