@@ -26,7 +26,8 @@ namespace Wintools {
     internal static class HostsFile {
         internal const string Marker="# wintools";
         internal static string Path {get{return System.IO.Path.Combine(Environment.SystemDirectory,"drivers","etc","hosts");}}
-        private static string DirectoryPath {get{return System.IO.Path.Combine(Program.Data,"hosts-history");}}
+        private static readonly RecordStore Store=new RecordStore("hosts-history","hosts",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         internal static string Hash(byte[] content){using(var sha=SHA256.Create())return BitConverter.ToString(sha.ComputeHash(content??new byte[0])).Replace("-","").Substring(0,16).ToLowerInvariant();}
         internal static byte[] ReadBytes(){var info=new FileInfo(Path);if(!info.Exists)return new byte[0];if(info.Length>4194304)throw new IOException("Файл hosts больше 4 МБ: изменять его автоматически небезопасно.");return File.ReadAllBytes(Path);}
         // Lower-case ASCII host name; international names are converted to punycode. Wildcards, ports and paths are rejected.
@@ -58,19 +59,15 @@ namespace Wintools {
             var bytes=new UTF8Encoding(false).GetBytes(string.Join("\n",lines));return bom?new byte[]{0xEF,0xBB,0xBF}.Concat(bytes).ToArray():bytes;
         }
         private static string RecordPath(string id,string extension){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения hosts.");return Program.Under(DirectoryPath,id+extension);}
-        private static void SaveFile(string path,byte[] bytes){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-            if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История hosts является ссылкой.");
-            try{using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
-        private static void Save(HostsChange record){SaveFile(RecordPath(record.Id,".json"),new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record)));}
+        private static void SaveFile(string path,byte[] bytes){Store.Write(path,bytes);}
+        private static void Save(HostsChange record){Store.Save(RecordPath(record.Id,".json"),record);}
         internal static HostsChange Read(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id,".json");if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории hosts.");var record=new JavaScriptSerializer().Deserialize<HostsChange>(File.ReadAllText(path));DateTime time;
+            try{var record=Store.Load<HostsChange>(RecordPath(id,".json"));DateTime time;
                 if(record==null||record.Schema!="wintools/hosts-change/1"||record.Id!=id||!new[]{"block","unblock","restore"}.Contains(record.Action)||!Regex.IsMatch(record.BeforeHash??"","^[a-f0-9]{16}$")||(record.AfterHash!=null&&!Regex.IsMatch(record.AfterHash,"^[a-f0-9]{16}$"))||(record.Action!="restore"&&NormalizeDomain(record.Domain)!=record.Domain)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись hosts.");return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история hosts.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история hosts.",ex);}
         }
         internal static byte[] Backup(string id){string path=RecordPath(id,".hosts");var info=new FileInfo(path);if(!info.Exists||info.Length>4194304||(info.Attributes&FileAttributes.ReparsePoint)!=0)throw new IOException("Резервная копия hosts не найдена.");return File.ReadAllBytes(path);}
-        internal static HostsChange[] History(){if(!Directory.Exists(DirectoryPath))return new HostsChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(System.IO.Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static HostsChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
         internal static void Validate(string action,string domain,string expected,string restore){
             if(!Regex.IsMatch(expected??"","^[a-f0-9]{16}$"))throw new ArgumentException("Некорректный запрос hosts.");
             if(action=="restore"){if(domain!="-"||restore==null||restore=="-")throw new ArgumentException("Не указана запись для возврата hosts.");RecordPath(restore,".json");}

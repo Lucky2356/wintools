@@ -74,20 +74,16 @@ namespace Wintools {
             if(before.State=="Paused"){if(Inspect(before.Name).State=="Stopped")Start(before.Name);Pause(before.Name);}
             if(before.Mode=="Disabled"&&active)Mode(before.Name,"Disabled",false);
         }
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"service-history");}}
+        private static readonly RecordStore Store=new RecordStore("service-history","службы",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения службы.");return Program.Under(DirectoryPath,id+".json");}
-        private static void Save(ServiceChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);var path=RecordPath(record.Id);var temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-            if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Файл истории является ссылкой.");
-            try{var data=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));if(data.Length>65536)throw new IOException("Описание службы слишком велико для истории.");using(var stream=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){stream.Write(data,0,data.Length);stream.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        private static void Save(ServiceChange record){Store.Save(RecordPath(record.Id),record);}
         internal static ServiceChange Read(string id){
             try{
-            Program.SafeDirectory(DirectoryPath);var path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории службы.");
-            var record=new JavaScriptSerializer().Deserialize<ServiceChange>(File.ReadAllText(path));DateTime stamp;if(record==null||record.Schema!="wintools/service-change/1"||record.Id!=id||record.Before==null||record.Before.Name!=record.Name||!ValidName(record.Name)||!new[]{"Auto","Manual","Disabled"}.Contains(record.Before.Mode)||!new[]{"Running","Stopped","Paused"}.Contains(record.Before.State)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out stamp))throw new IOException("Некорректная запись истории службы.");Validate(record.Name,record.Action,record.Action=="restore"?record.Id:null);return record;
+            var record=Store.Load<ServiceChange>(RecordPath(id));DateTime stamp;if(record==null||record.Schema!="wintools/service-change/1"||record.Id!=id||record.Before==null||record.Before.Name!=record.Name||!ValidName(record.Name)||!new[]{"Auto","Manual","Disabled"}.Contains(record.Before.Mode)||!new[]{"Running","Stopped","Paused"}.Contains(record.Before.State)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out stamp))throw new IOException("Некорректная запись истории службы.");Validate(record.Name,record.Action,record.Action=="restore"?record.Id:null);return record;
             }catch(ArgumentException ex){throw new IOException("Некорректная запись истории службы.",ex);}catch(InvalidOperationException ex){throw new IOException("Некорректная запись истории службы.",ex);}
         }
-        internal static ServiceChange[] History(){if(!Directory.Exists(DirectoryPath))return new ServiceChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(path=>Read(Path.GetFileNameWithoutExtension(path))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static ServiceChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
         internal static ServiceChange Latest(string name){
             return History().FirstOrDefault(r=>r.Name==name&&r.Action!="restore"&&r.Status!="REVERTED");
         }

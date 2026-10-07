@@ -74,20 +74,17 @@ namespace Wintools {
                 foreach(var value in values){if(!Names.Contains(value.Name))throw new IOException("Недопустимое значение Windows Update.");if(value.Data==null){if(key.GetValueNames().Contains(value.Name,StringComparer.OrdinalIgnoreCase))key.DeleteValue(value.Name,false);}else if(value.Kind=="dword")key.SetValue(value.Name,unchecked((int)uint.Parse(value.Data,CultureInfo.InvariantCulture)),RegistryValueKind.DWord);else key.SetValue(value.Name,value.Data,RegistryValueKind.String);}
             }
         }
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"update-history");}}
+        private static readonly RecordStore Store=new RecordStore("update-history","Windows Update",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения Windows Update.");return Program.Under(DirectoryPath,id+".json");}
-        private static void Save(UpdateChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string path=RecordPath(record.Id),temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-            if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История Windows Update является ссылкой.");
-            try{var bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        private static void Save(UpdateChange record){Store.Save(RecordPath(record.Id),record);}
         private static bool ValidValues(UpdateValue[] values){return values!=null&&values.Length<=Names.Length&&values.All(v=>v!=null&&Names.Contains(v.Name)&&(v.Kind=="dword"?Regex.IsMatch(v.Data??"","^[0-9]{1,10}$"):v.Kind=="string"&&v.Data!=null&&v.Data.Length<=64))&&values.Select(v=>v.Name).Distinct().Count()==values.Length;}
         internal static UpdateChange ReadRecord(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории Windows Update.");var record=new JavaScriptSerializer().Deserialize<UpdateChange>(File.ReadAllText(path));DateTime time;
+            try{var record=Store.Load<UpdateChange>(RecordPath(id));DateTime time;
                 if(record==null||record.Schema!="wintools/update-change/1"||record.Id!=id||!new[]{"pause","resume","hours","restore"}.Contains(record.Action)||string.IsNullOrEmpty(record.Detail)||record.Detail.Length>200||!ValidValues(record.Before)||!Regex.IsMatch(record.BeforeHash??"","^[a-f0-9]{16}$")||(record.AfterHash!=null&&!Regex.IsMatch(record.AfterHash,"^[a-f0-9]{16}$"))||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись Windows Update.");return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история Windows Update.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история Windows Update.",ex);}
         }
-        internal static UpdateChange[] History(){if(!Directory.Exists(DirectoryPath))return new UpdateChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>ReadRecord(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static UpdateChange[] History(){return Store.All(ReadRecord,r=>r.TimeUtc);}
         internal static string Detail(string action,string argument){return action=="pause"?"Пауза обновлений на "+argument+" дн.":action=="resume"?"Возобновление обновлений":action=="hours"?"Часы активности "+argument.Replace("-",":00–")+":00":"Возврат настроек обновлений";}
         internal static async Task<EngineResult> Run(string action,string argument,string expected,string restore){
             Validate(action,argument,expected,restore);string token=Guid.NewGuid().ToString("N"),sid=WindowsIdentity.GetCurrent().User.Value;

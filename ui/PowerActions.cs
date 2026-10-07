@@ -13,19 +13,16 @@ namespace Wintools {
         public string Schema,Id,Before,Target,BeforeName,TargetName,After,TimeUtc,Status,Error,Action;
     }
     internal static class PowerActions {
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"power-history");}}
+        private static readonly RecordStore Store=new RecordStore("power-history","питание",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения питания.");return Program.Under(DirectoryPath,id+".json");}
-        private static void Save(PowerChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string path=RecordPath(record.Id),temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-            if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История питания является ссылкой.");
-            try{var bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));if(bytes.Length>65536)throw new IOException("Запись питания слишком велика.");using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        private static void Save(PowerChange record){Store.Save(RecordPath(record.Id),record);}
         internal static PowerChange Read(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории питания.");var record=new JavaScriptSerializer().Deserialize<PowerChange>(File.ReadAllText(path));DateTime time;
+            try{var record=Store.Load<PowerChange>(RecordPath(id));DateTime time;
                 if(record==null||record.Schema!="wintools/power-change/1"||record.Id!=id||!PowerPlans.ValidId(record.Before)||!PowerPlans.ValidId(record.Target)||(record.After!=null&&!PowerPlans.ValidId(record.After))||!new[]{"select","restore"}.Contains(record.Action)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись питания.");return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история питания.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история питания.",ex);}
         }
-        internal static PowerChange[] History(){if(!Directory.Exists(DirectoryPath))return new PowerChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static PowerChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
         internal static void Validate(string target,string expected,string restore){if(!PowerPlans.ValidId(target)||!PowerPlans.ValidId(expected))throw new ArgumentException("Некорректная схема питания.");if(restore!=null&&restore!="-")RecordPath(restore);}
         internal static async Task<EngineResult> Run(string target,string expected,string restore){
             Validate(target,expected,restore);string token=Guid.NewGuid().ToString("N"),sid=WindowsIdentity.GetCurrent().User.Value;

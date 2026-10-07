@@ -13,18 +13,16 @@ namespace Wintools {
         public string Schema,Id,Source,Name,Identity,Before,After,TimeUtc,Status,Action,Error;
     }
     internal static class StartupActions {
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"startup-history");}}
+        private static readonly RecordStore Store=new RecordStore("startup-history","автозагрузка",131072);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения автозагрузки.");return Program.Under(DirectoryPath,id+".json");}
-        private static void Save(StartupChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string path=RecordPath(record.Id),temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История автозагрузки является ссылкой.");
-            try{var bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));if(bytes.Length>131072)throw new IOException("Запись автозагрузки слишком велика.");using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        private static void Save(StartupChange record){Store.Save(RecordPath(record.Id),record);}
         internal static StartupChange Read(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>131072||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории автозагрузки.");var record=new JavaScriptSerializer().Deserialize<StartupChange>(File.ReadAllText(path));DateTime time;
+            try{var record=Store.Load<StartupChange>(RecordPath(id));DateTime time;
                 if(record==null||record.Schema!="wintools/startup-change/1"||record.Id!=id||!Regex.IsMatch(record.Identity??"","^[a-f0-9]{64}$")||!StartupEntries.Decode(record.Before).HasValue||!StartupEntries.Decode(record.After).HasValue||!new[]{"enable","disable","restore"}.Contains(record.Action)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись автозагрузки.");StartupEntries.Validate(record.Source,record.Name);return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история автозагрузки.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история автозагрузки.",ex);}
         }
-        internal static StartupChange[] History(){if(!Directory.Exists(DirectoryPath))return new StartupChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static StartupChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
         internal static async Task<EngineResult> Run(StartupEntry entry,string action,string restore){
             StartupEntries.Validate(entry.Source,entry.Name);string id=Guid.NewGuid().ToString("N"),sid=WindowsIdentity.GetCurrent().User.Value;
             var info=new ProcessStartInfo(Program.Exe,"--startup-worker "+action+" "+entry.Source+" "+Convert.ToBase64String(Encoding.UTF8.GetBytes(entry.Name))+" "+entry.Fingerprint+" "+id+" "+sid+" "+(restore??"-")){UseShellExecute=true,WorkingDirectory=Program.Home,WindowStyle=ProcessWindowStyle.Hidden};if(entry.Source.StartsWith("machine-")||entry.Source==StartupTasks.Source)info.Verb="runas";

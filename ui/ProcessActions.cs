@@ -14,18 +14,16 @@ namespace Wintools {
         public bool Restore;
     }
     internal static class ProcessActions {
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"process-history");}}
+        private static readonly RecordStore Store=new RecordStore("process-history","процессы",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения процесса.");return Program.Under(DirectoryPath,id+".json");}
-        private static void Save(ProcessChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string path=RecordPath(record.Id),temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История процессов является ссылкой.");
-            try{var bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));if(bytes.Length>65536)throw new IOException("Запись слишком велика.");using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        private static void Save(ProcessChange record){Store.Save(RecordPath(record.Id),record);}
         internal static ProcessChange Read(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректная история процесса.");var r=new JavaScriptSerializer().Deserialize<ProcessChange>(File.ReadAllText(path));DateTime time;ulong before,after;
+            try{var r=Store.Load<ProcessChange>(RecordPath(id));DateTime time;ulong before,after;
                 if(r==null||r.Schema!="wintools/process-change/1"||r.Id!=id||r.Pid<=4||r.Started<=0||!new[]{"priority","affinity"}.Contains(r.Action)||!ulong.TryParse(r.Before,out before)||!ulong.TryParse(r.After,out after)||before==0||after==0||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(r.Status)||!DateTime.TryParseExact(r.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись процесса.");if(r.Action=="priority"&&(before>uint.MaxValue||after>uint.MaxValue||!ProcessControl.Priorities.Contains((uint)before)||!ProcessControl.Priorities.Contains((uint)after)))throw new IOException("Некорректный приоритет в истории.");return r;
             }catch(ArgumentException ex){throw new IOException("Повреждена история процессов.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история процессов.",ex);}
         }
-        internal static ProcessChange[] History(){if(!Directory.Exists(DirectoryPath))return new ProcessChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static ProcessChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
         internal static Task<EngineResult> Run(ProcessRow row,ProcessSettings expected,string action,ulong target,string restore){return Task.Run(()=>Change(row,expected,action,target,restore));}
         internal static EngineResult Change(ProcessRow row,ProcessSettings expected,string action,ulong target,string restore){
             string lockPath=Path.Combine(Program.Data,"state","run.lock");Program.SafeDirectory(Path.GetDirectoryName(lockPath));FileStream gate=null;ProcessChange record=null;

@@ -106,18 +106,15 @@ namespace Wintools {
             foreach(var source in ((System.Collections.ArrayList)sources).OfType<Dictionary<string,object>>()){object packages;if(!source.TryGetValue("Packages",out packages)||!(packages is System.Collections.ArrayList))continue;foreach(var package in ((System.Collections.ArrayList)packages).OfType<Dictionary<string,object>>()){object id;if(package.TryGetValue("PackageIdentifier",out id)&&id is string&&ValidId((string)id))result.Add((string)id);}}
             return result;
         }
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"package-history");}}
+        private static readonly RecordStore Store=new RecordStore("package-history","winget",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер записи winget.");return Program.Under(DirectoryPath,id+".json");}
-        internal static void Save(PackageChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string path=RecordPath(record.Id),temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-            if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История winget является ссылкой.");
-            try{var bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        internal static void Save(PackageChange record){Store.Save(RecordPath(record.Id),record);}
         internal static PackageChange Read(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории winget.");var record=new JavaScriptSerializer().Deserialize<PackageChange>(File.ReadAllText(path));DateTime time;
+            try{var record=Store.Load<PackageChange>(RecordPath(id));DateTime time;
                 if(record==null||record.Schema!="wintools/package-change/1"||record.Id!=id||!new[]{"install","upgrade","upgrade-all","uninstall"}.Contains(record.Action)||(record.Action!="upgrade-all"&&(!ValidId(record.Package)||Find(record.Package)==null))||string.IsNullOrEmpty(record.Name)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись winget.");return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история winget.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история winget.",ex);}
         }
-        internal static PackageChange[] History(){if(!Directory.Exists(DirectoryPath))return new PackageChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static PackageChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
     }
 }

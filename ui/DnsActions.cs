@@ -15,20 +15,17 @@ namespace Wintools {
         public string[] Before4,Before6,After4,After6;
     }
     internal static class DnsActions {
-        private static string DirectoryPath {get{return Path.Combine(Program.Data,"dns-history");}}
+        private static readonly RecordStore Store=new RecordStore("dns-history","DNS",65536);
+        private static string DirectoryPath {get{return Store.Folder;}}
         private static string RecordPath(string id){if(!Regex.IsMatch(id??"","^[a-f0-9]{32}$"))throw new IOException("Некорректный номер изменения DNS.");return Program.Under(DirectoryPath,id+".json");}
-        private static void Save(DnsChange record){
-            Program.SafeDirectory(DirectoryPath);Directory.CreateDirectory(DirectoryPath);string path=RecordPath(record.Id),temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
-            if(File.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("История DNS является ссылкой.");
-            try{var bytes=new UTF8Encoding(false).GetBytes(new JavaScriptSerializer().Serialize(record));if(bytes.Length>65536)throw new IOException("Запись DNS слишком велика.");using(var file=new FileStream(temporary,FileMode.CreateNew,FileAccess.Write,FileShare.None)){file.Write(bytes,0,bytes.Length);file.Flush(true);}if(File.Exists(path))File.Replace(temporary,path,null);else File.Move(temporary,path);}finally{if(File.Exists(temporary))File.Delete(temporary);}
-        }
+        private static void Save(DnsChange record){Store.Save(RecordPath(record.Id),record);}
         private static bool ValidList(string[] values,AddressFamily family,bool optional){if(values==null)return optional;try{return DnsSettings.Normalize(values,family).SequenceEqual(values);}catch(ArgumentException){return false;}}
         internal static DnsChange Read(string id){
-            try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории DNS.");var record=new JavaScriptSerializer().Deserialize<DnsChange>(File.ReadAllText(path));DateTime time;
+            try{var record=Store.Load<DnsChange>(RecordPath(id));DateTime time;
                 if(record==null||record.Schema!="wintools/dns-change/1"||record.Id!=id||!DnsSettings.ValidAdapter(record.Adapter)||string.IsNullOrEmpty(record.AdapterName)||string.IsNullOrEmpty(record.TargetName)||!ValidList(record.Before4,AddressFamily.InterNetwork,false)||!ValidList(record.Before6,AddressFamily.InterNetworkV6,false)||!ValidList(record.After4,AddressFamily.InterNetwork,true)||!ValidList(record.After6,AddressFamily.InterNetworkV6,true)||!new[]{"select","restore"}.Contains(record.Action)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись DNS.");return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история DNS.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история DNS.",ex);}
         }
-        internal static DnsChange[] History(){if(!Directory.Exists(DirectoryPath))return new DnsChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
+        internal static DnsChange[] History(){return Store.All(Read,r=>r.TimeUtc);}
         internal static void Validate(string adapter,string target,string expected,string restore){
             if(!DnsSettings.ValidAdapter(adapter)||!Regex.IsMatch(expected??"","^[a-f0-9]{16}$"))throw new ArgumentException("Некорректный запрос DNS.");
             if(target=="restore"){if(restore==null||restore=="-")throw new ArgumentException("Не указана запись для возврата DNS.");RecordPath(restore);}
