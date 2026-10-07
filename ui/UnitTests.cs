@@ -469,7 +469,9 @@ namespace Wintools
                 Lang.Translate(shell);
                 var left = new List<string>();
                 CollectTexts(shell, left);
-                left = left.Where(t => cyrillic.IsMatch(t) && !allowed.Contains(t)).Distinct().ToList();
+                // The language name and the bilingual language label keep their Russian words on purpose.
+                var intended = allowed.Concat(allowed.Where(table.ContainsKey).Select(k => table[k])).ToArray();
+                left = left.Where(t => cyrillic.IsMatch(t) && !intended.Contains(t)).Distinct().ToList();
                 Assert(left.Count == 0, "Shell texts without translation: " + string.Join(" | ", left.Take(10)));
                 Lang.Initialize("en", true);
                 Assert(!Lang.English && Lang.T("Сеть и DNS") == "Сеть и DNS", "Test mode not forced to Russian");
