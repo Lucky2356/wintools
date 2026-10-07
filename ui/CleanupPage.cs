@@ -25,7 +25,8 @@ namespace Wintools
         private Button cleanupScan, cleanupApply, cleanupStop;
         private TextBlock cleanupStatus;
         private CancellationTokenSource cleanupCancel;
-        private Func<string, CancellationToken, CleanupEstimate> cleanupRead = CleanupPreview.Read;
+        // Browser caches are measured by BrowserCache; the folder preview stays free of it so the maintenance test can compile it alone.
+        private Func<string, CancellationToken, CleanupEstimate> cleanupRead = (id, cancel) => id == CleanupPreview.Ids[3] ? BrowserCache.Estimate(cancel) : CleanupPreview.Read(id, cancel);
         private Func<string, Action<string>, Task<EngineResult>> cleanupRun = (id, progress) => id == "CLN-BROWSER" ? Task.Run(() => BrowserCache.Clean()) : Engine.Run("cleanup", id, "-", false, false, progress);
         private void InitializeCleanup(Grid root)
         {

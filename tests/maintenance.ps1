@@ -34,7 +34,7 @@ try {
   foreach($file in @($old,$keep)){(Get-Item $file).LastWriteTime=(Get-Date).AddDays(-10)}
   $link=Join-Path $env:TEMP 'linked'
   $null=New-Item -ItemType Junction -Path $link -Target $outside
-  $scanner=[IO.File]::ReadAllText((Join-Path $root 'ui\CleanupPreview.cs'))
+  # The preview takes its messages from the translation table, so Lang.cs is compiled with it.
   $probe=@"
 namespace Wintools {
     public static class CleanupBoundaryProbe {
@@ -46,7 +46,11 @@ namespace Wintools {
     }
 }
 "@
-  Add-Type -TypeDefinition ($scanner+[Environment]::NewLine+$probe)
+  $probeFile=Join-Path $fixture 'CleanupBoundaryProbe.cs'
+  [IO.File]::WriteAllText($probeFile,$probe)
+  $runtime=[Runtime.InteropServices.RuntimeEnvironment]::GetRuntimeDirectory()
+  $references=@('System.Core.dll','System.Xml.dll','System.Xaml.dll','System.Web.Extensions.dll','WPF\WindowsBase.dll','WPF\PresentationCore.dll','WPF\PresentationFramework.dll','WPF\UIAutomationTypes.dll','WPF\UIAutomationProvider.dll') | ForEach-Object { Join-Path $runtime $_ }
+  Add-Type -Path @((Join-Path $root 'ui\CleanupPreview.cs'),(Join-Path $root 'ui\Lang.cs'),$probeFile) -ReferencedAssemblies $references
   [Wintools.CleanupBoundaryProbe]::Verify($env:TEMP,$link,(Get-Item $old).Length)
   $env:OPT_DRY='1'
   $null=Invoke-Helper @{Action='CleanupFiles';Name='CLN-USERTEMP'} 0

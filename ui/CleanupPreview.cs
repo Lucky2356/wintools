@@ -24,8 +24,6 @@ namespace Wintools
         };
         internal static CleanupEstimate Read(string id, CancellationToken cancel)
         {
-            if (id == Ids[3])
-                return BrowserCache.Estimate(cancel);
             string directory;
             int days;
             if (id == Ids[0])
