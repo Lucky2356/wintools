@@ -71,13 +71,25 @@ namespace Wintools {
                     if(stopPackages)break;string name=id==null?"Все программы":Packages.Find(id).Name;Text("Status",(action=="install"?"Устанавливаем ":"Обновляем ")+name+"…");output.AppendText("▶ "+name+Environment.NewLine);
                     var record=new PackageChange{Schema="wintools/package-change/1",Id=Guid.NewGuid().ToString("N"),Package=id,Name=name,Action=action,Status="PENDING",TimeUtc=DateTime.UtcNow.ToString("o")};Packages.Save(record);
                     long code;try{code=await packageRun(Packages.Arguments(action,id),line=>Window.Dispatcher.BeginInvoke(new Action(()=>{output.AppendText(line+Environment.NewLine);output.ScrollToEnd();})));}catch(Exception ex){code=-1;output.AppendText(ex.Message+Environment.NewLine);}
-                    record.Code=code;record.Status=Packages.Succeeded(code)?"OK":"FAILED";Packages.Save(record);if(record.Status=="OK")done++;else failed++;output.AppendText("■ "+name+": "+Packages.Describe(code,action)+Environment.NewLine+Environment.NewLine);
+                    record.Code=code;record.Status=Packages.Succeeded(code,action)?"OK":"FAILED";Packages.Save(record);if(record.Status=="OK")done++;else failed++;output.AppendText("■ "+name+": "+Packages.Describe(code,action)+Environment.NewLine+Environment.NewLine);
                 }
                 Text("Status",(stopPackages?"Остановлено. ":"")+"Готово: "+done+(failed>0?", с ошибкой: "+failed+". Подробности — в выводе.":"."));
             }catch(Exception ex){Text("Status","winget не завершил работу: "+ex.Message);}
             finally{packageStop.Visibility=Visibility.Collapsed;SetBusy(false);ReadHistory();}
             await RefreshPackages();
         }
-        private static HistoryRow[] PackageHistoryRows(){return Packages.History().Select(r=>new HistoryRow{Run=r.Id,PackageChange=true,TimeUtc=DateTime.Parse(r.TimeUtc,CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),Title=(r.Action=="install"?"Установка: ":"Обновление: ")+r.Name,Status=r.Status=="PENDING"?"Прервано":Packages.Describe(r.Code,r.Action)+" · без отката",CanRevert=false}).ToArray();}
+        // A program installed through Wintools can be removed again from the shared history; winget runs the publisher's uninstaller.
+        private async Task UninstallPackageFromHistory(string id){
+            if(busy||readingPackages)return;
+            try{var record=Packages.Read(id);if(record.Action!="install"||record.Status!="OK")throw new InvalidOperationException("Удалить можно только программу, успешно установленную через Wintools.");if(wingetVersion==null)wingetVersion=await Task.Run(()=>wingetLocate());if(wingetVersion==null)throw new InvalidOperationException("winget не найден.");
+                if(!await Confirm("Удалить «"+record.Name+"»?\n\nWinget запустит штатный деинсталлятор издателя без вопросов. Настройки и данные программы могут быть удалены. Вернуть программу можно повторной установкой."))return;
+                SetBusy(true);ExpandOutput(true);var output=Get<TextBox>("Output");output.Text="";var change=new PackageChange{Schema="wintools/package-change/1",Id=Guid.NewGuid().ToString("N"),Package=record.Package,Name=record.Name,Action="uninstall",Status="PENDING",TimeUtc=DateTime.UtcNow.ToString("o")};
+                try{Packages.Save(change);long code;try{code=await packageRun(Packages.Arguments("uninstall",record.Package),line=>Window.Dispatcher.BeginInvoke(new Action(()=>{output.AppendText(line+Environment.NewLine);output.ScrollToEnd();})));}catch(Exception ex){code=-1;output.AppendText(ex.Message+Environment.NewLine);}
+                    change.Code=code;change.Status=Packages.Succeeded(code,"uninstall")?"OK":"FAILED";Packages.Save(change);if(change.Status=="OK"){record.Status="REVERTED";Packages.Save(record);}Text("Status",record.Name+": "+Packages.Describe(code,"uninstall")+".");
+                }finally{SetBusy(false);ReadHistory();}
+                await RefreshPackages();
+            }catch(Exception ex){Text("Status","Удаление невозможно: "+ex.Message);}
+        }
+        private static HistoryRow[] PackageHistoryRows(){return Packages.History().Select(r=>new HistoryRow{Run=r.Id,PackageChange=true,TimeUtc=DateTime.Parse(r.TimeUtc,CultureInfo.InvariantCulture,DateTimeStyles.RoundtripKind),Title=(r.Action=="install"?"Установка: ":r.Action=="uninstall"?"Удаление: ":"Обновление: ")+r.Name,Status=r.Status=="PENDING"?"Прервано":r.Status=="REVERTED"?"Удалено из истории":Packages.Describe(r.Code,r.Action)+(r.Action=="install"&&r.Status=="OK"?" · откат удалит программу":""),CanRevert=r.Action=="install"&&r.Status=="OK"}).ToArray();}
     }
 }

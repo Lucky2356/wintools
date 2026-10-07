@@ -59,20 +59,22 @@ namespace Wintools {
             if(!ValidId(id)||Find(id)==null)throw new ArgumentException("Неизвестная программа.");
             if(action=="install")return "install --id "+id+" --exact --source winget --silent "+Agreements;
             if(action=="upgrade")return "upgrade --id "+id+" --exact --source winget --silent "+Agreements;
+            if(action=="uninstall")return "uninstall --id "+id+" --exact --source winget --silent --accept-source-agreements --disable-interactivity";
             throw new ArgumentException("Неизвестное действие winget.");
         }
         // winget result codes that mean the requested state is already reached.
         internal static string Describe(long code,string action){
             switch(unchecked((uint)code)){
-                case 0:return action=="install"?"Установлено":action=="upgrade"?"Обновлено":"Готово";
+                case 0:return action=="install"?"Установлено":action=="upgrade"?"Обновлено":action=="uninstall"?"Удалено":"Готово";
                 case 0x8A150061:return "Уже установлено";
                 case 0x8A15002B:return "Обновление не требуется";
                 case 0x8A150109:case 0x8A15010A:return "Готово, нужна перезагрузка";
-                case 0x8A150014:return "Не установлено: обновлять нечего";
+                case 0x8A150014:return action=="uninstall"?"Уже удалено":"Не установлено: обновлять нечего";
                 default:return "Ошибка winget 0x"+unchecked((uint)code).ToString("X8");
             }
         }
         internal static bool Succeeded(long code){var value=unchecked((uint)code);return value==0||value==0x8A150061||value==0x8A15002B||value==0x8A150109||value==0x8A15010A;}
+        internal static bool Succeeded(long code,string action){return Succeeded(code)||(action=="uninstall"&&unchecked((uint)code)==0x8A150014);}
         internal static string Locate(){
             var alias=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"Microsoft","WindowsApps","winget.exe");if(File.Exists(alias))return alias;
             foreach(var folder in (Environment.GetEnvironmentVariable("PATH")??"").Split(';')){try{if(folder.Trim().Length==0||!Path.IsPathRooted(folder.Trim()))continue;var candidate=Path.Combine(folder.Trim(),"winget.exe");if(File.Exists(candidate))return candidate;}catch(ArgumentException){}}
@@ -113,7 +115,7 @@ namespace Wintools {
         }
         internal static PackageChange Read(string id){
             try{Program.SafeDirectory(DirectoryPath);string path=RecordPath(id);if(new FileInfo(path).Length>65536||(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Некорректный файл истории winget.");var record=new JavaScriptSerializer().Deserialize<PackageChange>(File.ReadAllText(path));DateTime time;
-                if(record==null||record.Schema!="wintools/package-change/1"||record.Id!=id||!new[]{"install","upgrade","upgrade-all"}.Contains(record.Action)||(record.Action!="upgrade-all"&&(!ValidId(record.Package)||Find(record.Package)==null))||string.IsNullOrEmpty(record.Name)||!new[]{"PENDING","OK","FAILED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись winget.");return record;
+                if(record==null||record.Schema!="wintools/package-change/1"||record.Id!=id||!new[]{"install","upgrade","upgrade-all","uninstall"}.Contains(record.Action)||(record.Action!="upgrade-all"&&(!ValidId(record.Package)||Find(record.Package)==null))||string.IsNullOrEmpty(record.Name)||!new[]{"PENDING","OK","FAILED","REVERTED"}.Contains(record.Status)||!DateTime.TryParseExact(record.TimeUtc,"o",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.RoundtripKind,out time))throw new IOException("Некорректная запись winget.");return record;
             }catch(ArgumentException ex){throw new IOException("Повреждена история winget.",ex);}catch(InvalidOperationException ex){throw new IOException("Повреждена история winget.",ex);}
         }
         internal static PackageChange[] History(){if(!Directory.Exists(DirectoryPath))return new PackageChange[0];Program.SafeDirectory(DirectoryPath);return Directory.GetFiles(DirectoryPath,"*.json").Select(p=>Read(Path.GetFileNameWithoutExtension(p))).OrderByDescending(r=>r.TimeUtc,StringComparer.Ordinal).ToArray();}
