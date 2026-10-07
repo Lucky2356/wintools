@@ -40,6 +40,8 @@ namespace Wintools {
         public bool AutoInstall = true;
         public bool IncludePreview = Program.Version.Contains("-");
         public bool RestorePoint = true;
+        public bool VerifyAfterUpdates = true;
+        public string WindowsBuild;
         public List<string> Favorites = new List<string>();
         public List<string> Plan = new List<string>();
         internal static Preferences Load() {
