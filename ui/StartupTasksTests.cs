@@ -7,30 +7,178 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace Wintools {
-    internal static class StartupTasksTests {
-        internal static string Xml(string sid,string triggers="",string actions="") {return "<Task version='1.2' xmlns='http://schemas.microsoft.com/windows/2004/02/mit/task'><Triggers>"+(triggers.Length>0?triggers:"<LogonTrigger><StartBoundary>2099-01-01T00:00:00</StartBoundary><Enabled>true</Enabled><UserId>"+SecurityElement.Escape(sid)+"</UserId></LogonTrigger>")+"</Triggers><Principals><Principal id='Author'><UserId>"+SecurityElement.Escape(sid)+"</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><Enabled>true</Enabled><AllowStartOnDemand>false</AllowStartOnDemand></Settings><Actions Context='Author'>"+(actions.Length>0?actions:"<Exec><Command>"+SecurityElement.Escape(Path.Combine(Environment.SystemDirectory,"cmd.exe"))+"</Command><Arguments>/c exit 0</Arguments></Exec>")+"</Actions></Task>";}
-        private static string Change(StartupEntry entry,string action,string restore,int expected){string id=Guid.NewGuid().ToString("N");int result=StartupActions.Worker(new[]{"--startup-worker",action,entry.Source,Convert.ToBase64String(Encoding.UTF8.GetBytes(entry.Name)),entry.Fingerprint,id,WindowsIdentity.GetCurrent().User.Value,restore??"-"});if(result!=expected)throw new Exception("Task change failed: "+File.ReadAllText(Path.Combine(Program.Data,"runtime",id+".startup.log")));return id;}
-        internal static void Native(){
-            if(!Program.Hosted)throw new InvalidOperationException("Hosted runner required.");object service=null,folder=null,registered=null;string name="WintoolsLogonFixture_"+Guid.NewGuid().ToString("N"),path="\\"+name;bool created=false;
-            try{service=StartupTasks.Connect();folder=StartupTasks.Call(service,"GetFolder","\\");string sid=WindowsIdentity.GetCurrent().User.Value;registered=StartupTasks.Call(folder,"RegisterTask",name,Xml(sid),2,sid,null,3,null);created=true;StartupTasks.Release(registered);registered=null;
-                var before=StartupTasks.Inspect(path);if(!before.CanChange||before.Enabled!=true)throw new Exception("Fixture not manageable: "+before.Restriction);var inventory=StartupTasks.Read();if(!inventory.Entries.Any(e=>e.Name==path))throw new Exception("Task inventory lost fixture: "+string.Join("; ",inventory.Errors));
-                string id=Change(before,"disable",null,0);var disabled=StartupTasks.Inspect(path);if(disabled.Enabled!=false||disabled.Identity!=before.Identity)throw new Exception("Task disable changed definition or failed");Change(before,"disable",null,4);Change(disabled,"restore",id,0);if(StartupTasks.Inspect(path).Enabled!=true||StartupActions.Read(id).Status!="REVERTED")throw new Exception("Task rollback failed");
-                string gatePath=Path.Combine(Program.Data,"state","run.lock");using(var gate=new FileStream(gatePath,FileMode.CreateNew,FileAccess.Write,FileShare.None))Change(StartupTasks.Inspect(path),"disable",null,4);File.Delete(gatePath);
-                string original=Change(StartupTasks.Inspect(path),"disable",null,0);registered=StartupTasks.Call(folder,"RegisterTask",name,Xml(sid).Replace("/c exit 0","/c exit 1"),4,sid,null,3,null);StartupTasks.Release(registered);registered=null;Change(StartupTasks.Inspect(path),"restore",original,4);if(StartupTasks.Inspect(path).Enabled!=true)throw new Exception("Task rollback overwrote external edit");
-            }finally{StartupTasks.Release(registered);if(created&&folder!=null)StartupTasks.Call(folder,"DeleteTask",name,0);StartupTasks.Release(folder);StartupTasks.Release(service);}
+namespace Wintools
+{
+    internal static class StartupTasksTests
+    {
+        internal static string Xml(string sid, string triggers = "", string actions = "")
+        {
+            return "<Task version='1.2' xmlns='http://schemas.microsoft.com/windows/2004/02/mit/task'><Triggers>" + (triggers.Length > 0 ? triggers : "<LogonTrigger><StartBoundary>2099-01-01T00:00:00</StartBoundary><Enabled>true</Enabled><UserId>" + SecurityElement.Escape(sid) + "</UserId></LogonTrigger>") + "</Triggers><Principals><Principal id='Author'><UserId>" + SecurityElement.Escape(sid) + "</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><Enabled>true</Enabled><AllowStartOnDemand>false</AllowStartOnDemand></Settings><Actions Context='Author'>" + (actions.Length > 0 ? actions : "<Exec><Command>" + SecurityElement.Escape(Path.Combine(Environment.SystemDirectory, "cmd.exe")) + "</Command><Arguments>/c exit 0</Arguments></Exec>") + "</Actions></Task>";
+        }
+
+        private static string Change(StartupEntry entry, string action, string restore, int expected)
+        {
+            string id = Guid.NewGuid().ToString("N");
+            int result = StartupActions.Worker(new[] { "--startup-worker", action, entry.Source, Convert.ToBase64String(Encoding.UTF8.GetBytes(entry.Name)), entry.Fingerprint, id, WindowsIdentity.GetCurrent().User.Value, restore ?? "-" });
+            if (result != expected)
+                throw new Exception("Task change failed: " + File.ReadAllText(Path.Combine(Program.Data, "runtime", id + ".startup.log")));
+            return id;
+        }
+
+        internal static void Native()
+        {
+            if (!Program.Hosted)
+                throw new InvalidOperationException("Hosted runner required.");
+            object service = null, folder = null, registered = null;
+            string name = "WintoolsLogonFixture_" + Guid.NewGuid().ToString("N"), path = "\\" + name;
+            bool created = false;
+            try
+            {
+                service = StartupTasks.Connect();
+                folder = StartupTasks.Call(service, "GetFolder", "\\");
+                string sid = WindowsIdentity.GetCurrent().User.Value;
+                registered = StartupTasks.Call(folder, "RegisterTask", name, Xml(sid), 2, sid, null, 3, null);
+                created = true;
+                StartupTasks.Release(registered);
+                registered = null;
+                var before = StartupTasks.Inspect(path);
+                if (!before.CanChange || before.Enabled != true)
+                    throw new Exception("Fixture not manageable: " + before.Restriction);
+                var inventory = StartupTasks.Read();
+                if (!inventory.Entries.Any(e => e.Name == path))
+                    throw new Exception("Task inventory lost fixture: " + string.Join("; ", inventory.Errors));
+                string id = Change(before, "disable", null, 0);
+                var disabled = StartupTasks.Inspect(path);
+                if (disabled.Enabled != false || disabled.Identity != before.Identity)
+                    throw new Exception("Task disable changed definition or failed");
+                Change(before, "disable", null, 4);
+                Change(disabled, "restore", id, 0);
+                if (StartupTasks.Inspect(path).Enabled != true || StartupActions.Read(id).Status != "REVERTED")
+                    throw new Exception("Task rollback failed");
+                string gatePath = Path.Combine(Program.Data, "state", "run.lock");
+                using (var gate = new FileStream(gatePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    Change(StartupTasks.Inspect(path), "disable", null, 4);
+                File.Delete(gatePath);
+                string original = Change(StartupTasks.Inspect(path), "disable", null, 0);
+                registered = StartupTasks.Call(folder, "RegisterTask", name, Xml(sid).Replace("/c exit 0", "/c exit 1"), 4, sid, null, 3, null);
+                StartupTasks.Release(registered);
+                registered = null;
+                Change(StartupTasks.Inspect(path), "restore", original, 4);
+                if (StartupTasks.Inspect(path).Enabled != true)
+                    throw new Exception("Task rollback overwrote external edit");
+            }
+            finally
+            {
+                StartupTasks.Release(registered);
+                if (created && folder != null)
+                    StartupTasks.Call(folder, "DeleteTask", name, 0);
+                StartupTasks.Release(folder);
+                StartupTasks.Release(service);
+            }
         }
     }
-    internal sealed partial class MainWindow {
-        private async Task StartupTasksSmoke(){
-            string sid=WindowsIdentity.GetCurrent().User.Value,user=WindowsIdentity.GetCurrent().Name;string xml=StartupTasksTests.Xml(sid);var task=StartupTasks.Parse("\\Example\\Мессенджер",xml,true,sid,user);Assert(task.CanChange&&task.Enabled==true&&task.Details.Contains("Питание"),"Logon task parse failed");
-            var disabled=StartupTasks.Parse(task.Name,xml.Replace("<Settings><Enabled>true","<Settings><Enabled>false"),false,sid,user);Assert(disabled.Identity==task.Identity&&disabled.Fingerprint!=task.Fingerprint,"Task definition identity includes enabled flag");
-            foreach(var item in new[]{StartupTasks.Parse("\\Microsoft\\Windows\\Example",xml,true,sid,user),StartupTasks.Parse("\\Foreign",StartupTasksTests.Xml("S-1-5-18"),true,sid,user),StartupTasks.Parse("\\Mixed",StartupTasksTests.Xml(sid,"<LogonTrigger/><TimeTrigger/>"),true,sid,user),StartupTasks.Parse("\\NoTrigger",StartupTasksTests.Xml(sid,"<LogonTrigger><Enabled>false</Enabled></LogonTrigger>"),true,sid,user)})Assert(item.Enabled==true&&!item.CanChange,"Restricted task mutable or state hidden");
-            Assert(StartupTasks.Parse("\\Calendar",StartupTasksTests.Xml(sid,"<TimeTrigger/>"),true,sid,user)==null,"Non-logon task included");bool rejected=false;try{StartupTasks.Parse("\\DTD","<!DOCTYPE x [<!ENTITY x SYSTEM 'file:///C:/secret'>]><x>&x;</x>",true,sid,user);}catch(System.Xml.XmlException){rejected=true;}Assert(rejected,"Task XML allowed DTD");
-            var read=startupRead;var run=startupRun;int calls=0;var restricted=StartupTasks.Parse("\\Microsoft\\Windows\\Системная задача",xml,true,sid,user);
-            try{startupRead=()=>new StartupSnapshot{Entries=new[]{task,restricted,disabled,new StartupEntry{Source="user-run",Name="Программа из реестра",Command="example.exe"}},Errors=new string[0]};startupRun=(entry,action,restore)=>{calls++;entry.Approval=StartupTasks.Encode(action=="enable");return Task.FromResult(new EngineResult{Code=0,Output="Тест: задача не изменялась."});};startupFilter.SelectedIndex=0;startupSearch.Clear();ShowPage(12);await ReadStartup();startupSource.SelectedIndex=1;Assert(startupList.Items.Count==1,"Registry source filter failed");startupSource.SelectedIndex=3;Assert(startupList.Items.Count==3,"Task source filter failed");startupList.SelectedItem=restricted;Assert(!startupDisable.IsEnabled&&!startupEnable.IsEnabled&&startupDetail.Text.Contains("только просмотр"),"Restricted task controls enabled");await ChangeStartup(false);Assert(confirmation==null&&calls==0,"Restricted task requested mutation");startupList.SelectedItem=task;Assert(startupDisable.IsEnabled&&startupDisable.Content.ToString().Contains("задачу"),"Task controls missing");var pending=ChangeStartup(false);Assert(confirmation!=null,"Task change omitted confirmation");FinishConfirmation(true);await pending;Assert(calls==1&&task.Enabled==false,"Task UI did not refresh");
-                foreach(var size in new[]{new Size(1280,800),new Size(800,600)}){Window.Width=size.Width;Window.Height=size.Height;Window.UpdateLayout();Assert(startupList.ActualHeight>100,"Task detail shrank list");Capture(size.Width==800?"portable-ui-logon-tasks-compact.png":"portable-ui-logon-tasks.png");}
-            }finally{startupRead=read;startupRun=run;startupSource.SelectedIndex=0;ShowPage(0);}
+
+    internal sealed partial class MainWindow
+    {
+        private async Task StartupTasksSmoke()
+        {
+            string sid = WindowsIdentity.GetCurrent().User.Value, user = WindowsIdentity.GetCurrent().Name;
+            string xml = StartupTasksTests.Xml(sid);
+            var task = StartupTasks.Parse("\\Example\\Мессенджер", xml, true, sid, user);
+            Assert(task.CanChange && task.Enabled == true && task.Details.Contains("Питание"), "Logon task parse failed");
+            var disabled = StartupTasks.Parse(task.Name, xml.Replace("<Settings><Enabled>true", "<Settings><Enabled>false"), false, sid, user);
+            Assert(disabled.Identity == task.Identity && disabled.Fingerprint != task.Fingerprint, "Task definition identity includes enabled flag");
+            foreach (var item in new[]
+            {
+                StartupTasks.Parse("\\Microsoft\\Windows\\Example", xml, true, sid, user),
+                StartupTasks.Parse("\\Foreign", StartupTasksTests.Xml("S-1-5-18"), true, sid, user),
+                StartupTasks.Parse("\\Mixed", StartupTasksTests.Xml(sid, "<LogonTrigger/><TimeTrigger/>"), true, sid, user),
+                StartupTasks.Parse("\\NoTrigger", StartupTasksTests.Xml(sid, "<LogonTrigger><Enabled>false</Enabled></LogonTrigger>"), true, sid, user)
+            }
+
+            )
+                Assert(item.Enabled == true && !item.CanChange, "Restricted task mutable or state hidden");
+            Assert(StartupTasks.Parse("\\Calendar", StartupTasksTests.Xml(sid, "<TimeTrigger/>"), true, sid, user) == null, "Non-logon task included");
+            bool rejected = false;
+            try
+            {
+                StartupTasks.Parse("\\DTD", "<!DOCTYPE x [<!ENTITY x SYSTEM 'file:///C:/secret'>]><x>&x;</x>", true, sid, user);
+            }
+            catch (System.Xml.XmlException)
+            {
+                rejected = true;
+            }
+
+            Assert(rejected, "Task XML allowed DTD");
+            var read = startupRead;
+            var run = startupRun;
+            int calls = 0;
+            var restricted = StartupTasks.Parse("\\Microsoft\\Windows\\Системная задача", xml, true, sid, user);
+            try
+            {
+                startupRead = () => new StartupSnapshot
+                {
+                    Entries = new[]
+                    {
+                        task,
+                        restricted,
+                        disabled,
+                        new StartupEntry
+                        {
+                            Source = "user-run",
+                            Name = "Программа из реестра",
+                            Command = "example.exe"
+                        }
+                    },
+                    Errors = new string[0]
+                };
+                startupRun = (entry, action, restore) =>
+                {
+                    calls++;
+                    entry.Approval = StartupTasks.Encode(action == "enable");
+                    return Task.FromResult(new EngineResult { Code = 0, Output = "Тест: задача не изменялась." });
+                };
+                startupFilter.SelectedIndex = 0;
+                startupSearch.Clear();
+                ShowPage(12);
+                await ReadStartup();
+                startupSource.SelectedIndex = 1;
+                Assert(startupList.Items.Count == 1, "Registry source filter failed");
+                startupSource.SelectedIndex = 3;
+                Assert(startupList.Items.Count == 3, "Task source filter failed");
+                startupList.SelectedItem = restricted;
+                Assert(!startupDisable.IsEnabled && !startupEnable.IsEnabled && startupDetail.Text.Contains("только просмотр"), "Restricted task controls enabled");
+                await ChangeStartup(false);
+                Assert(confirmation == null && calls == 0, "Restricted task requested mutation");
+                startupList.SelectedItem = task;
+                Assert(startupDisable.IsEnabled && startupDisable.Content.ToString().Contains("задачу"), "Task controls missing");
+                var pending = ChangeStartup(false);
+                Assert(confirmation != null, "Task change omitted confirmation");
+                FinishConfirmation(true);
+                await pending;
+                Assert(calls == 1 && task.Enabled == false, "Task UI did not refresh");
+                foreach (var size in new[]
+                {
+                    new Size(1280, 800),
+                    new Size(800, 600)
+                }
+
+                )
+                {
+                    Window.Width = size.Width;
+                    Window.Height = size.Height;
+                    Window.UpdateLayout();
+                    Assert(startupList.ActualHeight > 100, "Task detail shrank list");
+                    Capture(size.Width == 800 ? "portable-ui-logon-tasks-compact.png" : "portable-ui-logon-tasks.png");
+                }
+            }
+            finally
+            {
+                startupRead = read;
+                startupRun = run;
+                startupSource.SelectedIndex = 0;
+                ShowPage(0);
+            }
         }
     }
 }
