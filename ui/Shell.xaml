@@ -365,7 +365,7 @@
        <Button x:Name="NavProcesses" Content="Процессы" ToolTip="Процессы" Tag="&#xE7C4;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavServices" Content="Службы" ToolTip="Службы" Tag="&#xE713;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavIntegrity" Content="Обслуживание" ToolTip="Обслуживание" Tag="&#xE90F;" Style="{StaticResource Nav}"/>
-       <Button x:Name="NavNetwork" Content="Проверка сети" ToolTip="Проверка сети" Tag="&#xE701;" Style="{StaticResource Nav}"/>
+       <Button x:Name="NavNetwork" Content="Сеть и DNS" ToolTip="Сеть и DNS" Tag="&#xE701;" Style="{StaticResource Nav}"/>
        <Border Height="1" Background="{DynamicResource Border}" Margin="10,7"/>
        <Button x:Name="NavSettings" Content="Настройки" ToolTip="Настройки" Tag="&#xE115;" Style="{StaticResource Nav}"/>
       </StackPanel>

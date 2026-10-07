@@ -23,6 +23,7 @@ namespace Wintools {
                 if (args.Length > 0 && args[0] == "--startup-worker") return StartupActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--integrity-worker") return IntegrityActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--power-worker") return PowerActions.Worker(args);
+                if (args.Length > 0 && args[0] == "--dns-worker") return DnsActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--service-worker") return ServiceActions.Worker(args);
                 if (args.Length > 0 && args[0] == "--worker") return Engine.Worker(args);
                 bool test = args.Length == 1 && args[0] == "--self-test";

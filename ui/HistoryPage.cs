@@ -11,6 +11,7 @@ namespace Wintools {
             ReadHistorySource("Каталог",()=>HistoryRows(Path.Combine(Program.Data,"state","applied.dat"),catalogue),rows,failed,errors);
             ReadHistorySource("Службы",ServiceHistoryRows,rows,failed,errors);
             ReadHistorySource("Питание",PowerHistoryRows,rows,failed,errors);
+            ReadHistorySource("DNS",DnsHistoryRows,rows,failed,errors);
             ReadHistorySource("Обслуживание",IntegrityHistoryRows,rows,failed,errors);
             ReadHistorySource("Автозагрузка",StartupHistoryRows,rows,failed,errors);
             ReadHistorySource("Процессы",ProcessHistoryRows,rows,failed,errors);
