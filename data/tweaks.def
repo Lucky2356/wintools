@@ -38,6 +38,9 @@ PRIV-CDM-338388|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersio
 PRIV-CDM-338389|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-338389Enabled|REG_DWORD|0
 PRIV-CDM-353694|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-353694Enabled|REG_DWORD|0
 PRIV-CDM-353696|core|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-353696Enabled|REG_DWORD|0
+PRIV-CDM-338393|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-338393Enabled|REG_DWORD|0
+PRIV-CDM-310093|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SubscribedContent-310093Enabled|REG_DWORD|0
+PRIV-CDM-SCOOBE|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement|ScoobeSystemSettingEnabled|REG_DWORD|0
 PRIV-CONSUMER|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent|DisableWindowsConsumerFeatures|REG_DWORD|1
 PRIV-SOFTLANDING|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows\CloudContent|DisableSoftLanding|REG_DWORD|1
 PRIV-LLMNR|balanced|low|any|REG|HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient|EnableMulticast|REG_DWORD|0
@@ -115,6 +118,14 @@ UI-NO-FREQUENT|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersi
 UI-NO-TRACKDOCS|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|Start_TrackDocs|REG_DWORD|0
 UI-DARK-APPS|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize|AppsUseLightTheme|REG_DWORD|0
 UI-DARK-SYSTEM|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize|SystemUsesLightTheme|REG_DWORD|0
+UI-TASKVIEW-BUTTON|manual|low|any|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|ShowTaskViewButton|REG_DWORD|0
+UI-COPILOT-BUTTON|manual|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|ShowCopilotButton|REG_DWORD|0
+UI-START-RECOMMEND|manual|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|Start_IrisRecommendations|REG_DWORD|0
+UI-START-ACCOUNT|manual|low|win11|REG|@HKCU@\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced|Start_AccountNotifications|REG_DWORD|0
+UI-HIDE-GALLERY|manual|low|win11|REG|@HKCU@\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}|System.IsPinnedToNameSpaceTree|REG_DWORD|0
+UI-NUMLOCK|manual|low|any|REG|@HKCU@\Control Panel\Keyboard|InitialKeyboardIndicators|REG_SZ|2
+UI-STICKYKEYS-PROMPT|manual|low|any|REG|@HKCU@\Control Panel\Accessibility\StickyKeys|Flags|REG_SZ|506
+UI-VERBOSE-STATUS|manual|low|any|REG|HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System|VerboseStatus|REG_DWORD|1
 
 # --- privacy extras ---------------------------------------------------------
 PRIV-CLOUD-SEARCH-MSA|manual|low|any|REG|@HKCU@\SOFTWARE\Microsoft\Windows\CurrentVersion\SearchSettings|IsMSACloudSearchEnabled|REG_DWORD|0
