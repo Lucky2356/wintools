@@ -62,7 +62,12 @@ namespace Wintools
             Get<TextBlock>("PageTitle").FontSize = dense ? 22 : 28;
             Visible("PageEyebrow", !dense);
             Visible("PageHint", !dense);
-            Visible("PageBadge", !dense);
+            // The section badge stays on typical laptop heights and shrinks in short windows.
+            Visible("PageBadge", height >= 680);
+            var badge = Get<Border>("PageBadge");
+            badge.Width = badge.Height = dense ? 44 : 56;
+            badge.CornerRadius = new CornerRadius(dense ? 13 : 16);
+            Get<TextBlock>("PageIcon").FontSize = dense ? 20 : 26;
             double available = Math.Max(0, width - (rail ? 64 : 236) - main.Margin.Left - main.Margin.Right);
             LayoutResource("BrowseColumns", available >= 1300 ? 3 : available >= 640 ? 2 : 1);
             if (collectionCards != null)

@@ -42,7 +42,7 @@ namespace Wintools
             internal TextBlock Value, Detail;
         }
 
-        private const double RingSize = 84, RingStroke = 9;
+        private const double RingSize = 76, RingStroke = 8;
         private readonly ResourceReader dashboardReader = new ResourceReader();
         private Gauge cpuGauge, memoryGauge, diskGauge, uptimeGauge;
         private TextBlock dashboardHeadline, dashboardDetail, dashboardMark;
@@ -69,7 +69,7 @@ namespace Wintools
         {
             var tile = new Border
             {
-                Width = 230,
+                Width = 272,
                 Padding = new Thickness(16, 14, 16, 14),
                 CornerRadius = new CornerRadius(14),
                 Margin = new Thickness(0, 0, 12, 12)
@@ -86,18 +86,22 @@ namespace Wintools
             var arc = new System.Windows.Shapes.Path { StrokeThickness = RingStroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Data = Geometry.Empty };
             arc.SetResourceReference(Shape.StrokeProperty, "Accent");
             ring.Children.Add(arc);
-            var value = new TextBlock { Text = "—", FontSize = 20, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
+            var value = new TextBlock { Text = "—", FontSize = 18, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
             value.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
             ring.Children.Add(value);
             grid.Children.Add(ring);
             var text = new StackPanel { Margin = new Thickness(14, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(text, 1);
-            var heading = new StackPanel { Orientation = Orientation.Horizontal };
+            var heading = new Grid();
+            heading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            heading.ColumnDefinitions.Add(new ColumnDefinition());
             var glyph = new TextBlock { Text = icon, FontSize = 14, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
             glyph.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
             glyph.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
             heading.Children.Add(glyph);
-            heading.Children.Add(new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.NoWrap });
+            var name = new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+            Grid.SetColumn(name, 1);
+            heading.Children.Add(name);
             text.Children.Add(heading);
             var detail = new TextBlock { FontSize = 12, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap, LineHeight = 17 };
             detail.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
