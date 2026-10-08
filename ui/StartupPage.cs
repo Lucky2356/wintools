@@ -140,6 +140,7 @@ namespace Wintools
             var buttons = new WrapPanel();
             Grid.SetRow(buttons, 5);
             root.Children.Add(buttons);
+            SidePane(root, 3, detailScroll, buttons);
             startupDisable = new Button
             {
                 Content = Lang.T("Отключить при входе"),

@@ -668,7 +668,7 @@ namespace Wintools
                 var button = Get<Button>(nav[i]);
                 if (i == index)
                 {
-                    button.SetResourceReference(Control.BackgroundProperty, "Selection");
+                    button.SetResourceReference(Control.BackgroundProperty, "NavSelected");
                     button.SetResourceReference(Control.ForegroundProperty, "Text");
                     button.SetResourceReference(Control.BorderBrushProperty, "Accent");
                     button.FontWeight = FontWeights.SemiBold;
@@ -684,10 +684,8 @@ namespace Wintools
             }
 
             Text("PageTitle", PageTitles[index]);
-            Text("PageIcon", Get<Button>(nav[index]).Tag as string ?? "");
             if (index == HomeIndex && cpuGauge != null)
                 RefreshDashboard();
-            Text("PageEyebrow", new[] { Lang.T("Каталог действий"), Lang.T("Журнал этого компьютера"), Lang.T("Готовые подборки"), Lang.T("Ваши предпочтения"), Lang.T("Подготовка и выполнение"), Lang.T("Работа и автозапуск"), Lang.T("Понятная диагностика"), Lang.T("Проверка без изменений"), Lang.T("Практические шаги"), Lang.T("Программы на компьютере"), Lang.T("Соединение и DNS"), Lang.T("Обслуживание Windows"), Lang.T("Запуск при входе"), Lang.T("Распределение ресурсов"), Lang.T("Winget · каталог Microsoft"), Lang.T("Главная") }[index]);
             Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди."), Lang.T("Состояние ПК и самые частые задачи в один клик.") }[index]);
             if (index == 9 && ready && !smoke && !applicationsLoaded && !readingApplications)
             {
@@ -1337,6 +1335,7 @@ namespace Wintools
             await CollectionAssistantSmoke();
             await CatalogueStateSmoke();
             HistoryIsolationSmoke();
+            await MonitorSizesSmoke();
             ShowPage(0);
             Window.Width = Window.MinWidth;
             Window.Height = Window.MinHeight;

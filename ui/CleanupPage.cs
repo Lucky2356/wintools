@@ -65,6 +65,9 @@ namespace Wintools
                 button.Margin = new Thickness(0, 0, 8, 8);
             cleanupStatus = Paragraph(Lang.T("Расчёт ещё не выполнен. Загрузки, корзина, документы и данные браузеров, кроме дискового кэша, в эти категории не входят."));
             panel.Children.Add(cleanupStatus);
+            // The four categories side by side on a wide screen, two by two on a laptop.
+            var categories = new CardFlow(300, 4, true) { Margin = new Thickness(0, 4, 0, 16) };
+            panel.Children.Add(categories);
             for (int i = 0; i < cleanupTitles.Length; i++)
             {
                 var card = new StackPanel();
@@ -88,12 +91,10 @@ namespace Wintools
                 var border = new Border
                 {
                     Child = card,
-                    Padding = new Thickness(16),
-                    Margin = new Thickness(0, 0, 0, 10),
-                    CornerRadius = new CornerRadius(14)
+                    Padding = new Thickness(18, 16, 18, 16)
                 };
                 Card(border);
-                panel.Children.Add(border);
+                categories.Children.Add(border);
             }
 
             InitializeDiskUsage(panel);

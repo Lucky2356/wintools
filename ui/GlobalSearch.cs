@@ -41,14 +41,13 @@ namespace Wintools
                 MaxWidth = 640,
                 Margin = new Thickness(24, 60, 24, 24),
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 VerticalAlignment = VerticalAlignment.Top
             };
             Card(card);
             searchOverlay.Children.Add(card);
             var title = Paragraph(Lang.T("Поиск везде"));
-            title.FontSize = 18;
-            title.FontWeight = FontWeights.SemiBold;
+            title.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             title.Margin = new Thickness(0, 0, 0, 8);
             panel.Children.Add(title);
             searchQuery = new TextBox
@@ -104,6 +103,7 @@ namespace Wintools
                     e.Handled = true;
                 }
             };
+            Get<Button>("NavSearch").Click += (s, e) => OpenGlobalSearch();
             Window.PreviewKeyDown += (s, e) =>
             {
                 if (e.Key == Key.K && (Keyboard.Modifiers & ModifierKeys.Control) != 0 && confirmation == null)

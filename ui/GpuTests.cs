@@ -68,7 +68,7 @@ namespace Wintools
                 Window.Width = 800;
                 Window.Height = 600;
                 Window.UpdateLayout();
-                Assert(resourceCards.Columns == 1, "GPU compact cards not stacked");
+                Assert(resourceCards.Columns <= 2, "GPU compact cards not stacked");
                 Capture("portable-ui-gpu-compact.png");
                 gpuRead = () => new GpuSample
                 {

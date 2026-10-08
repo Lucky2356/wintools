@@ -26,45 +26,55 @@ namespace Wintools
             "Success",
             "Warning",
             "Scrim",
-            "Accent2"
+            "Accent2",
+            "Layer",
+            "NavSelected",
+            "Divider"
         };
+        // Neutral greys of Windows 11: the window and navigation, a lighter page layer, cards above it; Fluent accent and status colours.
         private static readonly string[] Dark =
         {
-            "#121419",
-            "#0E1014",
-            "#1A1D24",
-            "#232731",
-            "#2D323D",
-            "#EEF1F6",
-            "#A7AFBE",
-            "#7AAEFF",
-            "#08172E",
-            "#1E2C44",
-            "#FF8F85",
-            "#1F232B",
-            "#6FD4A0",
-            "#F3C969",
-            "#B3000000",
-            "#B894FF"
+            "#1C1C1C",
+            "#1C1C1C",
+            "#2B2B2B",
+            "#343434",
+            "#3A3A3A",
+            "#F3F3F3",
+            "#ABABAB",
+            "#60CDFF",
+            "#04131C",
+            "#2C3D46",
+            "#FF99A4",
+            "#323232",
+            "#6CCB5F",
+            "#F5C84C",
+            "#99000000",
+            "#B9A3FF",
+            "#232323",
+            "#2D2D2D",
+            "#2F2F2F"
         };
         private static readonly string[] Light =
         {
-            "#F3F5F8",
-            "#EAEEF4",
+            "#F0F0F0",
+            "#F0F0F0",
             "#FFFFFF",
-            "#F1F3F7",
-            "#DDE2EA",
-            "#151A23",
-            "#56606F",
-            "#2563EB",
+            "#FAFAFA",
+            "#E0E0E0",
+            "#1A1A1A",
+            "#5C5C5C",
+            "#005FB8",
             "#FFFFFF",
-            "#E5EDFD",
+            "#E1ECF7",
             "#C42B1C",
-            "#E9EDF3",
-            "#167A48",
-            "#9A5B00",
-            "#80141A24",
-            "#7C3AED"
+            "#F3F3F3",
+            "#0F7B0F",
+            "#9D5D00",
+            "#66000000",
+            "#6B4FBB",
+            "#F9F9F9",
+            "#E4E4E4",
+            "#E5E5E5"
         };
         internal static bool IsDark(string mode)
         {
@@ -106,7 +116,10 @@ namespace Wintools
                     text,
                     text,
                     "#B3000000",
-                    highlight
+                    highlight,
+                    window,
+                    control,
+                    text
                 };
             }
 

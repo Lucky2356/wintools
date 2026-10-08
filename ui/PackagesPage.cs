@@ -85,27 +85,21 @@ namespace Wintools
             };
             packageStore.Click += (s, e) => OpenTool("ms-windows-store://pdp/?productid=9NBLGGH4NNS1");
             buttons.Children.Add(packageStore);
-            var columns = new System.Windows.Controls.Primitives.UniformGrid
-            {
-                Columns = 1
-            };
+            // Program groups flow into as many columns as the screen holds.
+            var columns = new CardFlow(330, 5, false) { Margin = new Thickness(0, 6, 0, 0) };
             panel.Children.Add(columns);
-            panel.SizeChanged += (s, e) => columns.Columns = panel.ActualWidth >= 1100 ? 3 : panel.ActualWidth >= 700 ? 2 : 1;
             foreach (var group in Packages.Catalog.GroupBy(p => p.Group))
             {
                 var section = new StackPanel();
                 var card = new Border
                 {
                     Child = section,
-                    Padding = new Thickness(16),
-                    CornerRadius = new CornerRadius(14),
-                    Margin = new Thickness(0, 0, 10, 12)
+                    Padding = new Thickness(18, 16, 18, 8)
                 };
                 Card(card);
                 columns.Children.Add(card);
                 var heading = Paragraph(group.Key);
-                heading.FontSize = 16;
-                heading.FontWeight = FontWeights.SemiBold;
+                heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
                 heading.Margin = new Thickness(0, 0, 0, 8);
                 section.Children.Add(heading);
                 foreach (var package in group)
@@ -125,7 +119,6 @@ namespace Wintools
                         FontSize = 12,
                         Margin = new Thickness(0, 2, 0, 0)
                     };
-                    state.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
                     content.Children.Add(state);
                     packageStates[package.Id] = state;
                     var check = new CheckBox
@@ -157,8 +150,13 @@ namespace Wintools
 
         private void RefreshPackageStates()
         {
+            // Installed programs stand out in green; the rest stay quiet so the list does not shout the same word thirty times.
             foreach (var package in Packages.Catalog)
-                packageStates[package.Id].Text = installedPackages == null ? Lang.T("Не проверено") : installedPackages.Contains(package.Id) ? Lang.T("✓ Установлено") : Lang.T("Не установлено");
+            {
+                bool installed = installedPackages != null && installedPackages.Contains(package.Id);
+                packageStates[package.Id].Text = installedPackages == null ? Lang.T("Не проверено") : installed ? Lang.T("✓ Установлено") : Lang.T("Не установлено");
+                packageStates[package.Id].SetResourceReference(TextBlock.ForegroundProperty, installed ? "Success" : "Muted");
+            }
         }
 
         private void RefreshPackagesEnabled()

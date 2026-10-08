@@ -20,29 +20,16 @@ namespace Wintools
             gpuRead = gpuReader.Read;
             var card = ResourceCard(Lang.T("Видеокарта"), out gpuValue, out gpuGraph);
             gpuGraph.Percent = true;
-            gpuMemory = Paragraph(Lang.T("Выберите GPU ниже"));
+            gpuMemory = Caption(Lang.T("Выберите GPU ниже"));
             card.Children.Add(gpuMemory);
-            var controls = new WrapPanel
-            {
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            panel.Children.Add(controls);
             gpuAdapter = new ComboBox
             {
-                Width = 300,
-                DisplayMemberPath = "Name",
-                Margin = new Thickness(0, 0, 10, 8)
+                DisplayMemberPath = "Name"
             };
             System.Windows.Automation.AutomationProperties.SetName(gpuAdapter, Lang.T("Видеокарта для мониторинга"));
-            controls.Children.Add(gpuAdapter);
-            var refresh = new Button
-            {
-                Content = Lang.T("Обновить видеокарты"),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            controls.Children.Add(refresh);
-            refresh.Click += async (s, e) => await ReadGpuAdapters();
-            gpuStatus = Paragraph(Lang.T("Нагрузка самого занятого блока выбранного GPU. Объём видеопамяти сообщает DXGI; общая память — доступный предел ОЗУ, а не дополнительно установленная видеопамять."));
+            card.Children.Add(DevicePicker(gpuAdapter, Lang.T("Обновить видеокарты"), async () => await ReadGpuAdapters()));
+            gpuStatus = Caption(Lang.T("Нагрузка самого занятого блока выбранного GPU. Объём видеопамяти сообщает DXGI; общая память — доступный предел ОЗУ, а не дополнительно установленная видеопамять."));
+            gpuStatus.Margin = new Thickness(0, 10, 0, 0);
             panel.Children.Add(gpuStatus);
             gpuAdapter.SelectionChanged += (s, e) =>
             {

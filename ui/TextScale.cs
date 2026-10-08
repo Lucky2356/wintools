@@ -56,7 +56,7 @@ namespace Wintools
         // Applies the zoom for the current window size and returns it; the layout then works in the zoomed coordinates.
         private double ApplyTextScale(double width, double height)
         {
-            double zoom = EffectiveTextScale(RequestedTextScale(preferences.TextSize, systemTextScale), width, height);
+            double zoom = layoutZoom > 0 ? layoutZoom : EffectiveTextScale(RequestedTextScale(preferences.TextSize, systemTextScale), width, height);
             if (Math.Abs(zoom - uiZoom) < 0.001)
                 return zoom;
             uiZoom = zoom;

@@ -34,13 +34,12 @@ namespace Wintools
                 Child = card,
                 Padding = new Thickness(16),
                 Margin = new Thickness(0, 0, 0, 10),
-                CornerRadius = new CornerRadius(14)
+                CornerRadius = new CornerRadius(8)
             };
             Card(border);
             panel.Children.Add(border);
             var heading = Paragraph(Lang.T("Что занимает место"));
-            heading.FontSize = 18;
-            heading.FontWeight = FontWeights.SemiBold;
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             card.Children.Add(heading);
             card.Children.Add(Intro(Lang.T("Что занимает больше всего места в выбранной папке."), Lang.T("Показывает самые крупные папки внутри выбранной. Только чтение: удалять найденное нужно вручную и осознанно. Ссылки и junction не учитываются, системные папки без прав доступа считаются частично.")));
             var controls = new WrapPanel();

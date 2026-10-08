@@ -9,11 +9,11 @@ namespace Wintools
     {
         private Action<int> showHealthTab;
 
-        // Splits a long code-built page into views with a row of chips on top, like the segments in Windows Settings;
+        // Splits a long code-built page into views with a row of tabs on top, like the selector bar of Windows 11 apps;
         // only the chosen view is visible, so a page shows one topic at a time.
         private StackPanel[] Tabs(StackPanel page, out Action<int> select, params string[] names)
         {
-            var bar = new WrapPanel { Margin = new Thickness(0, 0, 0, 12) };
+            var bar = new WrapPanel { Margin = new Thickness(-4, -8, 0, 14) };
             page.Children.Add(bar);
             var views = names.Select(n => new StackPanel()).ToArray();
             var chips = new CheckBox[names.Length];
@@ -29,7 +29,7 @@ namespace Wintools
             {
                 int index = i;
                 chips[i] = new CheckBox { Content = names[i] };
-                chips[i].SetResourceReference(FrameworkElement.StyleProperty, "Chip");
+                chips[i].SetResourceReference(FrameworkElement.StyleProperty, "Tab");
                 chips[i].Click += (s, e) => show(index);
                 bar.Children.Add(chips[i]);
                 page.Children.Add(views[i]);

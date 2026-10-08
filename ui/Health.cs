@@ -137,6 +137,15 @@ namespace Wintools
             card.SetResourceReference(Border.BackgroundProperty, "Surface");
             card.SetResourceReference(Border.BorderBrushProperty, "Border");
             card.BorderThickness = new Thickness(1);
+            card.CornerRadius = new CornerRadius(8);
+        }
+
+        // A card heading in the shared type ramp.
+        private static TextBlock CardHeading(string text)
+        {
+            var heading = new TextBlock { Text = text, Margin = new Thickness(0, 0, 0, 8) };
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
+            return heading;
         }
 
         private static TextBlock Paragraph(string text)
@@ -145,21 +154,22 @@ namespace Wintools
             {
                 Text = text,
                 TextWrapping = TextWrapping.Wrap,
-                LineHeight = 22,
-                Margin = new Thickness(0, 0, 0, 14)
+                LineHeight = 20,
+                Margin = new Thickness(0, 0, 0, 12)
             };
         }
 
         // One readable line up front; the full explanation opens on request so pages start with what matters.
         private static FrameworkElement Intro(string brief, string details)
         {
-            var box = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
-            box.Children.Add(new TextBlock { Text = brief, FontSize = 15, LineHeight = 22, TextWrapping = TextWrapping.Wrap });
+            // Lines longer than about a hundred characters are hard to follow on a wide monitor.
+            var box = new StackPanel { Margin = new Thickness(0, 0, 0, 14), MaxWidth = 900, HorizontalAlignment = HorizontalAlignment.Left };
+            box.Children.Add(new TextBlock { Text = brief, LineHeight = 20, TextWrapping = TextWrapping.Wrap });
             var more = Paragraph(details);
             more.Margin = new Thickness(0, 4, 0, 0);
             more.Visibility = Visibility.Collapsed;
             more.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
-            var link = new Button { Content = Lang.T("Подробнее ▾"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 8, 2), MinHeight = 28 };
+            var link = new Button { Content = Lang.T("Подробнее ▾"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(6, 2, 6, 2), Margin = new Thickness(-6, 2, 0, 0), MinHeight = 26, FontSize = 13 };
             link.SetResourceReference(FrameworkElement.StyleProperty, "Link");
             link.Click += (s, e) =>
             {
@@ -177,18 +187,12 @@ namespace Wintools
         {
             var card = new Border
             {
-                Padding = new Thickness(22, 20, 22, 6),
-                CornerRadius = new CornerRadius(14),
-                Margin = new Thickness(0, 0, 0, 14)
+                Padding = new Thickness(20, 18, 20, 6),
+                Margin = new Thickness(0, 0, 0, 16)
             };
             Card(card);
             var content = new StackPanel();
-            var heading = Paragraph(title);
-            heading.FontSize = 18;
-            heading.FontWeight = FontWeights.SemiBold;
-            heading.Margin = new Thickness(0, 0, 0, 10);
-            heading.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
-            content.Children.Add(heading);
+            content.Children.Add(CardHeading(title));
             card.Child = content;
             parent.Children.Add(card);
             return content;
@@ -209,12 +213,10 @@ namespace Wintools
 
         private StackPanel ToolPage(string name)
         {
-            // Long lines are hard to read on wide screens, so tool pages keep a comfortable column width.
+            // Pages use the whole width; cards inside them flow into columns and text keeps its own reading width.
             var panel = new StackPanel
             {
-                Margin = new Thickness(4),
-                MaxWidth = 1080,
-                HorizontalAlignment = HorizontalAlignment.Left
+                Margin = new Thickness(2, 2, 6, 8)
             };
             var scroll = new ScrollViewer
             {
@@ -235,7 +237,11 @@ namespace Wintools
             InitializeHardware(views[1]);
             InitializeBoot(views[2]);
             InitializeBackups(views[3]);
-            var panel = Section(views[0], Lang.T("Снимок состояния ПК"));
+            var panel = Section(monitorFlow, Lang.T("Снимок состояния ПК"));
+            // The snapshot answers "is everything fine?" first, so it opens the column layout.
+            var snapshot = (UIElement)panel.Parent;
+            monitorFlow.Children.Remove(snapshot);
+            monitorFlow.Children.Insert(0, snapshot);
             panel.Children.Add(Intro(Lang.T("Быстрый снимок нагрузки, памяти, дисков и автозагрузки."), Lang.T("Проверка читает загрузку процессора, доступную оперативную память, свободное место на дисках, список автозагрузки и самые крупные процессы в памяти. Настройки не меняются, файлы не удаляются. Это снимок текущего состояния, а не тест скорости или оценка FPS.")));
             healthStart = ToolButton(panel, Lang.T("Проверить состояние ПК"), async () => await ReadHealth());
             healthProgress = new ProgressBar
@@ -252,6 +258,9 @@ namespace Wintools
             panel.Children.Add(healthResult);
             ToolButton(panel, Lang.T("Что можно улучшить →"), () => ShowPage(8));
             panel = Section(ToolPage("VerificationPage"), Lang.T("Сверка с историей"));
+            // A single text card reads best at a bounded width, like a settings page.
+            ((FrameworkElement)panel.Parent).MaxWidth = 1100;
+            ((FrameworkElement)panel.Parent).HorizontalAlignment = HorizontalAlignment.Left;
             panel.Children.Add(Intro(Lang.T("Проверяем, не вернули ли Windows или другие программы ваши настройки."), Lang.T("Сверяем записи истории Wintools с текущими настройками Windows: реестром, типом запуска служб и другими поддерживаемыми параметрами. Так можно заметить, что обновление Windows или другая программа изменила настройку. Проверка ничего не исправляет и не оценивает скорость ПК. Повторные записи одного действия проверяются отдельно.")));
             verificationStart = ToolButton(panel, Lang.T("Сверить настройки с историей"), async () => await ReadVerification());
             verificationStatus = Paragraph(Lang.T("Совпадает — настройка соответствует каталогу. Изменилась — текущее значение отличается. Не проверено — для записи нет доступной проверки. Отменённые действия пропускаются."));
@@ -261,18 +270,21 @@ namespace Wintools
             verificationPlan = ToolButton(panel, Lang.T("Добавить изменившиеся в план"), AddDriftToPlan);
             verificationPlan.Visibility = Visibility.Collapsed;
             ToolButton(panel, Lang.T("Открыть историю и откат →"), () => ShowPage(1));
-            panel = ToolPage("OptimizationPage");
-            InitializePowerManagement(panel);
-            var start = Section(panel, Lang.T("С чего начать"));
+            var optimization = ToolPage("OptimizationPage");
+            // The power plan, the first step and the advice cards flow into columns on a wide screen.
+            var advice = new CardFlow(420, 3, false);
+            optimization.Children.Add(advice);
+            InitializePowerManagement(advice);
+            var start = Section(advice, Lang.T("С чего начать"));
             start.Children.Add(Intro(Lang.T("Меняйте по одному пункту и сравнивайте до и после."), Lang.T("Начните со снимка состояния ПК, изменяйте по одному пункту и повторяйте проверку при той же нагрузке. Эти инструменты открывают штатные настройки Windows; решение об изменении остаётся за вами.")));
             ToolButton(start, Lang.T("Снять показатели ПК →"), () => ShowPage(6));
-            AddAdvice(panel, Lang.T("Ускорить вход в Windows"), Lang.T("В автозагрузке отключите приложения, которые не нужны сразу после входа. Сохраните защиту, драйверы и нужную синхронизацию. В Диспетчере задач можно посмотреть влияние приложения на запуск."), "ms-settings:startupapps");
-            AddAdvice(panel, Lang.T("Освободить место на диске"), Lang.T("Просмотрите категории хранилища и настройте Контроль памяти. Перед очисткой проверьте корзину и загрузки: удаление файлов может быть необратимым."), "ms-settings:storagesense");
-            AddAdvice(panel, Lang.T("Настроить визуальные эффекты"), Lang.T("На слабом ПК отключение анимации может сделать интерфейс отзывчивее. В окне параметров быстродействия можно сохранить сглаживание экранных шрифтов."), Path.Combine(Environment.SystemDirectory, "SystemPropertiesPerformance.exe"));
-            AddAdvice(panel, Lang.T("Проверить питание"), Lang.T("Повышенная производительность расходует больше энергии и усиливает нагрев. На ноутбуке сравнивайте результат при подключённом питании."), "ms-settings:powersleep");
-            AddAdvice(panel, Lang.T("Проверить обслуживание SSD и HDD"), Lang.T("Откройте «Оптимизация дисков» и проверьте расписание. Windows выбирает обслуживание по типу накопителя. Отключать эту службу ради ускорения не требуется."), Path.Combine(Environment.SystemDirectory, "dfrgui.exe"));
-            AddAdvice(panel, Lang.T("Найти программу, создающую нагрузку"), Lang.T("Сортируйте процессы по ЦП, памяти или диску. Закрывайте только знакомые приложения с сохранёнными документами."), Path.Combine(Environment.SystemDirectory, "Taskmgr.exe"));
-            ToolButton(panel, Lang.T("Рекомендации Microsoft ↗"), () => OpenTool("https://support.microsoft.com/en-us/windows/experience/performance-optimization/tips-to-improve-pc-performance-in-windows"));
+            AddAdvice(advice, Lang.T("Ускорить вход в Windows"), Lang.T("В автозагрузке отключите приложения, которые не нужны сразу после входа. Сохраните защиту, драйверы и нужную синхронизацию. В Диспетчере задач можно посмотреть влияние приложения на запуск."), "ms-settings:startupapps");
+            AddAdvice(advice, Lang.T("Освободить место на диске"), Lang.T("Просмотрите категории хранилища и настройте Контроль памяти. Перед очисткой проверьте корзину и загрузки: удаление файлов может быть необратимым."), "ms-settings:storagesense");
+            AddAdvice(advice, Lang.T("Настроить визуальные эффекты"), Lang.T("На слабом ПК отключение анимации может сделать интерфейс отзывчивее. В окне параметров быстродействия можно сохранить сглаживание экранных шрифтов."), Path.Combine(Environment.SystemDirectory, "SystemPropertiesPerformance.exe"));
+            AddAdvice(advice, Lang.T("Проверить питание"), Lang.T("Повышенная производительность расходует больше энергии и усиливает нагрев. На ноутбуке сравнивайте результат при подключённом питании."), "ms-settings:powersleep");
+            AddAdvice(advice, Lang.T("Проверить обслуживание SSD и HDD"), Lang.T("Откройте «Оптимизация дисков» и проверьте расписание. Windows выбирает обслуживание по типу накопителя. Отключать эту службу ради ускорения не требуется."), Path.Combine(Environment.SystemDirectory, "dfrgui.exe"));
+            AddAdvice(advice, Lang.T("Найти программу, создающую нагрузку"), Lang.T("Сортируйте процессы по ЦП, памяти или диску. Закрывайте только знакомые приложения с сохранёнными документами."), Path.Combine(Environment.SystemDirectory, "Taskmgr.exe"));
+            ToolButton(optimization, Lang.T("Рекомендации Microsoft ↗"), () => OpenTool("https://support.microsoft.com/en-us/windows/experience/performance-optimization/tips-to-improve-pc-performance-in-windows"));
             ClickAsync("NavServices", async () =>
             {
                 if (services == null)
@@ -286,22 +298,17 @@ namespace Wintools
             });
         }
 
-        private void AddAdvice(StackPanel panel, string title, string description, string target)
+        private void AddAdvice(Panel panel, string title, string description, string target)
         {
             var card = new Border
             {
-                Padding = new Thickness(22, 20, 22, 6),
-                CornerRadius = new CornerRadius(14),
-                Margin = new Thickness(0, 0, 0, 14)
+                Padding = new Thickness(20, 18, 20, 6),
+                Margin = new Thickness(0, 0, 0, 16)
             };
             Card(card);
             var content = new StackPanel();
             card.Child = content;
-            var heading = Paragraph(title);
-            heading.FontSize = 17;
-            heading.FontWeight = FontWeights.SemiBold;
-            heading.Margin = new Thickness(0, 0, 0, 8);
-            content.Children.Add(heading);
+            content.Children.Add(CardHeading(title));
             content.Children.Add(Paragraph(description));
             ToolButton(content, Lang.T("Открыть настройки ↗"), () => OpenTool(target));
             panel.Children.Add(card);

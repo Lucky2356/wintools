@@ -116,10 +116,10 @@ namespace Wintools
 
                     if (size.Width == 2560)
                     {
-                        var main = (Grid)Get<Grid>("Body").Children[1];
+                        var main = Get<Grid>("Workspace");
                         if (index == 2)
                         {
-                            Assert(collectionCards.Columns == (main.ActualWidth >= 1500 ? 3 : main.ActualWidth >= 1000 ? 2 : 1) && collectionCards.ActualWidth > main.ActualWidth * 0.9, "Collections wasted wide viewport");
+                            Assert(collectionCards.Columns == CardFlow.Fit(collectionCards.ActualWidth, 380, 3, 16) && collectionCards.ActualWidth > main.ActualWidth * 0.9, "Collections wasted wide viewport");
                         }
 
                         if (index == 3)

@@ -16,21 +16,20 @@ namespace Wintools
         private bool readingPower;
         private Func<PowerSnapshot> powerRead = PowerPlans.Read;
         private Func<string, string, string, Task<EngineResult>> powerRun = PowerActions.Run;
-        private void InitializePowerManagement(StackPanel parent)
+        private void InitializePowerManagement(Panel parent)
         {
             var panel = new StackPanel();
             var card = new Border
             {
                 Child = panel,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             parent.Children.Add(card);
             var heading = Paragraph(Lang.T("Схема питания"));
-            heading.FontSize = 21;
-            heading.FontWeight = FontWeights.SemiBold;
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             panel.Children.Add(heading);
             panel.Children.Add(Intro(Lang.T("Схема питания задаёт баланс между скоростью, нагревом и расходом батареи."), Lang.T("Схема определяет используемые настройки питания, сна и производительности. Высокая производительность может увеличить нагрев и расход батареи. Показываем только схемы, доступные Windows на этом ПК; режим питания в параметрах Windows может настраиваться отдельно.")));
             // The list already marks the active plan; this line speaks only while reading or when the plan is unknown.

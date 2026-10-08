@@ -24,14 +24,13 @@ namespace Wintools
             {
                 Child = panel,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             parent.Children.Add(card);
             var heading = Paragraph(Lang.T("DNS-серверы"));
-            heading.FontSize = 21;
-            heading.FontWeight = FontWeights.SemiBold;
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             panel.Children.Add(heading);
             panel.Children.Add(Intro(Lang.T("DNS влияет на открытие сайтов и может блокировать опасные домены."), Lang.T("DNS превращает имена сайтов в адреса. Другой DNS может ускорить открытие сайтов, блокировать вредоносные или рекламные домены, но не увеличивает скорость скачивания. Меняются адреса IPv4 и IPv6 только выбранного адаптера.")));
             dnsAdapter = new ComboBox

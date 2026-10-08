@@ -121,8 +121,7 @@ namespace Wintools
             {
                 var content = new StackPanel();
                 var title = Paragraph(section.Title);
-                title.FontSize = 16;
-                title.FontWeight = FontWeights.SemiBold;
+                title.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
                 content.Children.Add(title);
                 var detail = Paragraph(section.Text);
                 detail.Margin = new Thickness(0);
@@ -132,7 +131,7 @@ namespace Wintools
                     Child = content,
                     Padding = new Thickness(16),
                     Margin = new Thickness(0, 0, 10, 10),
-                    CornerRadius = new CornerRadius(14)
+                    CornerRadius = new CornerRadius(8)
                 };
                 Card(card);
                 columns[index++ % columns.Length].Children.Add(card);

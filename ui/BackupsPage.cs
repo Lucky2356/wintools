@@ -25,14 +25,13 @@ namespace Wintools
             {
                 Child = panel,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             parent.Children.Add(card);
             var heading = Paragraph(Lang.T("Батарея ноутбука"));
-            heading.FontSize = 21;
-            heading.FontWeight = FontWeights.SemiBold;
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             panel.Children.Add(heading);
             var buttons = new WrapPanel();
             panel.Children.Add(buttons);
@@ -62,14 +61,13 @@ namespace Wintools
             {
                 Child = backups,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(backupCard);
             parent.Children.Add(backupCard);
             var title = Paragraph(Lang.T("Точки восстановления и драйверы"));
-            title.FontSize = 21;
-            title.FontWeight = FontWeights.SemiBold;
+            title.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             backups.Children.Add(title);
             backups.Children.Add(Intro(Lang.T("Точка восстановления вернёт систему к прежнему состоянию, а копия драйверов пригодится после переустановки."), Lang.T("Точка восстановления позволяет вернуть системные файлы, драйверы и реестр к прежнему состоянию через «Восстановление системы»; личные файлы она не затрагивает. Копия драйверов пригодится после переустановки Windows: папку можно указать в диспетчере устройств. Действия требуют подтверждения Windows.")));
             var actions = new WrapPanel();

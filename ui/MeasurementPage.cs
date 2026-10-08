@@ -27,7 +27,7 @@ namespace Wintools
         private Expander measurementExpander;
         private string measurementWindowTitle;
         private Func<string, string, Task<MeasurementPoint>> measurementRead;
-        private void InitializeMeasurements(StackPanel parent)
+        private void InitializeMeasurements(Panel parent)
         {
             var panel = new StackPanel();
             panel.Children.Add(Intro(Lang.T("Запишите показатели до и после изменений, чтобы сравнить."), Lang.T("Запишите до 10 минут работы, затем повторите ту же задачу после изменений. Запись продолжается в других разделах и при свёрнутом окне. Пауза обычного монитора её не останавливает. Выбранные сейчас GPU и сетевой адаптер закрепляются на всю запись. Настройки Windows не меняются.")));

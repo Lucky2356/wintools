@@ -25,7 +25,7 @@ namespace Wintools
 
     internal sealed partial class MainWindow
     {
-        private UniformGrid collectionCards;
+        private CardFlow collectionCards;
         private CollectionChoice[] collectionChoices;
         private readonly List<Button> collectionPlanButtons = new List<Button>();
         private static CollectionSection Section(string title, string detail, bool selected, params string[] ids)
@@ -86,21 +86,23 @@ namespace Wintools
             var root = new StackPanel();
             root.Children.Add(Intro(Lang.T("Выберите готовую подборку и снимите отметки с того, чем пользуетесь."), Lang.T("Настройте одну из трёх подборок под себя. Отмечайте дополнительные группы только для функций, которыми не пользуетесь. Выбор ничего не меняет в Windows: сначала посмотрите действия или добавьте их в план.")));
             InitializeCollectionAssistant(root);
-            collectionCards = new UniformGrid
-            {
-                Columns = 1
-            };
+            // Three collections side by side on a wide screen; every card keeps its buttons on the bottom line.
+            collectionCards = new CardFlow(380, 3, true);
             root.Children.Add(collectionCards);
             Get<ScrollViewer>("CollectionsPage").Content = root;
             for (int i = 0; i < collectionChoices.Length; i++)
             {
                 var choice = collectionChoices[i];
+                var frame = new DockPanel();
                 var content = new StackPanel();
                 var title = Paragraph(choice.Title);
-                title.FontSize = 21;
-                title.FontWeight = FontWeights.SemiBold;
+                title.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
+                title.FontSize = 20;
+                title.Margin = new Thickness(0, 0, 0, 4);
                 content.Children.Add(title);
                 choice.Count = Paragraph("");
+                choice.Count.FontSize = 13;
+                choice.Count.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
                 content.Children.Add(choice.Count);
                 foreach (var section in choice.Sections)
                 {
@@ -131,7 +133,9 @@ namespace Wintools
 
                 // One action row: the main step first and showing how many actions it adds.
                 var actions = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
-                content.Children.Add(actions);
+                DockPanel.SetDock(actions, Dock.Bottom);
+                frame.Children.Add(actions);
+                frame.Children.Add(content);
                 var add = ToolButton(actions, Lang.T("Добавить выбранное в план"), () => AddCollectionToPlan(choice));
                 add.Style = (Style)Window.FindResource("Primary");
                 collectionPlanButtons.Add(add);
@@ -145,11 +149,8 @@ namespace Wintools
                     button.Margin = new Thickness(0, 0, 8, 8);
                 var card = new Border
                 {
-                    Child = content,
-                    Padding = new Thickness(18),
-                    Margin = new Thickness(0, 0, 12, 12),
-                    CornerRadius = new CornerRadius(14),
-                    VerticalAlignment = VerticalAlignment.Top
+                    Child = frame,
+                    Padding = new Thickness(20, 18, 20, 10)
                 };
                 Card(card);
                 collectionCards.Children.Add(card);

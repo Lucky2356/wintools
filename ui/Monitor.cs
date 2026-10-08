@@ -283,22 +283,23 @@ namespace Wintools
             Interval = TimeSpan.FromSeconds(2)
         };
         private bool readingResources, resourcesPaused;
-        private UniformGrid resourceCards;
+        private CardFlow resourceCards;
         private TextBlock cpuValue, memoryValue, networkValue, memoryDetail, resourceStatus, uptimeValue;
         private ResourceGraph cpuGraph, memoryGraph, networkGraph;
         private ComboBox networkAdapter;
         private ItemsControl resourceProcesses;
+        private CardFlow monitorFlow;
         private void InitializeMonitor(StackPanel panel)
         {
             var controls = new WrapPanel
             {
-                Margin = new Thickness(0, 0, 0, 12)
+                Margin = new Thickness(0, 0, 0, 14)
             };
             panel.Children.Add(controls);
             var pause = new Button
             {
                 Content = Lang.T("Приостановить показатели"),
-                Margin = new Thickness(0, 0, 10, 8)
+                Margin = new Thickness(0, 0, 14, 0)
             };
             controls.Children.Add(pause);
             pause.Click += (s, e) =>
@@ -309,53 +310,40 @@ namespace Wintools
             };
             uptimeValue = Paragraph(Lang.T("Читаем показатели…"));
             uptimeValue.VerticalAlignment = VerticalAlignment.Center;
+            uptimeValue.Margin = new Thickness(0);
+            uptimeValue.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             controls.Children.Add(uptimeValue);
-            resourceCards = new UniformGrid
-            {
-                Columns = 3
-            };
+            // Processor, memory, network and graphics side by side; each card carries its own device choice.
+            resourceCards = new CardFlow(260, 4, true) { Gap = 12 };
             panel.Children.Add(resourceCards);
             var cpu = ResourceCard(Lang.T("Процессор"), out cpuValue, out cpuGraph);
             cpuGraph.Percent = true;
-            cpu.Children.Add(Paragraph(Lang.T("Загрузка за интервал · шкала 0–100%")));
+            cpu.Children.Add(Caption(Lang.T("Загрузка за интервал · шкала 0–100%")));
             var ram = ResourceCard(Lang.T("Оперативная память"), out memoryValue, out memoryGraph);
             memoryGraph.Percent = true;
-            memoryDetail = Paragraph(Lang.T("Доступная память и общий объём"));
+            memoryDetail = Caption(Lang.T("Доступная память и общий объём"));
             ram.Children.Add(memoryDetail);
             var network = ResourceCard(Lang.T("Сеть · приём и отправка"), out networkValue, out networkGraph);
-            network.Children.Add(Paragraph(Lang.T("График приёма · масштаб по максимуму")));
-            InitializeGpu(panel);
-            var adapterRow = new WrapPanel
-            {
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            panel.Children.Add(adapterRow);
+            network.Children.Add(Caption(Lang.T("График приёма · масштаб по максимуму")));
             networkAdapter = new ComboBox
             {
-                Width = 300,
                 DisplayMemberPath = "Value",
-                SelectedValuePath = "Key",
-                Margin = new Thickness(0, 0, 10, 8)
+                SelectedValuePath = "Key"
             };
             System.Windows.Automation.AutomationProperties.SetName(networkAdapter, Lang.T("Сетевой адаптер для мониторинга"));
-            adapterRow.Children.Add(networkAdapter);
-            var refresh = new Button
-            {
-                Content = Lang.T("Обновить адаптеры"),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            adapterRow.Children.Add(refresh);
-            refresh.Click += (s, e) => ReadAdapters();
+            network.Children.Add(DevicePicker(networkAdapter, Lang.T("Обновить адаптеры"), () => ReadAdapters()));
             networkAdapter.SelectionChanged += (s, e) =>
             {
                 networkGraph.Clear();
                 networkValue.Text = Lang.T("Первый замер…");
             };
-            resourceStatus = Paragraph(Lang.T("Показатели обновляются каждые 2 секунды, пока открыт этот раздел. Графики хранят последние 30 замеров."));
-            resourceStatus.FontSize = 12;
+            InitializeGpu(panel);
+            resourceStatus = Caption(Lang.T("Показатели обновляются каждые 2 секунды, пока открыт этот раздел. Графики хранят последние 30 замеров."));
+            resourceStatus.Margin = new Thickness(0, 12, 0, 18);
             panel.Children.Add(resourceStatus);
-            InitializeTemperatures(panel);
-            InitializeMeasurements(panel);
+            // Temperatures, recordings, memory and the snapshot are separate topics: columns on a wide screen, a list on a narrow one.
+            monitorFlow = new CardFlow(460, 3, false);
+            panel.Children.Add(monitorFlow);
             var processPanel = new StackPanel();
             processPanel.Children.Add(Intro(Lang.T("Программы, которые сейчас занимают больше всего памяти."), Lang.T("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ.")));
             resourceProcesses = new ItemsControl();
@@ -365,48 +353,68 @@ namespace Wintools
             {
                 Header = Lang.T("Что сейчас занимает память"),
                 Content = processPanel,
-                IsExpanded = true,
-                Margin = new Thickness(0, 0, 0, 18)
+                IsExpanded = true
             };
             expander.SetResourceReference(Control.ForegroundProperty, "Text");
-            panel.Children.Add(expander);
+            monitorFlow.Children.Add(expander);
+            InitializeTemperatures(monitorFlow);
+            InitializeMeasurements(monitorFlow);
             ReadAdapters();
             resourceTimer.Tick += async (s, e) => await SampleResources();
             Window.StateChanged += (s, e) => ResourceVisibility();
             Window.Closed += (s, e) => resourceTimer.Stop();
-            panel.SizeChanged += (s, e) => resourceCards.Columns = panel.ActualWidth >= 1200 ? 4 : panel.ActualWidth >= 680 ? 2 : 1;
+        }
+
+        // A device list with a small refresh button beside it, placed at the bottom of a measure card.
+        private Grid DevicePicker(ComboBox choice, string refreshCaption, Action refresh)
+        {
+            var row = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(choice);
+            var button = new Button { Content = "\uE72C", ToolTip = refreshCaption, Padding = new Thickness(0), Width = 34, Margin = new Thickness(6, 0, 0, 0) };
+            button.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
+            System.Windows.Automation.AutomationProperties.SetName(button, refreshCaption);
+            button.Click += (s, e) => refresh();
+            Grid.SetColumn(button, 1);
+            row.Children.Add(button);
+            return row;
+        }
+
+        // Small secondary text under a value or a chart.
+        private static TextBlock Caption(string text)
+        {
+            var caption = new TextBlock { Text = text, FontSize = 12, LineHeight = 17, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+            caption.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            return caption;
         }
 
         private StackPanel ResourceCard(string title, out TextBlock value, out ResourceGraph graph)
         {
             var panel = new StackPanel();
-            var label = Paragraph(title);
-            label.FontSize = 12;
-            label.FontWeight = FontWeights.SemiBold;
-            label.Margin = new Thickness(0, 0, 0, 6);
+            var label = new TextBlock { Text = title, FontSize = 13, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4), TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
             label.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             panel.Children.Add(label);
             value = new TextBlock
             {
                 Text = Lang.T("Первый замер…"),
                 MinHeight = 64,
-                FontSize = 25,
+                FontSize = 26,
                 FontWeight = FontWeights.SemiBold,
-                Margin = new Thickness(0, 0, 0, 12)
+                Margin = new Thickness(0, 0, 0, 10)
             };
+            value.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
             panel.Children.Add(value);
             graph = new ResourceGraph
             {
-                Height = 58,
-                Margin = new Thickness(0, 0, 0, 12)
+                Height = 72,
+                Margin = new Thickness(0, 0, 0, 10)
             };
             panel.Children.Add(graph);
             var border = new Border
             {
                 Child = panel,
-                CornerRadius = new CornerRadius(14),
-                Padding = new Thickness(16),
-                Margin = new Thickness(0, 0, 10, 12)
+                Padding = new Thickness(18, 16, 18, 10)
             };
             Card(border);
             resourceCards.Children.Add(border);
