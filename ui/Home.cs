@@ -29,6 +29,14 @@ namespace Wintools
                 AddScenario(grid, "\uE74D", "Success", Lang.T("Освободить место"), Lang.T("Временные файлы, кэш браузеров и что занимает больше всего места на диске."), Lang.T("Посмотреть"), () => OpenMaintenance(6)),
                 AddScenario(grid, "\uE90F", "Warning", Lang.T("Проверить Windows"), Lang.T("Проверка системных файлов и компонентов без изменений; восстановление — по вашему решению."), Lang.T("Проверить"), () => OpenMaintenance(0))
             };
+            // Every tool one click away: on a large monitor this fills the start page instead of leaving it half empty.
+            var more = new TextBlock { Text = Lang.T("Все инструменты"), FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 26, 0, 12) };
+            more.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+            panel.Children.Add(more);
+            var tools = new CardFlow(250, 6, true) { Gap = 8 };
+            panel.Children.Add(tools);
+            foreach (int index in new[] { 0, 2, 4, 1, 7, 9, 14, 11, 10, 12, 13, 5 })
+                AddShortcut(tools, index);
             var links = new WrapPanel { Margin = new Thickness(-8, 12, 0, 8) };
             var catalogue = new Button { Content = Lang.T("Тонкая настройка: каталог действий →"), Margin = new Thickness(0, 0, 8, 8), Padding = new Thickness(8, 4, 8, 4) };
             catalogue.SetResourceReference(FrameworkElement.StyleProperty, "Link");
@@ -39,6 +47,31 @@ namespace Wintools
             history.Click += (s, e) => ShowPage(1);
             links.Children.Add(history);
             panel.Children.Add(links);
+        }
+
+        // A compact tile for one page: its navigation icon, name and one-line purpose.
+        private void AddShortcut(Panel tools, int index)
+        {
+            var source = Get<Button>(nav[index]);
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            var glyph = new TextBlock { Text = source.Tag as string, FontSize = 18, Width = 28, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 12, 0), TextWrapping = TextWrapping.NoWrap };
+            glyph.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
+            row.Children.Add(glyph);
+            var words = new StackPanel();
+            Grid.SetColumn(words, 1);
+            words.Children.Add(new TextBlock { Text = Lang.T((string)source.ToolTip), FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap });
+            var about = new TextBlock { Text = PageHints[index], FontSize = 12, LineHeight = 17, Margin = new Thickness(0, 2, 0, 0), TextWrapping = TextWrapping.Wrap };
+            about.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            words.Children.Add(about);
+            row.Children.Add(words);
+            var button = new Button { Content = row, Padding = new Thickness(14, 12, 14, 12) };
+            button.SetResourceReference(FrameworkElement.StyleProperty, "Tile");
+            System.Windows.Automation.AutomationProperties.SetName(button, Lang.T((string)source.ToolTip));
+            button.Click += (s, e) => ShowPage(index);
+            tools.Children.Add(button);
         }
 
         private void OpenMaintenance(int mode)

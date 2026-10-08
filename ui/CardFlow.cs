@@ -91,6 +91,17 @@ namespace Wintools
         private double Place(double width, bool arrange)
         {
             int columns = Fit(width, minColumn, maxColumns, gap);
+            // Rows of equal cards never leave one orphan: four cards in three columns become two rows of two.
+            if (rows)
+            {
+                int count = 0;
+                foreach (UIElement child in InternalChildren)
+                    if (child.Visibility != Visibility.Collapsed && !GetWide(child))
+                        count++;
+                if (count > 0 && count < columns * 4)
+                    columns = Math.Max(1, (int)Math.Ceiling(count / Math.Ceiling(count / (double)columns)));
+            }
+
             Columns = columns;
             double column = Math.Max(0, (width - gap * (columns - 1)) / columns), top = 0;
             var heights = new double[columns];

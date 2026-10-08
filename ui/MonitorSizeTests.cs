@@ -68,15 +68,24 @@ namespace Wintools
                         ShowHealthTab(0);
                     if (index == 11)
                         integrityChoice.SelectedIndex = integrityActions.Length;
-                    await CaptureAt("portable-ui-at-" + tag + "-" + index + ".png", size.Width, size.Height);
-                    if (index == 0)
+                    if (index != 0)
                     {
+                        await CaptureAt("portable-ui-at-" + tag + "-" + index + ".png", size.Width, size.Height);
+                    }
+                    else
+                    {
+                        // The catalogue is drawn as sections and as the list, then left in the view it was in.
+                        bool listed = Get<FrameworkElement>("CatalogueResults").IsVisible;
+                        if (listed)
+                            Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        await CaptureAt("portable-ui-at-" + tag + "-0.png", size.Width, size.Height);
                         Get<Button>("ShowAll").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                         Get<ListBox>("Items").SelectedIndex = 0;
                         await CaptureAt("portable-ui-at-" + tag + "-0-list.png", size.Width, size.Height);
                         if (size.Width == 2560)
                             Assert(Get<ListBox>("Items").ActualWidth > 1000 && Get<FrameworkElement>("ActionCard").ActualWidth <= 530, "Catalogue list does not take the wide screen: list " + Get<ListBox>("Items").ActualWidth + ", details " + Get<FrameworkElement>("ActionCard").ActualWidth);
-                        Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        if (!listed)
+                            Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }
 
                     if (index == 11)
