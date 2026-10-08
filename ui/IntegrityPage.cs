@@ -59,11 +59,16 @@ namespace Wintools
                     Lang.T("Обновления Windows · пауза и часы активности")
                 },
                 SelectedIndex = 0,
-                Margin = new Thickness(0, 0, 0, 12)
+                Margin = new Thickness(0, 0, 0, 14),
+                MaxWidth = 520,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                MinWidth = 360
             };
             System.Windows.Automation.AutomationProperties.SetName(integrityChoice, Lang.T("Вид обслуживания Windows"));
             root.Children.Add(integrityChoice);
             integrityDescription = Paragraph("");
+            integrityDescription.MaxWidth = 900;
+            integrityDescription.HorizontalAlignment = HorizontalAlignment.Left;
             Grid.SetRow(integrityDescription, 1);
             root.Children.Add(integrityDescription);
             integrityChoice.SelectionChanged += (s, e) => DescribeIntegrityChoice();
@@ -118,6 +123,7 @@ namespace Wintools
                 VerticalContentAlignment = VerticalAlignment.Top,
                 MinHeight = 96
             };
+            integrityReport.SetResourceReference(Control.BackgroundProperty, "Surface");
             System.Windows.Automation.AutomationProperties.SetName(integrityReport, Lang.T("Отчёт проверки Windows"));
             Grid.SetRow(integrityReport, 4);
             root.Children.Add(integrityReport);

@@ -43,7 +43,7 @@ namespace Wintools
             internal TextBlock Value, Detail;
         }
 
-        private const double RingSize = 64, RingStroke = 7;
+        private const double RingSize = 56, RingStroke = 6;
         private readonly ResourceReader dashboardReader = new ResourceReader();
         private DispatcherTimer dashboardTimer;
         private Gauge cpuGauge, memoryGauge, diskGauge, uptimeGauge;
@@ -69,17 +69,20 @@ namespace Wintools
 
         private Gauge AddGauge(Panel row, string title, string icon)
         {
-            // Four compact tiles in one row keep the everyday goals below them on the first screen of a laptop.
+            // The ring with the number on the left, the name and the plain-language detail on the right: one compact tile per measure.
             var tile = new Border
             {
-                Padding = new Thickness(12, 14, 12, 12),
-                CornerRadius = new CornerRadius(14),
-                Margin = new Thickness(6)
+                Padding = new Thickness(16, 14, 16, 14),
+                CornerRadius = new CornerRadius(8)
             };
-            tile.SetResourceReference(Border.BackgroundProperty, "Raised");
-            var grid = new StackPanel();
+            tile.SetResourceReference(Border.BackgroundProperty, "Layer");
+            tile.SetResourceReference(Border.BorderBrushProperty, "Divider");
+            tile.BorderThickness = new Thickness(1);
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition());
             tile.Child = grid;
-            var ring = new Grid { Width = RingSize, Height = RingSize, HorizontalAlignment = HorizontalAlignment.Center };
+            var ring = new Grid { Width = RingSize, Height = RingSize, VerticalAlignment = VerticalAlignment.Center };
             var track = new Ellipse { StrokeThickness = RingStroke };
             track.SetResourceReference(Shape.StrokeProperty, "Border");
             ring.Children.Add(track);
@@ -90,16 +93,17 @@ namespace Wintools
             value.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
             ring.Children.Add(value);
             grid.Children.Add(ring);
-            var text = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
-            var heading = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-            var glyph = new TextBlock { Text = icon, FontSize = 13, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
+            var text = new StackPanel { Margin = new Thickness(14, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(text, 1);
+            var heading = new StackPanel { Orientation = Orientation.Horizontal };
+            var glyph = new TextBlock { Text = icon, FontSize = 14, Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
             glyph.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
-            glyph.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
+            glyph.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             heading.Children.Add(glyph);
             var name = new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
             heading.Children.Add(name);
             text.Children.Add(heading);
-            var detail = new TextBlock { FontSize = 12, Margin = new Thickness(0, 3, 0, 0), TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, LineHeight = 17 };
+            var detail = new TextBlock { FontSize = 12, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap, LineHeight = 17 };
             detail.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             text.Children.Add(detail);
             grid.Children.Add(text);
@@ -111,19 +115,18 @@ namespace Wintools
         {
             var card = new Border
             {
-                Padding = new Thickness(22, 20, 22, 14),
-                CornerRadius = new CornerRadius(14),
-                Margin = new Thickness(0, 0, 0, 14)
+                Padding = new Thickness(20, 18, 20, 20),
+                Margin = new Thickness(0, 0, 0, 8)
             };
             Card(card);
             var content = new StackPanel();
             card.Child = content;
-            var head = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+            var head = new Grid { Margin = new Thickness(0, 0, 0, 16) };
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.ColumnDefinitions.Add(new ColumnDefinition());
-            dashboardBadge = new Border { Width = 44, Height = 44, CornerRadius = new CornerRadius(22), VerticalAlignment = VerticalAlignment.Center };
+            dashboardBadge = new Border { Width = 40, Height = 40, CornerRadius = new CornerRadius(20), VerticalAlignment = VerticalAlignment.Center };
             dashboardBadge.SetResourceReference(Border.BackgroundProperty, "Selection");
-            dashboardMark = new TextBlock { Text = "", FontSize = 20, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
+            dashboardMark = new TextBlock { Text = "\uE73E", FontSize = 18, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
             dashboardMark.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
             dashboardMark.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
             dashboardBadge.Child = dashboardMark;
@@ -133,13 +136,12 @@ namespace Wintools
             dashboardHeadline = new TextBlock { Text = Lang.T("Читаем показатели…"), FontSize = 20, FontWeight = FontWeights.SemiBold };
             dashboardHeadline.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
             words.Children.Add(dashboardHeadline);
-            dashboardDetail = new TextBlock { Margin = new Thickness(0, 4, 0, 0), LineHeight = 21, TextWrapping = TextWrapping.Wrap };
+            dashboardDetail = new TextBlock { Margin = new Thickness(0, 2, 0, 0), LineHeight = 20, TextWrapping = TextWrapping.Wrap };
             dashboardDetail.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             words.Children.Add(dashboardDetail);
             head.Children.Add(words);
             content.Children.Add(head);
-            var row = new UniformGrid { Columns = 4, Margin = new Thickness(-6, 0, -6, 0) };
-            row.SizeChanged += (s, e) => row.Columns = row.ActualWidth >= 600 ? 4 : 2;
+            var row = new CardFlow(220, 4, true) { Gap = 10 };
             content.Children.Add(row);
             cpuGauge = AddGauge(row, Lang.T("Процессор"), "");
             memoryGauge = AddGauge(row, Lang.T("Память"), "");

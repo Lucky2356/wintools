@@ -199,7 +199,7 @@ namespace Wintools
                 {
                     Child = text,
                     Padding = new Thickness(12),
-                    CornerRadius = new CornerRadius(10),
+                    CornerRadius = new CornerRadius(6),
                     Margin = new Thickness(0, 6, 0, 12)
                 };
                 border.ToolTip = button.ToolTip;

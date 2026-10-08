@@ -18,21 +18,20 @@ namespace Wintools
         private bool readingHosts;
         private Func<byte[]> hostsRead = HostsFile.ReadBytes;
         private Func<string, string, string, string, Task<EngineResult>> hostsRun = HostsFile.Run;
-        private void InitializeHosts(StackPanel parent)
+        private void InitializeHosts(Panel parent)
         {
             var panel = new StackPanel();
             var card = new Border
             {
                 Child = panel,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             parent.Children.Add(card);
             var heading = Paragraph(Lang.T("Блокировка сайтов через hosts"));
-            heading.FontSize = 21;
-            heading.FontWeight = FontWeights.SemiBold;
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             panel.Children.Add(heading);
             panel.Children.Add(Intro(Lang.T("Блокирует сайт на этом ПК через файл hosts."), Lang.T("Запись в файле hosts направляет сайт на несуществующий адрес 0.0.0.0, и программы на этом ПК не смогут к нему подключиться. Подходит для отдельных рекламных или отвлекающих доменов; поддомены блокируются отдельно. Microsoft Defender может пометить блокировку популярных сайтов как подозрительное изменение.")));
             var controls = new WrapPanel

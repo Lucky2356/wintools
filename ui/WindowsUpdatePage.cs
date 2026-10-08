@@ -26,14 +26,13 @@ namespace Wintools
             {
                 Child = panel,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             parent.Children.Add(card);
             var heading = Paragraph(Lang.T("Обновления Windows"));
-            heading.FontSize = 21;
-            heading.FontWeight = FontWeights.SemiBold;
+            heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             panel.Children.Add(heading);
             panel.Children.Add(Intro(Lang.T("Приостановите обновления на время или задайте часы, когда Windows не перезагружает ПК."), Lang.T("Пауза откладывает установку обновлений, как кнопка «Приостановить» в параметрах Windows: не дольше 35 дней, после чего Windows обновится. Часы активности — время, когда Windows не перезагружает ПК для установки обновлений. Отключать обновления совсем Wintools не предлагает: они закрывают уязвимости.")));
             updateCurrent = Paragraph(Lang.T("Нажмите «Обновить», чтобы прочитать настройки."));

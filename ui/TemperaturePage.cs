@@ -13,7 +13,7 @@ namespace Wintools
         private TextBlock temperatureStatus;
         private bool readingTemperature;
         private Func<TemperatureSnapshot> temperatureRead = GpuTemperatures.Read;
-        private void InitializeTemperatures(StackPanel parent)
+        private void InitializeTemperatures(Panel parent)
         {
             var panel = new StackPanel();
             temperatureStatus = Paragraph(Lang.T("Температура кристалла GPU из установленного драйвера NVIDIA. CPU, AMD и Intel здесь пока не поддерживаются. Обновление каждые 2 с, пока этот блок открыт."));

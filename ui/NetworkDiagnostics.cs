@@ -122,16 +122,20 @@ namespace Wintools
         {
             var panel = ToolPage("NetworkPage");
             panel.Children.Add(Intro(Lang.T("Проверьте, как быстро отвечает сервер и не теряются ли запросы."), Lang.T("Проверка покажет, как быстро выбранный сервер отвечает и сколько запросов осталось без ответа. Отправляем 10 небольших ICMP-пакетов; сама проверка настройки сети не меняет. Это не измерение скорости скачивания и не оценка игрового FPS.")));
-            panel.Children.Add(Paragraph(Lang.T("Адрес сервера или роутера — например, 1.1.1.1 или адрес игрового сервера. Внешний сервер увидит обычные сетевые запросы с вашего подключения.")));
+            // The connection check, DNS and hosts are three tools: columns on a wide screen, one after another on a narrow one.
+            var tools = new CardFlow(460, 3, false);
+            panel.Children.Add(tools);
+            var ping = Section(tools, Lang.T("Проверка соединения"));
+            ping.Children.Add(Paragraph(Lang.T("Адрес сервера или роутера — например, 1.1.1.1 или адрес игрового сервера. Внешний сервер увидит обычные сетевые запросы с вашего подключения.")));
             var controls = new WrapPanel
             {
                 Margin = new Thickness(0, 0, 0, 12)
             };
-            panel.Children.Add(controls);
+            ping.Children.Add(controls);
             networkHost = new TextBox
             {
                 Text = "1.1.1.1",
-                Width = 260,
+                Width = 220,
                 Margin = new Thickness(0, 0, 10, 8)
             };
             System.Windows.Automation.AutomationProperties.SetName(networkHost, Lang.T("Адрес для проверки сети"));
@@ -159,16 +163,19 @@ namespace Wintools
             };
             networkTestProgress.SetResourceReference(Control.ForegroundProperty, "Accent");
             networkTestProgress.SetResourceReference(Control.BackgroundProperty, "Raised");
-            panel.Children.Add(networkTestProgress);
+            ping.Children.Add(networkTestProgress);
             networkTestStatus = Paragraph(Lang.T("Проверка ещё не запускалась."));
-            panel.Children.Add(networkTestStatus);
+            ping.Children.Add(networkTestStatus);
+            // The result sits on an inset panel inside the card.
             var card = new Border
             {
-                CornerRadius = new CornerRadius(14),
-                Padding = new Thickness(18),
-                Margin = new Thickness(0, 0, 0, 14)
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(16, 14, 16, 14),
+                Margin = new Thickness(0, 0, 0, 12),
+                BorderThickness = new Thickness(1)
             };
-            Card(card);
+            card.SetResourceReference(Border.BackgroundProperty, "Layer");
+            card.SetResourceReference(Border.BorderBrushProperty, "Divider");
             var result = new StackPanel();
             card.Child = result;
             networkVerdict = new TextBlock { FontSize = 20, FontWeight = FontWeights.SemiBold, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 0, 0, 8) };
@@ -180,9 +187,9 @@ namespace Wintools
             networkTestSummary = Paragraph(Lang.T("Здесь появятся задержка, доля запросов без ответа и изменчивость задержки."));
             networkTestSummary.Margin = new Thickness(0);
             result.Children.Add(networkTestSummary);
-            panel.Children.Add(card);
+            ping.Children.Add(card);
             networkTestAdvice = Paragraph(Lang.T("Сравнивайте замеры до и во время вашей обычной нагрузки. Если роутер отвечает стабильно, а внешний сервер — нет, проверьте другое направление: проблема может быть на маршруте или на сервере."));
-            panel.Children.Add(networkTestAdvice);
+            ping.Children.Add(networkTestAdvice);
             networkTestRows = new ItemsControl { Visibility = Visibility.Collapsed };
             var rowsToggle = new Button { Content = Lang.T("Показать каждый запрос ▾"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 8, 2), MinHeight = 28, Margin = new Thickness(0, 0, 0, 8) };
             rowsToggle.SetResourceReference(FrameworkElement.StyleProperty, "Link");
@@ -192,10 +199,10 @@ namespace Wintools
                 networkTestRows.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
                 rowsToggle.Content = open ? Lang.T("Скрыть запросы ▴") : Lang.T("Показать каждый запрос ▾");
             };
-            panel.Children.Add(rowsToggle);
-            panel.Children.Add(networkTestRows);
-            InitializeDns(panel);
-            InitializeHosts(panel);
+            ping.Children.Add(rowsToggle);
+            ping.Children.Add(networkTestRows);
+            InitializeDns(tools);
+            InitializeHosts(tools);
             networkTestStart.Click += async (s, e) => await ProbeNetwork();
             networkTestStop.Click += (s, e) =>
             {

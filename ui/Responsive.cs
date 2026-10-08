@@ -6,23 +6,29 @@ namespace Wintools
 {
     internal sealed partial class MainWindow
     {
-        private Grid settingsCards;
+        private CardFlow settingsCards;
+        // Set only while the smoke run draws a page at a monitor size larger than the runner screen.
+        private double layoutZoom;
         private void InitializeResponsive()
         {
             var settings = Get<ScrollViewer>("SettingsPage");
             var original = (StackPanel)settings.Content;
-            settingsCards = new Grid();
-            settingsCards.ColumnDefinitions.Add(new ColumnDefinition());
-            settingsCards.ColumnDefinitions.Add(new ColumnDefinition());
+            settingsCards = new CardFlow(440, 3, false);
             while (original.Children.Count > 0)
             {
                 var child = original.Children[0];
                 original.Children.RemoveAt(0);
-                settingsCards.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 settingsCards.Children.Add(child);
             }
 
             settings.Content = settingsCards;
+            // Catalogue cards fill the list in as many columns as fit; the item width follows the list, not the window.
+            var items = Get<ListBox>("Items");
+            items.SizeChanged += (s, e) =>
+            {
+                double room = Math.Max(0, items.ActualWidth - 14);
+                LayoutResource("CatalogueItemWidth", Math.Floor(room / CardFlow.Fit(room, 400, 3, 0)));
+            };
             var area = SystemParameters.WorkArea;
             Window.MinWidth = Math.Min(800, area.Width);
             Window.MinHeight = Math.Min(560, area.Height);
@@ -40,7 +46,8 @@ namespace Wintools
                 Window.Resources[key] = value;
         }
 
-        // Narrow windows collapse navigation to an icon rail; short windows drop secondary text before shrinking content.
+        // Narrow windows collapse navigation to an icon rail; short windows drop secondary text before shrinking content;
+        // wide windows get roomier margins and more columns instead of empty space.
         private void AdaptLayout()
         {
             double width = Window.ActualWidth > 0 ? Window.ActualWidth : Window.Width, height = Window.ActualHeight > 0 ? Window.ActualHeight : Window.Height;
@@ -48,57 +55,43 @@ namespace Wintools
             double zoom = ApplyTextScale(width, height);
             width /= zoom;
             height /= zoom;
-            bool rail = width < 1000, dense = height < 820, tight = rail || dense;
+            bool rail = width < 1000, dense = height < 820, tight = rail || dense, roomy = width >= 1700 && !dense;
             LayoutResource("NavLabelVisibility", rail ? Visibility.Collapsed : Visibility.Visible);
             LayoutResource("NavHeaderVisibility", tight ? Visibility.Collapsed : Visibility.Visible);
             LayoutResource("NavSeparatorVisibility", tight ? Visibility.Visible : Visibility.Collapsed);
-            LayoutResource("NavItemHeight", dense ? 30.0 : 38.0);
-            Get<Grid>("Body").ColumnDefinitions[0].Width = new GridLength(rail ? 64 : 236);
+            LayoutResource("NavItemHeight", dense ? 32.0 : 36.0);
+            double navWidth = rail ? 64 : roomy ? 300 : 272;
+            Get<Grid>("Body").ColumnDefinitions[0].Width = new GridLength(navWidth);
             // The icon rail is too narrow for a scrollbar; the wheel still scrolls it.
             Get<ScrollViewer>("NavScroll").VerticalScrollBarVisibility = rail ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
-            Get<Border>("Sidebar").Padding = rail ? new Thickness(8, 12, 8, 8) : new Thickness(12, dense ? 12 : 18, 12, 12);
+            Get<Border>("Sidebar").Padding = rail ? new Thickness(8, 12, 8, 8) : new Thickness(10, dense ? 10 : 14, 10, 10);
             var brand = Get<FrameworkElement>("Brand");
             brand.Visibility = height >= 600 ? Visibility.Visible : Visibility.Collapsed;
             brand.HorizontalAlignment = rail ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
-            brand.Margin = rail ? new Thickness(0, 0, 0, 8) : new Thickness(6, 0, 0, dense ? 6 : 10);
+            brand.Margin = rail ? new Thickness(0, 0, 0, 10) : new Thickness(8, 0, 0, dense ? 8 : 14);
+            Get<Button>("NavSearch").Margin = rail ? new Thickness(0, 0, 0, 8) : new Thickness(2, 0, 2, dense ? 6 : 10);
             Visible("SidebarFooter", !rail && height >= 960);
             var main = Get<Grid>("Workspace");
-            main.Margin = tight ? new Thickness(16, 12, 16, 10) : new Thickness(32, 22, 32, 16);
-            Get<FrameworkElement>("PageHeader").Margin = new Thickness(0, 0, 0, dense ? 10 : 20);
+            double side = tight ? 20 : roomy ? 48 : 36;
+            main.Margin = tight ? new Thickness(side, 14, side, 10) : new Thickness(side, roomy ? 32 : 26, side, 14);
+            Get<Border>("Console").Padding = new Thickness(side, 0, side - 8, 0);
+            Get<FrameworkElement>("PageHeader").Margin = new Thickness(0, 0, 0, dense ? 12 : 22);
             Get<TextBlock>("PageTitle").FontSize = dense ? 22 : 28;
-            Visible("PageEyebrow", !dense);
             Visible("PageHint", !dense);
-            // The section badge stays on typical laptop heights and shrinks in short windows.
-            Visible("PageBadge", height >= 680);
-            var badge = Get<Border>("PageBadge");
-            badge.Width = badge.Height = dense ? 44 : 56;
-            badge.CornerRadius = new CornerRadius(dense ? 13 : 16);
-            Get<TextBlock>("PageIcon").FontSize = dense ? 20 : 26;
-            double available = Math.Max(0, width - (rail ? 64 : 236) - main.Margin.Left - main.Margin.Right);
-            LayoutResource("BrowseColumns", available >= 1300 ? 3 : available >= 640 ? 2 : 1);
-            if (collectionCards != null)
-                collectionCards.Columns = main.ActualWidth >= 1500 ? 3 : main.ActualWidth >= 1000 ? 2 : 1;
-            if (settingsCards != null)
-            {
-                bool wide = main.ActualWidth >= 1000;
-                settingsCards.ColumnDefinitions[1].Width = wide ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-                for (int i = 0; i < settingsCards.Children.Count; i++)
-                {
-                    var card = (Border)settingsCards.Children[i];
-                    Grid.SetColumn(card, wide ? i % 2 : 0);
-                    Grid.SetRow(card, wide ? i / 2 : i);
-                    card.Padding = new Thickness(tight ? 16 : 22);
-                    card.Margin = new Thickness(0, 0, wide && i % 2 == 0 ? 12 : 0, 12);
-                }
-            }
-
-            Get<Grid>("CatalogueResults").ColumnDefinitions[1].Width = new GridLength(tight ? 10 : 16);
+            double available = Math.Max(0, width - navWidth - side * 2);
+            LayoutResource("BrowseColumns", available >= 1700 ? 4 : available >= 1100 ? 3 : available >= 640 ? 2 : 1);
+            // Wide screens keep the action details at a readable width and give the rest to the list, which then shows several columns.
+            bool split = available >= 1300;
+            double detail = split ? Math.Min(520, Math.Max(400, available * 0.3)) : 0;
+            var results = Get<Grid>("CatalogueResults");
+            results.ColumnDefinitions[1].Width = new GridLength(tight ? 10 : 16);
+            results.ColumnDefinitions[0].Width = new GridLength(split ? 1 : 1.1, GridUnitType.Star);
+            results.ColumnDefinitions[2].Width = split ? new GridLength(detail) : new GridLength(1, GridUnitType.Star);
             Get<Border>("ActionCard").Padding = tight ? new Thickness(14, 12, 14, 12) : new Thickness(20, 18, 20, 18);
-            Get<TextBlock>("ActionTitle").FontSize = tight ? 16 : 19;
+            Get<TextBlock>("ActionTitle").FontSize = tight ? 16 : 20;
             Visible("ActionLabel", !tight);
             Get<TextBlock>("Metadata").Margin = tight ? new Thickness(0, 4, 0, 8) : new Thickness(0, 6, 0, 14);
-            Get<Border>("Console").Margin = new Thickness(0, dense ? 8 : 14, 0, 0);
-            Get<TextBox>("Output").Height = dense ? 48 : 110;
+            Get<TextBox>("Output").Height = dense ? 64 : 140;
         }
     }
 }

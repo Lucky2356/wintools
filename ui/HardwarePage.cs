@@ -58,7 +58,7 @@ namespace Wintools
             };
             panel.SizeChanged += (s, e) =>
             {
-                int columns = panel.ActualWidth >= 1350 ? 3 : panel.ActualWidth >= 800 ? 2 : 1;
+                int columns = panel.ActualWidth >= 1800 ? 4 : panel.ActualWidth >= 1300 ? 3 : panel.ActualWidth >= 760 ? 2 : 1;
                 if (columns != hardwareColumns)
                 {
                     hardwareColumns = columns;
@@ -121,8 +121,7 @@ namespace Wintools
             {
                 var content = new StackPanel();
                 var title = Paragraph(section.Title);
-                title.FontSize = 16;
-                title.FontWeight = FontWeights.SemiBold;
+                title.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
                 content.Children.Add(title);
                 var detail = Paragraph(section.Text);
                 detail.Margin = new Thickness(0);
@@ -132,9 +131,12 @@ namespace Wintools
                     Child = content,
                     Padding = new Thickness(16),
                     Margin = new Thickness(0, 0, 10, 10),
-                    CornerRadius = new CornerRadius(14)
+                    CornerRadius = new CornerRadius(8)
                 };
                 Card(card);
+                // Inset tiles inside the expander card.
+                card.SetResourceReference(Border.BackgroundProperty, "Layer");
+                card.SetResourceReference(Border.BorderBrushProperty, "Divider");
                 columns[index++ % columns.Length].Children.Add(card);
             }
         }

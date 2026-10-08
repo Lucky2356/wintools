@@ -86,8 +86,7 @@ namespace Wintools
             };
             root.Children.Add(collectionAssistant);
             assistantTitle = Paragraph("");
-            assistantTitle.FontSize = 21;
-            assistantTitle.FontWeight = FontWeights.SemiBold;
+            assistantTitle.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             collectionAssistant.Children.Add(assistantTitle);
             collectionAssistant.Children.Add(Paragraph(Lang.T("Ответы только отметят группы внутри выбранной подборки. Они не меняют Windows и не добавляют действия в план. Перед применением вы сможете проверить каждое действие.")));
             collectionAssistantGrid = new Grid();
@@ -102,8 +101,7 @@ namespace Wintools
             };
             collectionAssistantGrid.Children.Add(questionPanel);
             assistantQuestion = Paragraph("");
-            assistantQuestion.FontSize = 18;
-            assistantQuestion.FontWeight = FontWeights.SemiBold;
+            assistantQuestion.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");
             questionPanel.Children.Add(assistantQuestion);
             assistantDetail = Paragraph("");
             questionPanel.Children.Add(assistantDetail);
@@ -166,7 +164,7 @@ namespace Wintools
             {
                 Child = assistantSummary,
                 Padding = new Thickness(16),
-                CornerRadius = new CornerRadius(14),
+                CornerRadius = new CornerRadius(8),
                 Margin = new Thickness(0, 0, 0, 16),
                 VerticalAlignment = VerticalAlignment.Top
             };

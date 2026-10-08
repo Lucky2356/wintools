@@ -38,6 +38,14 @@ namespace Wintools
             }
         }
 
+        public string Subtitle
+        {
+            get
+            {
+                return string.IsNullOrEmpty(Publisher) ? Kind : Kind + " · " + Publisher;
+            }
+        }
+
         internal RegistryHive Hive;
         internal RegistryView View;
         internal bool Msi, CanRemove;
@@ -315,7 +323,7 @@ namespace Wintools
             ScrollViewer.SetCanContentScroll(applicationList, true);
             Grid.SetRow(applicationList, 2);
             root.Children.Add(applicationList);
-            applicationList.ItemTemplate = (DataTemplate)XamlReader.Parse(Lang.T("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='110'/><ColumnDefinition Width='95'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,10,0'><TextBlock Text='{Binding Name}' FontWeight='SemiBold' TextWrapping='Wrap'/><TextBlock Text='{Binding Kind}' Foreground='{DynamicResource Muted}' FontSize='12'/><TextBlock Text='{Binding Publisher}' Foreground='{DynamicResource Muted}' FontSize='12' Margin='0,4,0,0'/></StackPanel><StackPanel Grid.Column='1' Margin='0,0,10,0'><TextBlock Text='Версия' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding Version}' ToolTip='{Binding Version}' TextWrapping='NoWrap' TextTrimming='CharacterEllipsis' Margin='0,3,0,0'/></StackPanel><StackPanel Grid.Column='2'><TextBlock Text='Размер' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding Size}' TextWrapping='Wrap' Margin='0,3,0,0'/></StackPanel></Grid></DataTemplate>"));
+            applicationList.ItemTemplate = (DataTemplate)XamlReader.Parse(Lang.T("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='140'/><ColumnDefinition Width='90'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,16,0' VerticalAlignment='Center'><TextBlock Text='{Binding Name}' ToolTip='{Binding Name}' FontWeight='SemiBold' TextTrimming='CharacterEllipsis' TextWrapping='NoWrap'/><TextBlock Text='{Binding Subtitle}' Foreground='{DynamicResource Muted}' FontSize='12' Margin='0,2,0,0' TextTrimming='CharacterEllipsis' TextWrapping='NoWrap'/></StackPanel><StackPanel Grid.Column='1' Margin='0,0,12,0' VerticalAlignment='Center'><TextBlock Text='Версия' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding Version}' ToolTip='{Binding Version}' TextWrapping='NoWrap' TextTrimming='CharacterEllipsis' Margin='0,1,0,0'/></StackPanel><StackPanel Grid.Column='2' VerticalAlignment='Center'><TextBlock Text='Размер' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding Size}' TextWrapping='NoWrap' Margin='0,1,0,0'/></StackPanel></Grid></DataTemplate>"));
             var footer = new StackPanel
             {
                 Margin = new Thickness(0, 12, 0, 0)
@@ -340,6 +348,7 @@ namespace Wintools
             };
             actions.Children.Add(applicationRemove);
             InitializeStoreActions(footer);
+            SidePane(root, 2, footer);
             applicationList.SelectionChanged += (s, e) => ApplicationSelection();
             applicationFolder.Click += (s, e) =>
             {
