@@ -49,16 +49,18 @@ namespace Wintools
             buttons.Children.Add(packageUpgrade);
             packageUpgradeAll = new Button
             {
-                Content = Lang.T("Обновить все программы…"),
-                Margin = new Thickness(0, 0, 10, 8)
+                Content = Lang.T("Обновить все…"),
+                ToolTip = Lang.T("Обновить все программы, для которых winget знает новую версию"),
+                Margin = new Thickness(0, 0, 4, 8)
             };
             packageUpgradeAll.Style = (Style)Window.FindResource("Ghost");
             packageUpgradeAll.Click += async (s, e) => await RunPackages("upgrade-all");
             buttons.Children.Add(packageUpgradeAll);
             packageCheck = new Button
             {
-                Content = Lang.T("Проверить установленные"),
-                Margin = new Thickness(0, 0, 10, 8)
+                Content = Lang.T("↻ Проверить"),
+                ToolTip = Lang.T("Проверить, какие программы из списка уже установлены"),
+                Margin = new Thickness(0, 0, 4, 8)
             };
             packageCheck.Style = (Style)Window.FindResource("Ghost");
             packageCheck.Click += async (s, e) => await RefreshPackages();

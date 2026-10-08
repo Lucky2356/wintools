@@ -68,6 +68,9 @@ namespace Wintools
                 return Item == null ? "" : BrowseGroup.TintFor(Item.Category);
             }
         }
+
+        // Inside one section every row would repeat the same icon, so it is shown only in mixed lists.
+        public bool ShowIcon { get; set; }
     }
 
     internal sealed class HistoryRow
@@ -487,6 +490,9 @@ namespace Wintools
             ClickAsync("CheckUpdates", () => CheckUpdates(true));
             ClickAsync("InstallUpdate", InstallUpdate);
             Click("LogToggle", () => ExpandOutput(Get<TextBox>("Output").Visibility != Visibility.Visible));
+            // "Details" appears only once an operation has written something worth opening.
+            Get<TextBox>("Output").TextChanged += (s, e) => Visible("LogToggle", Get<TextBox>("Output").Text.Length > 0 || Get<TextBox>("Output").Visibility == Visibility.Visible);
+            Visible("LogToggle", Get<TextBox>("Output").Text.Length > 0);
             Click("ConfirmYes", () => FinishConfirmation(true));
             Click("ConfirmNo", () => FinishConfirmation(false));
             Window.PreviewKeyDown += (s, e) =>
@@ -740,7 +746,8 @@ namespace Wintools
             Visible("ShowAll", browsing);
             Text("BrowseTitle", group == "ALL" ? Lang.T("Выберите раздел") : Catalogue.Categories[group]);
             Visible("RefreshCatalogueServices", !browsing && scope.Any(t => t.Kind == "SVC" || TweakStates.Supported(t)));
-            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), Group = Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
+            bool mixed = !browsing && scope.Select(t => t.Category).Distinct().Skip(1).Any();
+            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { ShowIcon = mixed, Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), Group = Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
             var list = Get<ListBox>("Items");
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(t => t.Item.Id == id) ?? rows.FirstOrDefault();
@@ -778,7 +785,9 @@ namespace Wintools
             Enabled("Apply", !busy && item != null);
             Enabled("Preview", !busy && item != null);
             Enabled("Star", !busy && item != null);
-            Enabled("Revert", !busy && item != null && item.Category != "CLEAN" && item.Kind != "EDGE");
+            // An action that is known to be not applied has nothing to roll back.
+            var state = item == null ? null : CurrentState(item);
+            Enabled("Revert", !busy && item != null && item.Category != "CLEAN" && item.Kind != "EDGE" && (state == null || state.Applied != false));
             var row = Get<ListBox>("History").SelectedItem as HistoryRow;
             Enabled("HistoryRevert", !busy && row != null && row.CanRevert);
             foreach (var name in new[]
@@ -901,6 +910,7 @@ namespace Wintools
         {
             Visible("Output", value);
             Get<Button>("LogToggle").Content = value ? Lang.T("Подробности  ▴") : Lang.T("Подробности  ▾");
+            Visible("LogToggle", value || Get<TextBox>("Output").Text.Length > 0);
         }
 
         private async Task Run(string verb, string id, string run, bool dry)

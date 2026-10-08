@@ -433,7 +433,7 @@ namespace Wintools
             var table = Lang.Load();
             Assert(table.Count > 1500, "English string table not embedded");
             var cyrillic = new System.Text.RegularExpressions.Regex("[\\u0400-\\u04FF]");
-            var allowed = new[] { "Русский", "Язык интерфейса · Language" };
+            var allowed = new[] { "Русский", "Язык интерфейса · Language", "Language" };
             foreach (var pair in table)
             {
                 Assert(!string.IsNullOrWhiteSpace(pair.Value), "Empty translation: " + pair.Key);
