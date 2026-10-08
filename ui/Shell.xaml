@@ -21,6 +21,8 @@
   <SolidColorBrush x:Key="Success" Color="#6FD4A0"/>
   <SolidColorBrush x:Key="Warning" Color="#F3C969"/>
   <SolidColorBrush x:Key="Scrim" Color="#B3000000"/>
+  <SolidColorBrush x:Key="Accent2" Color="#B894FF"/>
+  <LinearGradientBrush x:Key="AccentGradient" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#7AAEFF" Offset="0"/><GradientStop Color="#B894FF" Offset="1"/></LinearGradientBrush>
 
   <!-- Layout values changed by AdaptLayout. -->
   <sys:Double x:Key="NavItemHeight">38</sys:Double>
@@ -402,11 +404,17 @@
    <!-- Workspace -->
    <Grid x:Name="Workspace" Grid.Column="1" Margin="32,22,32,16">
     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-    <StackPanel x:Name="PageHeader" Margin="0,0,0,20">
+    <Grid x:Name="PageHeader" Margin="0,0,0,20">
+     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+     <Border x:Name="PageBadge" Width="56" Height="56" CornerRadius="16" Background="{DynamicResource AccentGradient}" VerticalAlignment="Center" Margin="0,0,16,0">
+      <TextBlock x:Name="PageIcon" FontFamily="{StaticResource IconFont}" FontSize="26" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+     </Border>
+     <StackPanel Grid.Column="1" VerticalAlignment="Center">
      <TextBlock x:Name="PageEyebrow" Text="Каталог действий" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,0,0,4"/>
      <TextBlock x:Name="PageTitle" Text="Windows под ваши задачи" FontFamily="{StaticResource DisplayFont}" FontSize="28" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
      <TextBlock x:Name="PageHint" Text="Понятные действия. Предпросмотр. Контролируемый откат." Style="{StaticResource MutedText}" FontSize="15" Margin="0,6,0,0"/>
-    </StackPanel>
+     </StackPanel>
+    </Grid>
 
     <Grid x:Name="Pages" Grid.Row="1">
      <!-- Catalogue -->
@@ -466,16 +474,23 @@
          <ListBox.ItemTemplate><DataTemplate>
           <Grid>
            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-           <Ellipse x:Name="Risk" Width="10" Height="10" Margin="0,6,12,0" VerticalAlignment="Top" Fill="{DynamicResource Success}"/>
+           <Border Width="38" Height="38" CornerRadius="11" Background="{DynamicResource Selection}" VerticalAlignment="Top" Margin="0,1,14,0">
+            <TextBlock Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="17" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+           </Border>
            <StackPanel Grid.Column="1">
             <TextBlock Text="{Binding DisplayTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-            <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource Muted}" FontSize="13" Margin="0,4,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+            <DockPanel Margin="0,5,0,0" LastChildFill="True">
+             <Border x:Name="Risk" DockPanel.Dock="Left" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="9" Padding="8,1" Margin="0,0,8,0" VerticalAlignment="Center">
+              <TextBlock x:Name="RiskText" Text="{Binding RiskText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Success}" TextWrapping="NoWrap"/>
+             </Border>
+             <TextBlock Text="{Binding Group}" Foreground="{DynamicResource Muted}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+            </DockPanel>
             <TextBlock x:Name="State" Text="{Binding ServiceStatus}" Visibility="{Binding ServiceVisibility}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
            </StackPanel>
           </Grid>
           <DataTemplate.Triggers>
-           <DataTrigger Binding="{Binding RiskLevel}" Value="med"><Setter TargetName="Risk" Property="Fill" Value="{DynamicResource Warning}"/></DataTrigger>
-           <DataTrigger Binding="{Binding RiskLevel}" Value="high"><Setter TargetName="Risk" Property="Fill" Value="{DynamicResource Danger}"/></DataTrigger>
+           <DataTrigger Binding="{Binding RiskLevel}" Value="med"><Setter TargetName="Risk" Property="BorderBrush" Value="{DynamicResource Warning}"/><Setter TargetName="RiskText" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
+           <DataTrigger Binding="{Binding RiskLevel}" Value="high"><Setter TargetName="Risk" Property="BorderBrush" Value="{DynamicResource Danger}"/><Setter TargetName="RiskText" Property="Foreground" Value="{DynamicResource Danger}"/></DataTrigger>
            <DataTrigger Binding="{Binding Applied}" Value="True"><Setter TargetName="State" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
           </DataTemplate.Triggers>
          </DataTemplate></ListBox.ItemTemplate>

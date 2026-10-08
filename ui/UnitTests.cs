@@ -504,6 +504,15 @@ namespace Wintools
             }
         }
 
+        private static void Dashboard()
+        {
+            Assert(DashboardAdvice.For(10, 40, 5, 1).Headline.Contains("диске") && DashboardAdvice.For(10, 95, 50, 1).Problem && DashboardAdvice.For(95, 40, 50, 1).Problem && DashboardAdvice.For(10, 40, 50, 8).Problem && !DashboardAdvice.For(10, 40, 50, 1).Problem && !DashboardAdvice.For(null, null, null, 0).Problem, "Dashboard advice wrong");
+            Assert(DashboardAdvice.Level(30) == "Success" && DashboardAdvice.Level(70) == "Warning" && DashboardAdvice.Level(90) == "Danger", "Dashboard levels wrong");
+            Assert(MainWindow.RingGeometry(0, 84, 9).IsEmpty() && MainWindow.RingGeometry(1, 84, 9) is System.Windows.Media.EllipseGeometry, "Ring edge cases wrong");
+            var half = MainWindow.RingGeometry(0.5, 84, 9).Bounds;
+            Assert(Math.Abs(half.Left - 42) < 0.5 && Math.Abs(half.Right - 79.5) < 0.5 && Math.Abs(half.Top - 4.5) < 0.5 && Math.Abs(half.Bottom - 79.5) < 0.5, "Half ring has wrong bounds: " + half);
+        }
+
         internal static int Run()
         {
             CatalogueState();
@@ -517,6 +526,7 @@ namespace Wintools
             Usage();
             Masking();
             Localization();
+            Dashboard();
             File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed.");
             return 0;
         }

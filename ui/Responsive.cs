@@ -62,6 +62,7 @@ namespace Wintools
             Get<TextBlock>("PageTitle").FontSize = dense ? 22 : 28;
             Visible("PageEyebrow", !dense);
             Visible("PageHint", !dense);
+            Visible("PageBadge", !dense);
             double available = Math.Max(0, width - (rail ? 64 : 236) - main.Margin.Left - main.Margin.Right);
             LayoutResource("BrowseColumns", available >= 1300 ? 3 : available >= 640 ? 2 : 1);
             if (collectionCards != null)

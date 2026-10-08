@@ -25,7 +25,8 @@ namespace Wintools
             "Hover",
             "Success",
             "Warning",
-            "Scrim"
+            "Scrim",
+            "Accent2"
         };
         private static readonly string[] Dark =
         {
@@ -43,7 +44,8 @@ namespace Wintools
             "#1F232B",
             "#6FD4A0",
             "#F3C969",
-            "#B3000000"
+            "#B3000000",
+            "#B894FF"
         };
         private static readonly string[] Light =
         {
@@ -61,7 +63,8 @@ namespace Wintools
             "#E9EDF3",
             "#167A48",
             "#9A5B00",
-            "#80141A24"
+            "#80141A24",
+            "#7C3AED"
         };
         internal static bool IsDark(string mode)
         {
@@ -102,7 +105,8 @@ namespace Wintools
                     control,
                     text,
                     text,
-                    "#B3000000"
+                    "#B3000000",
+                    highlight
                 };
             }
 

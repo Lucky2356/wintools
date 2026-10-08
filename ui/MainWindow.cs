@@ -42,6 +42,24 @@ namespace Wintools
                 return Item == null ? null : Item.Risk;
             }
         }
+
+        public string RiskText
+        {
+            get
+            {
+                return Item == null ? "" : Item.Risk == "high" ? Lang.T("Высокий риск") : Item.Risk == "med" ? Lang.T("Средний риск") : Lang.T("Низкий риск");
+            }
+        }
+
+        public string Group { get; set; }
+
+        public string Icon
+        {
+            get
+            {
+                return Item == null ? "" : BrowseGroup.IconFor(Item.Category);
+            }
+        }
     }
 
     internal sealed class HistoryRow
@@ -556,6 +574,8 @@ namespace Wintools
         {
             foreach (var pair in NativeTheme.Colors(PaletteDark()))
                 Window.Resources[pair.Key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(pair.Value));
+            // Decorative badges use a diagonal accent gradient; high contrast keeps a single system colour.
+            Window.Resources["AccentGradient"] = new LinearGradientBrush(((SolidColorBrush)Window.Resources["Accent"]).Color, ((SolidColorBrush)Window.Resources["Accent2"]).Color, new Point(0, 0), new Point(1, 1));
             if (new WindowInteropHelper(Window).Handle != IntPtr.Zero)
                 NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle, PaletteDark(), CaptionColor());
             ShowPage(page);
@@ -603,6 +623,9 @@ namespace Wintools
             }
 
             Text("PageTitle", PageTitles[index]);
+            Text("PageIcon", Get<Button>(nav[index]).Tag as string ?? "");
+            if (index == 6 && cpuGauge != null)
+                UpdateDashboard();
             Text("PageEyebrow", new[] { Lang.T("Каталог действий"), Lang.T("Журнал этого компьютера"), Lang.T("Готовые подборки"), Lang.T("Ваши предпочтения"), Lang.T("Подготовка и выполнение"), Lang.T("Работа и автозапуск"), Lang.T("Понятная диагностика"), Lang.T("Проверка без изменений"), Lang.T("Практические шаги"), Lang.T("Программы на компьютере"), Lang.T("Соединение и DNS"), Lang.T("Обслуживание Windows"), Lang.T("Запуск при входе"), Lang.T("Распределение ресурсов"), Lang.T("Winget · каталог Microsoft") }[index]);
             Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди.") }[index]);
             if (index == 9 && ready && !smoke && !applicationsLoaded && !readingApplications)
@@ -662,7 +685,7 @@ namespace Wintools
             Visible("ShowAll", browsing);
             Text("BrowseTitle", group == "ALL" ? Lang.T("Выберите раздел") : Catalogue.Categories[group]);
             Visible("RefreshCatalogueServices", !browsing && scope.Any(t => t.Kind == "SVC" || TweakStates.Supported(t)));
-            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
+            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), Group = Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
             var list = Get<ListBox>("Items");
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(t => t.Item.Id == id) ?? rows.FirstOrDefault();

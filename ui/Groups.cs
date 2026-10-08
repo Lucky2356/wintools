@@ -15,31 +15,36 @@ namespace Wintools
         {
             get
             {
-                switch (Key)
-                {
-                    case "category:PRIV":
-                        return "\uE72E";
-                    case "category:UI":
-                        return "\uE790";
-                    case "category:SVC":
-                        return "\uE713";
-                    case "category:APPS":
-                        return "\uE71D";
-                    case "category:SYS":
-                        return "\uE770";
-                    case "category:CLEAN":
-                        return "\uE74D";
-                    case "category:EDGE":
-                        return "\uE774";
-                    case "category:PERF":
-                        return "\uE945";
-                    case "category:TASK":
-                        return "\uE823";
-                    case "category:UPD":
-                        return "\uE895";
-                    default:
-                        return "\uE8B7";
-                }
+                return Key != null && Key.StartsWith("category:") ? IconFor(Key.Substring(9)) : "\uE8B7";
+            }
+        }
+
+        internal static string IconFor(string category)
+        {
+            switch (category)
+            {
+                case "PRIV":
+                    return "\uE72E";
+                case "UI":
+                    return "\uE790";
+                case "SVC":
+                    return "\uE713";
+                case "APPS":
+                    return "\uE71D";
+                case "SYS":
+                    return "\uE770";
+                case "CLEAN":
+                    return "\uE74D";
+                case "EDGE":
+                    return "\uE774";
+                case "PERF":
+                    return "\uE945";
+                case "TASK":
+                    return "\uE823";
+                case "UPD":
+                    return "\uE895";
+                default:
+                    return "\uE8B7";
             }
         }
     }
