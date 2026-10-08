@@ -68,7 +68,7 @@ namespace Wintools
         {
             if (busy || statusPage == index)
                 return;
-            if (unchecked(Environment.TickCount - statusStamp) < 1500)
+            if (unchecked(Environment.TickCount - statusStamp) < 500)
             {
                 statusPage = index;
                 return;
