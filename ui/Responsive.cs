@@ -44,6 +44,10 @@ namespace Wintools
         private void AdaptLayout()
         {
             double width = Window.ActualWidth > 0 ? Window.ActualWidth : Window.Width, height = Window.ActualHeight > 0 ? Window.ActualHeight : Window.Height;
+            // With larger text the layout sees a proportionally smaller window and switches to its compact forms on its own.
+            double zoom = ApplyTextScale(width, height);
+            width /= zoom;
+            height /= zoom;
             bool rail = width < 1000, dense = height < 820, tight = rail || dense;
             LayoutResource("NavLabelVisibility", rail ? Visibility.Collapsed : Visibility.Visible);
             LayoutResource("NavHeaderVisibility", tight ? Visibility.Collapsed : Visibility.Visible);

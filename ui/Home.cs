@@ -94,6 +94,7 @@ namespace Wintools
             Window.UpdateLayout();
             await Task.Delay(100);
             Assert(homeScenarios.Length == 4 && dashboardHeadline.Text.Length > 0 && IsVisibleInWindow("NavHome"), "Home page incomplete");
+            Assert(placementPlanned && placementBounds.Width > 0 && placementBounds.X >= placementWork.X && placementBounds.Y >= placementWork.Y && placementBounds.X + placementBounds.Width <= placementWork.X + placementWork.Width && placementBounds.Y + placementBounds.Height <= placementWork.Y + placementWork.Height, "Opening bounds " + placementBounds + " do not fit the monitor work area " + placementWork);
             Capture("portable-ui-home.png");
             homeScenarios[2].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert(page == 11 && integrityChoice.SelectedIndex == 6, "Free space scenario did not open cleanup");

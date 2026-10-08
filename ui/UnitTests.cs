@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Microsoft.Win32;
 
@@ -513,6 +514,46 @@ namespace Wintools
             Assert(Math.Abs(half.Left - 42) < 0.5 && Math.Abs(half.Right - 79.5) < 0.5 && Math.Abs(half.Top - 4.5) < 0.5 && Math.Abs(half.Bottom - 79.5) < 0.5, "Half ring has wrong bounds: " + half);
         }
 
+        // Typical screens as width × height in pixels, Windows scaling and whether the window should open maximized.
+        private static void Placement()
+        {
+            Assert(WindowPlacement.PerMonitorAware(), "The manifest does not make the process per-monitor DPI aware");
+            bool dpiSwitch;
+            Assert(AppContext.TryGetSwitch(Program.DpiSwitch, out dpiSwitch) && !dpiSwitch, "WPF would ignore DPI changes between monitors");
+            Assert(Regex.IsMatch(WindowPlacement.Describe(), @"^\d+x\d+ \d+%.* · per-monitor DPI$"), "Displays not described: " + WindowPlacement.Describe());
+            foreach (var screen in new[]
+            {
+                new[] { 1024, 768, 100, 1 },
+                new[] { 1280, 720, 100, 1 },
+                new[] { 1366, 768, 100, 1 },
+                new[] { 1600, 900, 100, 0 },
+                new[] { 1920, 1080, 100, 0 },
+                new[] { 1920, 1080, 125, 0 },
+                new[] { 1920, 1080, 150, 1 },
+                new[] { 2560, 1440, 100, 0 },
+                new[] { 2560, 1440, 125, 0 },
+                new[] { 3840, 2160, 100, 0 },
+                new[] { 3840, 2160, 150, 0 },
+                new[] { 3840, 2160, 200, 0 }
+            })
+            {
+                double scale = screen[2] / 100.0, workWidth = screen[0] / scale, workHeight = (screen[1] - 48 * scale) / scale;
+                bool maximize;
+                var size = WindowPlacement.Initial(workWidth, workHeight, out maximize);
+                string name = screen[0] + "x" + screen[1] + " at " + screen[2] + "%: " + size;
+                Assert(maximize == (screen[3] == 1), "Maximize decision wrong for " + name);
+                Assert(size.Width <= workWidth && size.Height <= workHeight && size.Width >= Math.Min(WindowPlacement.MinimumWidth, workWidth) && size.Height >= Math.Min(WindowPlacement.MinimumHeight, workHeight), "Window does not fit " + name);
+                Assert(maximize || size.Width >= 1000 && size.Height >= 700 && size.Width <= 1560 && size.Height <= 980, "Window size uncomfortable for " + name);
+            }
+        }
+
+        private static void TextScale()
+        {
+            Assert(MainWindow.RequestedTextScale("system", 1) == 1 && MainWindow.RequestedTextScale("system", 1.3) == 1.3 && MainWindow.RequestedTextScale("system", 2.25) == 1.5 && MainWindow.RequestedTextScale("125", 2) == 1.25 && MainWindow.RequestedTextScale("100", 2) == 1, "Requested text size wrong");
+            Assert(MainWindow.EffectiveTextScale(1.5, 1600, 1000) == 1.5 && MainWindow.EffectiveTextScale(1.5, 1366, 768) == 1.35 && MainWindow.EffectiveTextScale(1.5, 800, 560) == 1 && MainWindow.EffectiveTextScale(1.25, 1000, 700) == 1.25, "Text zoom does not respect the smallest layout");
+            Assert(!WindowPlacement.Plausible(null) && !WindowPlacement.Plausible(new[] { 0, 0, 100, 100 }) && !WindowPlacement.Plausible(new[] { -40000, -40000, -39000, -39200 }) && WindowPlacement.Plausible(new[] { 100, 100, 900, 700 }), "Saved window bounds checked wrongly");
+        }
+
         internal static int Run()
         {
             CatalogueState();
@@ -527,6 +568,8 @@ namespace Wintools
             Masking();
             Localization();
             Dashboard();
+            Placement();
+            TextScale();
             File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed.");
             return 0;
         }

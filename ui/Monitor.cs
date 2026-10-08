@@ -54,7 +54,7 @@ namespace Wintools
             return seconds > 0 && value >= previous ? (double? )(value - previous) / seconds : null;
         }
 
-        internal ResourceSample Read(string adapter, bool includeProcesses = true)
+        internal ResourceSample Read(string adapter, bool includeProcesses = true, bool includeNetwork = true)
         {
             var sample = new ResourceSample();
             var errors = new List<string>();
@@ -86,6 +86,8 @@ namespace Wintools
             else
                 errors.Add(Lang.T("Не удалось прочитать память."));
             sample.Uptime = GetTickCount64();
+            // Listing adapters takes tens of milliseconds; the dashboard reads on the UI thread and shows no network figures.
+            if (includeNetwork)
             try
             {
                 var nic = NetworkInterface.GetAllNetworkInterfaces().FirstOrDefault(n => n.Id == adapter && n.OperationalStatus == OperationalStatus.Up);

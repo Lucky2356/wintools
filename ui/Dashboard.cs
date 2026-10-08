@@ -44,6 +44,7 @@ namespace Wintools
 
         private const double RingSize = 76, RingStroke = 8;
         private readonly ResourceReader dashboardReader = new ResourceReader();
+        private DispatcherTimer dashboardTimer;
         private Gauge cpuGauge, memoryGauge, diskGauge, uptimeGauge;
         private TextBlock dashboardHeadline, dashboardDetail, dashboardMark;
         private Border dashboardBadge;
@@ -149,16 +150,16 @@ namespace Wintools
             diskGauge = AddGauge(row, Lang.T("Системный диск"), "");
             uptimeGauge = AddGauge(row, Lang.T("Без перезагрузки"), "");
             panel.Children.Add(card);
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-            timer.Tick += (s, e) =>
+            dashboardTimer = new DispatcherTimer();
+            dashboardTimer.Tick += (s, e) =>
             {
+                dashboardTimer.Interval = TimeSpan.FromSeconds(2);
                 if (closed)
-                    timer.Stop();
+                    dashboardTimer.Stop();
                 else if (page == HomeIndex && Window.WindowState != WindowState.Minimized)
                     UpdateDashboard();
             };
-            timer.Start();
-            UpdateDashboard();
+            RefreshDashboard();
         }
 
         private void ShowGauge(Gauge gauge, double? percent, string value, string detail, string level)
@@ -169,12 +170,21 @@ namespace Wintools
             gauge.Arc.SetResourceReference(Shape.StrokeProperty, level);
         }
 
+        // CPU load needs two samples, so a fresh visit reads now and again shortly instead of showing "…" for two seconds.
+        private void RefreshDashboard()
+        {
+            UpdateDashboard();
+            dashboardTimer.Stop();
+            dashboardTimer.Interval = TimeSpan.FromMilliseconds(600);
+            dashboardTimer.Start();
+        }
+
         private void UpdateDashboard()
         {
             ResourceSample sample;
             try
             {
-                sample = dashboardReader.Read(null, false);
+                sample = dashboardReader.Read(null, false, false);
             }
             catch (Exception)
             {

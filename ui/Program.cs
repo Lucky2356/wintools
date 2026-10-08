@@ -52,9 +52,17 @@ namespace Wintools
             }
         }
 
+        internal const string DpiSwitch = "Switch.System.Windows.DoNotScaleForDpiChanges";
+        internal const string PopupDpiSwitch = "Switch.System.Windows.DoNotUsePresentationDpiCapabilityTier2OrGreater";
+
         [STAThread]
         private static int Main(string[] args)
         {
+            // csc emits no target framework, so .NET treats the program as pre-4.6.2 and WPF ignores per-monitor DPI changes.
+            // Turning the compatibility switch off before any WPF type loads lets a window moved to a 4K or HD screen rescale sharply.
+            AppContext.SetSwitch(DpiSwitch, false);
+            AppContext.SetSwitch(PopupDpiSwitch, false);
+            Application.EnableVisualStyles();
             try
             {
                 // Tests compare Russian texts, so test modes always run in the source language.
