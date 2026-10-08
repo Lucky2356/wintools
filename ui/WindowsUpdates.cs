@@ -406,7 +406,7 @@ namespace Wintools
                         Save(original);
                     }
 
-                    log.WriteLine(record.Detail + Lang.T(": выполнено.") + (after.PausedUntil.HasValue ? Lang.T(" Обновления приостановлены до ") + after.PausedUntil.Value.ToLocalTime().ToString("g") + "." : "") + Lang.T(" Запись истории: ") + id);
+                    log.WriteLine(record.Detail + Lang.T(": выполнено.") + (after.PausedUntil.HasValue ? Lang.T(" Обновления приостановлены до ") + after.PausedUntil.Value.ToLocalTime().ToString("g", Lang.Culture) + "." : "") + Lang.T(" Запись истории: ") + id);
                     return 0;
                 }
                 catch (Exception ex)
@@ -466,7 +466,7 @@ namespace Wintools
                         var date = (DateTime)StartupTasks.Get(entry, "Date");
                         int code = Convert.ToInt32(StartupTasks.Get(entry, "ResultCode"));
                         int operation = Convert.ToInt32(StartupTasks.Get(entry, "Operation"));
-                        result.Add(new UpdateHistoryRow { Title = title.Length > 160 ? title.Substring(0, 160) + "…" : title, Detail = date.ToLocalTime().ToString("g") + " · " + (operation == 2 ? Lang.T("удаление") : Lang.T("установка")) + " · " + (code == 2 ? Lang.T("успешно") : code == 3 ? Lang.T("с ошибками") : code == 4 ? Lang.T("ошибка") : code == 5 ? Lang.T("отменено") : code == 1 ? Lang.T("выполняется") : Lang.T("не начато")) });
+                        result.Add(new UpdateHistoryRow { Title = title.Length > 160 ? title.Substring(0, 160) + "…" : title, Detail = date.ToLocalTime().ToString("g", Lang.Culture) + " · " + (operation == 2 ? Lang.T("удаление") : Lang.T("установка")) + " · " + (code == 2 ? Lang.T("успешно") : code == 3 ? Lang.T("с ошибками") : code == 4 ? Lang.T("ошибка") : code == 5 ? Lang.T("отменено") : code == 1 ? Lang.T("выполняется") : Lang.T("не начато")) });
                     }
                     finally
                     {

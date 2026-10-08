@@ -32,7 +32,9 @@ namespace Wintools
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
-            powerCurrent = Paragraph(Lang.T("Нажмите «Обновить схемы», чтобы прочитать текущие настройки."));
+            panel.Children.Add(Intro(Lang.T("Схема питания задаёт баланс между скоростью, нагревом и расходом батареи."), Lang.T("Схема определяет используемые настройки питания, сна и производительности. Высокая производительность может увеличить нагрев и расход батареи. Показываем только схемы, доступные Windows на этом ПК; режим питания в параметрах Windows может настраиваться отдельно.")));
+            // The list already marks the active plan; this line speaks only while reading or when the plan is unknown.
+            powerCurrent = Paragraph(Lang.T("Читаем схемы питания…"));
             panel.Children.Add(powerCurrent);
             powerChoice = new ComboBox
             {
@@ -49,7 +51,6 @@ namespace Wintools
             };
             powerDescription = Paragraph("");
             panel.Children.Add(powerDescription);
-            panel.Children.Add(Paragraph(Lang.T("Схема определяет используемые настройки питания, сна и производительности. Высокая производительность может увеличить нагрев и расход батареи. Показываем только схемы, доступные Windows на этом ПК; режим питания в параметрах Windows может настраиваться отдельно.")));
             var buttons = new WrapPanel();
             panel.Children.Add(buttons);
             powerApply = new Button
@@ -62,9 +63,10 @@ namespace Wintools
             buttons.Children.Add(powerApply);
             powerRefresh = new Button
             {
-                Content = Lang.T("Обновить схемы"),
+                Content = Lang.T("↻ Обновить"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
+            powerRefresh.SetResourceReference(FrameworkElement.StyleProperty, "Ghost");
             powerRefresh.Click += async (s, e) => await RefreshPowerPlans();
             buttons.Children.Add(powerRefresh);
             powerRestore = new Button
@@ -97,6 +99,7 @@ namespace Wintools
             powerChoice.IsEnabled = powerRefresh.IsEnabled = !busy && !readingPower;
             powerApply.IsEnabled = !busy && !readingPower && powerSnapshot != null && choice != null && choice.Id != powerSnapshot.Active;
             powerRestore.IsEnabled = !busy && !readingPower && powerRestoreRecord != null;
+            powerRestore.Visibility = powerRestoreRecord != null ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private async Task RefreshPowerPlans()
@@ -118,6 +121,7 @@ namespace Wintools
                 powerChoice.SelectedItem = snapshot.Plans.FirstOrDefault(p => p.Id == selected) ?? snapshot.Plans.FirstOrDefault(p => p.Id == snapshot.Active) ?? snapshot.Plans.FirstOrDefault();
                 var active = snapshot.Plans.FirstOrDefault(p => p.Id == snapshot.Active);
                 powerCurrent.Text = Lang.T("Используется сейчас: ") + (active == null ? snapshot.Active : active.Name);
+                powerCurrent.Visibility = active == null ? Visibility.Visible : Visibility.Collapsed;
                 powerStatus.Text = snapshot.Plans.Length == 1 ? Lang.T("Windows предоставляет одну схему. Дополнительные режимы могут быть доступны в параметрах питания Windows.") : Lang.T("Доступно схем: ") + snapshot.Plans.Length + Lang.T(". Выберите подходящую и подтвердите переключение.");
                 try
                 {
@@ -135,6 +139,7 @@ namespace Wintools
                 powerRestoreRecord = null;
                 powerChoice.ItemsSource = null;
                 powerCurrent.Text = Lang.T("Текущая схема неизвестна.");
+                powerCurrent.Visibility = Visibility.Visible;
                 powerStatus.Text = Lang.T("Не удалось прочитать схемы: ") + ex.Message;
             }
             finally

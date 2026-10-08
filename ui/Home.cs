@@ -26,7 +26,7 @@ namespace Wintools
             panel.Children.Add(grid);
             homeScenarios = new[]
             {
-                AddScenario(grid, "", "Accent", Lang.T("Ускорить компьютер"), Lang.T("Автозагрузка, схема питания, обновления и подсказки, что ещё можно улучшить."), Lang.T("Ускорить"), () => ShowPage(8)),
+                AddScenario(grid, "", "Accent", Lang.T("Ускорить компьютер"), Lang.T("Автозагрузка, схема питания и подсказки, что ещё можно улучшить."), Lang.T("Ускорить"), () => ShowPage(8)),
                 AddScenario(grid, "", "Accent2", Lang.T("Убрать рекламу и подсказки"), Lang.T("Готовые подборки: меньше рекламы, телеметрии и навязчивых советов Windows."), Lang.T("Выбрать подборку"), () => ShowPage(2)),
                 AddScenario(grid, "", "Success", Lang.T("Освободить место"), Lang.T("Временные файлы, кэш браузеров и что занимает больше всего места на диске."), Lang.T("Посмотреть"), () => OpenMaintenance(6)),
                 AddScenario(grid, "", "Warning", Lang.T("Проверить Windows"), Lang.T("Проверка системных файлов и компонентов без изменений; восстановление — по вашему решению."), Lang.T("Проверить"), () => OpenMaintenance(0))

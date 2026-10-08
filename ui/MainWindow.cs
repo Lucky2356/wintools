@@ -68,6 +68,9 @@ namespace Wintools
                 return Item == null ? "" : BrowseGroup.TintFor(Item.Category);
             }
         }
+
+        // Inside one section every row would repeat the same icon, so it is shown only in mixed lists.
+        public bool ShowIcon { get; set; }
     }
 
     internal sealed class HistoryRow
@@ -77,6 +80,14 @@ namespace Wintools
         public string Status { get; set; }
         public bool CanRevert { get; set; }
 
+        public string Tone
+        {
+            get
+            {
+                return StatusTone.Of(Status);
+            }
+        }
+
         internal string ServiceName;
         internal bool PowerChange, DnsChange, HostsChange, UpdateChange, PackageChange, IntegrityCheck, StartupChange, ProcessChange, StoreChange;
         internal DateTime TimeUtc;
@@ -84,7 +95,7 @@ namespace Wintools
         {
             get
             {
-                return TimeUtc == DateTime.MinValue ? Run : TimeUtc.ToLocalTime().ToString("g") + " · " + (PackageChange ? Lang.T("Установка программ") : StoreChange ? Lang.T("Приложение") : ProcessChange ? Lang.T("Процесс") : StartupChange ? Lang.T("Автозагрузка") : IntegrityCheck ? Lang.T("Обслуживание Windows") : PowerChange ? Lang.T("Питание") : DnsChange ? "DNS" : HostsChange ? Lang.T("Файл hosts") : UpdateChange ? Lang.T("Обновления Windows") : ServiceName == null ? Lang.T("Запуск") : ServiceName);
+                return TimeUtc == DateTime.MinValue ? Run : TimeUtc.ToLocalTime().ToString("g", Lang.Culture) + " · " + (PackageChange ? Lang.T("Установка программ") : StoreChange ? Lang.T("Приложение") : ProcessChange ? Lang.T("Процесс") : StartupChange ? Lang.T("Автозагрузка") : IntegrityCheck ? Lang.T("Обслуживание Windows") : PowerChange ? Lang.T("Питание") : DnsChange ? "DNS" : HostsChange ? Lang.T("Файл hosts") : UpdateChange ? Lang.T("Обновления Windows") : ServiceName == null ? Lang.T("Запуск") : ServiceName);
             }
         }
     }
@@ -185,7 +196,10 @@ namespace Wintools
 
         private void Text(string name, string value)
         {
-            Get<TextBlock>(name).Text = value;
+            if (name == "Status")
+                SetStatus(value);
+            else
+                Get<TextBlock>(name).Text = value;
         }
 
         private void Click(string name, Action action)
@@ -246,6 +260,7 @@ namespace Wintools
             Get<CheckBox>("VerifyAfterUpdates").IsChecked = preferences.VerifyAfterUpdates;
             Get<CheckBox>("PreviewChannel").IsChecked = preferences.IncludePreview;
             Get<CheckBox>("AutoInstall").IsChecked = preferences.AutoInstall;
+            ShowUpdateMode();
             Get<ComboBox>("Theme").SelectionChanged += (s, e) =>
             {
                 if (!ready)
@@ -317,6 +332,7 @@ namespace Wintools
             {
                 preferences.AutoCheck = Checked("AutoCheck");
                 SavePreferences();
+                ShowUpdateMode();
                 await RefreshServices();
                 if (preferences.AutoCheck)
                     await CheckUpdates(false);
@@ -325,6 +341,7 @@ namespace Wintools
             {
                 preferences.AutoInstall = Checked("AutoInstall");
                 SavePreferences();
+                ShowUpdateMode();
                 if (preferences.AutoInstall)
                 {
                     if (stagedDirectory != null)
@@ -473,6 +490,9 @@ namespace Wintools
             ClickAsync("CheckUpdates", () => CheckUpdates(true));
             ClickAsync("InstallUpdate", InstallUpdate);
             Click("LogToggle", () => ExpandOutput(Get<TextBox>("Output").Visibility != Visibility.Visible));
+            // "Details" appears only once an operation has written something worth opening.
+            Get<TextBox>("Output").TextChanged += (s, e) => Visible("LogToggle", Get<TextBox>("Output").Text.Length > 0 || Get<TextBox>("Output").Visibility == Visibility.Visible);
+            Visible("LogToggle", Get<TextBox>("Output").Text.Length > 0);
             Click("ConfirmYes", () => FinishConfirmation(true));
             Click("ConfirmNo", () => FinishConfirmation(false));
             Window.PreviewKeyDown += (s, e) =>
@@ -639,6 +659,7 @@ namespace Wintools
             if (index == 5 || index == 12 || index == 13)
                 ShowAdvancedNav(true);
             page = index;
+            StatusForPage(index);
             ResourceVisibility();
             ServiceVisibility();
             for (int i = 0; i < pages.Length; i++)
@@ -725,7 +746,8 @@ namespace Wintools
             Visible("ShowAll", browsing);
             Text("BrowseTitle", group == "ALL" ? Lang.T("Выберите раздел") : Catalogue.Categories[group]);
             Visible("RefreshCatalogueServices", !browsing && scope.Any(t => t.Kind == "SVC" || TweakStates.Supported(t)));
-            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), Group = Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
+            bool mixed = !browsing && scope.Select(t => t.Category).Distinct().Skip(1).Any();
+            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { ShowIcon = mixed, Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), Group = Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
             var list = Get<ListBox>("Items");
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(t => t.Item.Id == id) ?? rows.FirstOrDefault();
@@ -763,7 +785,9 @@ namespace Wintools
             Enabled("Apply", !busy && item != null);
             Enabled("Preview", !busy && item != null);
             Enabled("Star", !busy && item != null);
-            Enabled("Revert", !busy && item != null && item.Category != "CLEAN" && item.Kind != "EDGE");
+            // An action that is known to be not applied has nothing to roll back.
+            var state = item == null ? null : CurrentState(item);
+            Enabled("Revert", !busy && item != null && item.Category != "CLEAN" && item.Kind != "EDGE" && (state == null || state.Applied != false));
             var row = Get<ListBox>("History").SelectedItem as HistoryRow;
             Enabled("HistoryRevert", !busy && row != null && row.CanRevert);
             foreach (var name in new[]
@@ -825,11 +849,14 @@ namespace Wintools
                 startupEpoch++;
             }
 
-            Get<System.Windows.Shapes.Ellipse>("StatusDot").SetResourceReference(System.Windows.Shapes.Shape.FillProperty, value ? "Warning" : "Success");
             ServiceVisibility();
             RefreshEnabled();
             if (value)
                 Text("Status", Lang.T("Выполняется операция…"));
+            else if (Get<TextBlock>("Status").Text == Lang.T("Выполняется операция…"))
+                Text("Status", Lang.T("Готово к работе"));
+            else
+                UpdateStatusDot();
         }
 
         internal static HistoryRow[] HistoryRows(string path, List<Tweak> catalogue)
@@ -883,6 +910,7 @@ namespace Wintools
         {
             Visible("Output", value);
             Get<Button>("LogToggle").Content = value ? Lang.T("Подробности  ▴") : Lang.T("Подробности  ▾");
+            Visible("LogToggle", value || Get<TextBox>("Output").Text.Length > 0);
         }
 
         private async Task Run(string verb, string id, string run, bool dry)
@@ -1021,6 +1049,17 @@ namespace Wintools
             stagedUpdate = null;
         }
 
+        // One sentence that says what the two update switches do together, so they never read as contradicting each other.
+        internal static string UpdateMode(bool check, bool install)
+        {
+            return check && install ? Lang.T("Итог: новые версии проверяются и устанавливаются автоматически.") : check ? Lang.T("Итог: новые версии проверяются автоматически, установка — по вашей команде.") : install ? Lang.T("Итог: автоматической проверки нет; обновление, найденное кнопкой «Проверить сейчас», установится при закрытии.") : Lang.T("Итог: автообновление выключено, проверяйте вручную.");
+        }
+
+        private void ShowUpdateMode()
+        {
+            Text("UpdateMode", UpdateMode(preferences.AutoCheck, preferences.AutoInstall));
+        }
+
         private async Task PrepareAutomaticUpdate()
         {
             if (closed || busy || checking || downloading || confirmation != null || !preferences.AutoInstall || available == null || stagedDirectory != null)
@@ -1130,7 +1169,7 @@ namespace Wintools
             available = null;
             preferences.AutoInstall = true;
             download = Updates.Download;
-            Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Автообновление включено."));
+            Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Проверьте наличие обновления."));
             Text("Status", Lang.T("Готово к работе"));
             await RefreshTweakStates();
             await Task.Delay(100);
@@ -1257,7 +1296,7 @@ namespace Wintools
             await Task.Delay(100);
             Capture("portable-ui-collections.png");
             ShowPage(3);
-            Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + Lang.T(". Обновления загружаются автоматически."));
+            Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + ".");
             await Task.Delay(100);
             Capture("portable-ui-updates.png");
             await HomeSmoke();

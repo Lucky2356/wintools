@@ -11,6 +11,7 @@ namespace Wintools
         private async Task MeasurementSmoke()
         {
             ShowPage(6);
+            ShowHealthTab(0);
             resourceTimer.Stop();
             measurementExpander.IsExpanded = true;
             measurementName.Text = "Тест: до изменений";
@@ -57,6 +58,7 @@ namespace Wintools
             Assert(errors == 1 && history.Length == 2, "Corrupt measurement hides intact records");
             File.Delete(broken);
             ShowPage(6);
+            ShowHealthTab(0);
             measurementName.Text = "Проверка остановки";
             await StartMeasurement();
             measurementTimer.Stop();

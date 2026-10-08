@@ -31,6 +31,7 @@ namespace Wintools
                     return pending.Task;
                 };
                 ShowPage(6);
+                ShowHealthTab(1);
                 hardwareExpander.IsExpanded = true;
                 await ReadHardware();
                 Assert(reads == 1 && !hardwareRefresh.IsEnabled && !hardwareExport.IsEnabled, "Hardware queries overlap or export stale snapshot during refresh");

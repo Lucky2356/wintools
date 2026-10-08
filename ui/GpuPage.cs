@@ -49,7 +49,7 @@ namespace Wintools
                 gpuGraph.Clear();
                 gpuValue.Text = Lang.T("Первый замер…");
                 var row = gpuAdapter.SelectedItem as GpuAdapter;
-                gpuMemory.Text = row == null ? Lang.T("Видеоадаптер не выбран") : Lang.T("Выделенная видеопамять: ") + (row.Dedicated / 1073741824.0).ToString("N1") + Lang.T(" ГиБ\nОбщая ОЗУ — предел: ") + (row.SharedLimit / 1073741824.0).ToString("N1") + Lang.T(" ГиБ");
+                gpuMemory.Text = row == null ? Lang.T("Видеоадаптер не выбран") : Lang.T("Выделенная видеопамять: ") + (row.Dedicated / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" ГиБ\nОбщая ОЗУ — предел: ") + (row.SharedLimit / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" ГиБ");
             };
             resourceTimer.Tick += async (s, e) => await SampleGpu();
             panel.IsVisibleChanged += async (s, e) =>
@@ -103,7 +103,7 @@ namespace Wintools
                     return;
                 double value;
                 bool known = sample.Usage.TryGetValue(selected.Id, out value);
-                gpuValue.Text = known ? value.ToString("N0") + " %" : Lang.T("Нет замера");
+                gpuValue.Text = known ? value.ToString("N0", Lang.Culture) + " %" : Lang.T("Нет замера");
                 gpuGraph.Push(known ? (double? )value : null);
                 gpuStatus.Text = "GPU · " + DateTime.Now.ToString("HH:mm:ss") + Lang.T(" · Самый занятый блок. ") + (known ? sample.Error : string.IsNullOrEmpty(sample.Error) ? Lang.T("Счётчики выбранной видеокарты недоступны.") : sample.Error);
             }

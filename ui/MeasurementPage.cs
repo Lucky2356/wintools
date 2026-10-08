@@ -30,7 +30,7 @@ namespace Wintools
         private void InitializeMeasurements(StackPanel parent)
         {
             var panel = new StackPanel();
-            panel.Children.Add(Paragraph(Lang.T("Запишите до 10 минут работы, затем повторите ту же задачу после изменений. Запись продолжается в других разделах и при свёрнутом окне. Пауза обычного монитора её не останавливает. Выбранные сейчас GPU и сетевой адаптер закрепляются на всю запись. Настройки Windows не меняются.")));
+            panel.Children.Add(Intro(Lang.T("Запишите показатели до и после изменений, чтобы сравнить."), Lang.T("Запишите до 10 минут работы, затем повторите ту же задачу после изменений. Запись продолжается в других разделах и при свёрнутом окне. Пауза обычного монитора её не останавливает. Выбранные сейчас GPU и сетевой адаптер закрепляются на всю запись. Настройки Windows не меняются.")));
             var controls = new WrapPanel();
             panel.Children.Add(controls);
             measurementName = new TextBox
@@ -357,12 +357,12 @@ namespace Wintools
         private static string MeasurementStatistic(double? [] all, string unit)
         {
             var values = all.Where(v => v.HasValue).Select(v => v.Value).ToArray();
-            return values.Length == 0 ? Lang.T("Нет замеров") : Lang.T("Среднее ") + values.Average().ToString("N1") + " " + unit + Lang.T("\nМакс. ") + values.Max().ToString("N1") + " · " + values.Length + Lang.T(" из ") + all.Length;
+            return values.Length == 0 ? Lang.T("Нет замеров") : Lang.T("Среднее ") + values.Average().ToString("N1", Lang.Culture) + " " + unit + Lang.T("\nМакс. ") + values.Max().ToString("N1", Lang.Culture) + " · " + values.Length + Lang.T(" из ") + all.Length;
         }
 
         private static string MeasurementCaption(MeasurementSession session)
         {
-            return session.Label + " · " + (session.Points.Count == 0 ? 0 : session.Points.Last().Seconds).ToString("N0") + Lang.T(" с · ") + (session.Status == "complete" ? Lang.T("завершена") : Lang.T("незавершённая запись")) + "\nGPU: " + session.GpuName + Lang.T(" · Сеть: ") + session.NetworkName;
+            return session.Label + " · " + (session.Points.Count == 0 ? 0 : session.Points.Last().Seconds).ToString("N0", Lang.Culture) + Lang.T(" с · ") + (session.Status == "complete" ? Lang.T("завершена") : Lang.T("незавершённая запись")) + "\nGPU: " + session.GpuName + Lang.T(" · Сеть: ") + session.NetworkName;
         }
 
         private void MeasurementCell(int row, int column, string value, bool bold)

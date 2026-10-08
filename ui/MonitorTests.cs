@@ -13,6 +13,7 @@ namespace Wintools
             Assert(ResourceReader.Rate(3000, 1000, 2) == 1000, "Network rate is incorrect");
             Assert(ResourceReader.Rate(10, 100, 2) == null && ResourceReader.Rate(100, 0, 0) == null, "Counter reset or zero interval accepted");
             ShowPage(6);
+            ShowHealthTab(0);
             await SampleResources();
             await Task.Delay(100);
             await SampleResources();

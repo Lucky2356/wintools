@@ -35,7 +35,7 @@ namespace Wintools
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
-            panel.Children.Add(Paragraph(Lang.T("Пауза откладывает установку обновлений, как кнопка «Приостановить» в параметрах Windows: не дольше 35 дней, после чего Windows обновится. Часы активности — время, когда Windows не перезагружает ПК для установки обновлений. Отключать обновления совсем Wintools не предлагает: они закрывают уязвимости.")));
+            panel.Children.Add(Intro(Lang.T("Приостановите обновления на время или задайте часы, когда Windows не перезагружает ПК."), Lang.T("Пауза откладывает установку обновлений, как кнопка «Приостановить» в параметрах Windows: не дольше 35 дней, после чего Windows обновится. Часы активности — время, когда Windows не перезагружает ПК для установки обновлений. Отключать обновления совсем Wintools не предлагает: они закрывают уязвимости.")));
             updateCurrent = Paragraph(Lang.T("Нажмите «Обновить», чтобы прочитать настройки."));
             panel.Children.Add(updateCurrent);
             var pause = new WrapPanel
@@ -144,9 +144,10 @@ namespace Wintools
             updateHistory = new ItemsControl();
             updateHistory.ItemTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><StackPanel Margin='0,0,0,8'><TextBlock Text='{Binding Title}' TextWrapping='Wrap'/><TextBlock Text='{Binding Detail}' Foreground='{DynamicResource Muted}' FontSize='12'/></StackPanel></DataTemplate>");
             panel.Children.Add(updateHistory);
-            Get<ScrollViewer>("OptimizationPage").IsVisibleChanged += async (s, e) =>
+            // Read the current settings whenever the Windows Update view of Maintenance opens.
+            parent.IsVisibleChanged += async (s, e) =>
             {
-                if (!smoke && Get<ScrollViewer>("OptimizationPage").IsVisible)
+                if (!smoke && parent.IsVisible)
                     await RefreshUpdates();
             };
             RefreshUpdateEnabled();
@@ -195,7 +196,7 @@ namespace Wintools
                 if (closed)
                     return;
                 updateSettings = settings;
-                updateCurrent.Text = (settings.PausedUntil.HasValue ? Lang.T("Обновления приостановлены до ") + settings.PausedUntil.Value.ToLocalTime().ToString("g") + "." : Lang.T("Обновления не приостановлены.")) + " " + (settings.ActiveStart.HasValue ? Lang.T("Часы активности: ") + settings.ActiveStart.Value.ToString("00") + ":00–" + settings.ActiveEnd.Value.ToString("00") + ":00." : Lang.T("Часы активности Windows определяет сама."));
+                updateCurrent.Text = (settings.PausedUntil.HasValue ? Lang.T("Обновления приостановлены до ") + settings.PausedUntil.Value.ToLocalTime().ToString("g", Lang.Culture) + "." : Lang.T("Обновления не приостановлены.")) + " " + (settings.ActiveStart.HasValue ? Lang.T("Часы активности: ") + settings.ActiveStart.Value.ToString("00") + ":00–" + settings.ActiveEnd.Value.ToString("00") + ":00." : Lang.T("Часы активности Windows определяет сама."));
                 if (settings.ActiveStart.HasValue)
                 {
                     updateHoursStart.SelectedIndex = settings.ActiveStart.Value;

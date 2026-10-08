@@ -29,7 +29,7 @@ namespace Wintools
             ulong bytes;
             if (!ulong.TryParse(Convert.ToString(value, CultureInfo.InvariantCulture), out bytes) || bytes == 0)
                 return Lang.T("нет данных");
-            return (bytes / 1073741824.0).ToString("N1") + Lang.T(" ГиБ");
+            return (bytes / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" ГиБ");
         }
 
         internal static string Positive(object value, string unit)

@@ -164,7 +164,7 @@ namespace Wintools
 
         internal static string Size(long bytes)
         {
-            return (bytes / 1048576.0).ToString("N1") + Lang.T(" МБ");
+            return (bytes / 1048576.0).ToString("N1", Lang.Culture) + Lang.T(" МБ");
         }
     }
 }

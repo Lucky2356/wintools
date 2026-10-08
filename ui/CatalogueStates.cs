@@ -101,7 +101,7 @@ namespace Wintools
                 return "";
             if (item.Kind == "SVC")
                 return "\n" + (services == null ? Lang.T("Состояние пока неизвестно. Нажмите «↻ Состояние» над списком.") : state.Applied == null && state.Text == Lang.T("Не установлена на этом ПК") ? Lang.T("Служба не установлена на этом ПК.") : state.Text + Lang.T(" (снимок; обновить кнопкой ↻ над списком)"));
-            return Lang.T("\nСейчас: ") + state.Text + (state.Applied == true ? Lang.T(". Повторное применение ничего не изменит.") : "");
+            return Lang.T("\nСейчас: ") + state.Full + (state.Applied == true ? Lang.T(". Повторное применение ничего не изменит.") : "");
         }
     }
 }

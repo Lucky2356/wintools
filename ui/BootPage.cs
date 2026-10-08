@@ -33,7 +33,7 @@ namespace Wintools
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
-            panel.Children.Add(Paragraph(Lang.T("Windows сама измеряет каждое включение и записывает, какие программы, службы, драйверы и устройства его замедлили. Читаем этот журнал без изменений. Журнал обычно доступен только администратору, поэтому Windows может запросить подтверждение.")));
+            panel.Children.Add(Intro(Lang.T("Сколько длится включение и что его замедляет — по журналу Windows."), Lang.T("Windows сама измеряет каждое включение и записывает, какие программы, службы, драйверы и устройства его замедлили. Читаем этот журнал без изменений. Журнал обычно доступен только администратору, поэтому Windows может запросить подтверждение.")));
             bootRead = ToolButton(panel, Lang.T("Проанализировать загрузку"), async () => await ReadBoot());
             bootSummary = Paragraph("");
             panel.Children.Add(bootSummary);

@@ -16,6 +16,7 @@ namespace Wintools
             try
             {
                 ShowPage(6);
+                ShowHealthTab(0);
                 resourceTimer.Stop();
                 while (readingTemperature)
                     await Task.Delay(20);
@@ -66,6 +67,7 @@ namespace Wintools
                 await pending;
                 Assert(temperatureRows.Children.Count == 2 && !temperatureStatus.Text.Contains("stale"), "Hidden temperature accepted stale result");
                 ShowPage(6);
+                ShowHealthTab(0);
                 resourceTimer.Stop();
                 temperatureRead = () =>
                 {

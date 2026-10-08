@@ -19,7 +19,7 @@ namespace Wintools
         {
             get
             {
-                return "PID " + Id + " · " + (Memory < 0 ? Lang.T("Память недоступна") : (Memory / 1048576.0).ToString("N0") + Lang.T(" МБ памяти"));
+                return "PID " + Id + " · " + (Memory < 0 ? Lang.T("Память недоступна") : (Memory / 1048576.0).ToString("N0", Lang.Culture) + Lang.T(" МБ памяти"));
             }
         }
     }

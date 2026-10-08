@@ -24,7 +24,7 @@ namespace Wintools
         {
             get
             {
-                return SizeKb.HasValue ? (SizeKb.Value / 1024.0).ToString("N0") + Lang.T(" МБ") : Lang.T("Не указан");
+                return SizeKb.HasValue ? (SizeKb.Value >= 1048576 ? (SizeKb.Value / 1048576.0).ToString("N1", Lang.Culture) + Lang.T(" ГБ") : (SizeKb.Value / 1024.0).ToString("N0", Lang.Culture) + Lang.T(" МБ")) : Lang.T("Не указан");
             }
         }
 
@@ -110,7 +110,7 @@ namespace Wintools
                     }
                 }
 
-            return rows.GroupBy(r => r.Hive + "|" + r.Key + "|" + r.Name + "|" + r.Version + "|" + r.Command).Select(g => g.First()).OrderBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase).ToArray();
+            return rows.GroupBy(r => r.Hive + "|" + r.Key + "|" + r.Name + "|" + r.Version + "|" + r.Command).Select(g => g.First()).OrderBy(r => r.Name, NaturalOrder.Instance).ToArray();
         }
 
         private static string Text(RegistryKey key, string name)
@@ -315,7 +315,7 @@ namespace Wintools
             ScrollViewer.SetCanContentScroll(applicationList, true);
             Grid.SetRow(applicationList, 2);
             root.Children.Add(applicationList);
-            applicationList.ItemTemplate = (DataTemplate)XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='110'/><ColumnDefinition Width='95'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,10,0'><TextBlock Text='{Binding Name}' FontWeight='SemiBold' TextWrapping='Wrap'/><TextBlock Text='{Binding Kind}' Foreground='{DynamicResource Muted}' FontSize='12'/><TextBlock Text='{Binding Publisher}' Foreground='{DynamicResource Muted}' FontSize='12' Margin='0,4,0,0'/></StackPanel><TextBlock Grid.Column='1' Text='{Binding Version}' ToolTip='{Binding Version}' TextWrapping='NoWrap' TextTrimming='CharacterEllipsis' Margin='0,0,10,0'/><TextBlock Grid.Column='2' Text='{Binding Size}' TextWrapping='Wrap'/></Grid></DataTemplate>");
+            applicationList.ItemTemplate = (DataTemplate)XamlReader.Parse(Lang.T("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='110'/><ColumnDefinition Width='95'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,10,0'><TextBlock Text='{Binding Name}' FontWeight='SemiBold' TextWrapping='Wrap'/><TextBlock Text='{Binding Kind}' Foreground='{DynamicResource Muted}' FontSize='12'/><TextBlock Text='{Binding Publisher}' Foreground='{DynamicResource Muted}' FontSize='12' Margin='0,4,0,0'/></StackPanel><StackPanel Grid.Column='1' Margin='0,0,10,0'><TextBlock Text='Версия' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding Version}' ToolTip='{Binding Version}' TextWrapping='NoWrap' TextTrimming='CharacterEllipsis' Margin='0,3,0,0'/></StackPanel><StackPanel Grid.Column='2'><TextBlock Text='Размер' FontSize='11' Foreground='{DynamicResource Muted}'/><TextBlock Text='{Binding Size}' TextWrapping='Wrap' Margin='0,3,0,0'/></StackPanel></Grid></DataTemplate>"));
             var footer = new StackPanel
             {
                 Margin = new Thickness(0, 12, 0, 0)
@@ -417,7 +417,7 @@ namespace Wintools
             var previous = applicationList.SelectedItem as InstalledApplication;
             var query = applicationSearch.Text.Trim();
             var rows = installedApplications.Where(r => (applicationKind == null || applicationKind.SelectedIndex == 0 || (applicationKind.SelectedIndex == 1) == (r.Package == null)) && (r.Name + " " + r.Publisher).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0);
-            applicationList.ItemsSource = (applicationSort.SelectedIndex == 1 ? rows.OrderByDescending(r => r.SizeKb ?? -1).ThenBy(r => r.Name) : applicationSort.SelectedIndex == 2 ? rows.OrderBy(r => r.Publisher).ThenBy(r => r.Name) : rows.OrderBy(r => r.Name)).ToArray();
+            applicationList.ItemsSource = (applicationSort.SelectedIndex == 1 ? rows.OrderByDescending(r => r.SizeKb ?? -1).ThenBy(r => r.Name, NaturalOrder.Instance) : applicationSort.SelectedIndex == 2 ? rows.OrderBy(r => r.Publisher, NaturalOrder.Instance).ThenBy(r => r.Name, NaturalOrder.Instance) : rows.OrderBy(r => r.Name, NaturalOrder.Instance)).ToArray();
             applicationStatus.Text = Lang.T("Показано: ") + applicationList.Items.Count + Lang.T(" из ") + installedApplications.Length + Lang.T(". Обычных: ") + installedApplications.Count(r => r.Package == null) + " · Store / MSIX: " + installedApplications.Count(r => r.Package != null) + Lang.T(" · Недоступных записей реестра: ") + inaccessibleApplications + ". " + storeInventoryError;
             if (previous != null)
                 applicationList.SelectedItem = applicationList.Items.Cast<InstalledApplication>().FirstOrDefault(r => (r.Package == null) == (previous.Package == null) && r.Hive == previous.Hive && r.View == previous.View && r.Key == previous.Key);

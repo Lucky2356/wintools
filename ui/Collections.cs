@@ -20,6 +20,7 @@ namespace Wintools
         internal CollectionSection[] Sections;
         internal List<CheckBox> Checks = new List<CheckBox>();
         internal TextBlock Count;
+        internal Button Add;
     }
 
     internal sealed partial class MainWindow
@@ -123,18 +124,25 @@ namespace Wintools
                     choice.Checks.Add(check);
                     content.Children.Add(check);
                     var detail = Paragraph(section.Detail);
-                    detail.FontSize = 12;
+                    detail.FontSize = 13;
                     detail.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
                     content.Children.Add(detail);
                 }
 
-                var guided = ToolButton(content, Lang.T("Подобрать по ответам…"), () => OpenCollectionAssistant(choice));
-                collectionPlanButtons.Add(guided);
-                var browse = ToolButton(content, Lang.T("Посмотреть выбранные действия →"), () => ChooseCollection(CollectionIds(choice)));
-                Window.RegisterName(new[] { "CollectionPrivacy", "CollectionExplorer", "CollectionGaming" }[i], browse);
-                var add = ToolButton(content, Lang.T("Добавить выбранное в план"), () => AddCollectionToPlan(choice));
+                // One action row: the main step first and showing how many actions it adds.
+                var actions = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+                content.Children.Add(actions);
+                var add = ToolButton(actions, Lang.T("Добавить выбранное в план"), () => AddCollectionToPlan(choice));
                 add.Style = (Style)Window.FindResource("Primary");
                 collectionPlanButtons.Add(add);
+                choice.Add = add;
+                var browse = ToolButton(actions, Lang.T("Посмотреть действия →"), () => ChooseCollection(CollectionIds(choice)));
+                Window.RegisterName(new[] { "CollectionPrivacy", "CollectionExplorer", "CollectionGaming" }[i], browse);
+                var guided = ToolButton(actions, Lang.T("Подобрать по ответам…"), () => OpenCollectionAssistant(choice));
+                guided.SetResourceReference(FrameworkElement.StyleProperty, "Ghost");
+                collectionPlanButtons.Add(guided);
+                foreach (Button button in actions.Children)
+                    button.Margin = new Thickness(0, 0, 8, 8);
                 var card = new Border
                 {
                     Child = content,
@@ -167,6 +175,7 @@ namespace Wintools
             {
                 var all = choice.Sections.SelectMany(s => s.Ids).Distinct().ToArray();
                 int available = CollectionAvailableIds(all, Environment.OSVersion.Version.Build).Length;
+                choice.Add.Content = Lang.T("Добавить в план · ") + CollectionIds(choice).Length;
                 choice.Count.Text = Lang.T("Выбрано ") + CollectionIds(choice).Length + Lang.T(" из ") + available + Lang.T(" действий для вашей версии Windows.") + (available < all.Length ? Lang.T(" Для другой версии ОС: ") + (all.Length - available) + Lang.T(" — исключены из выбора.") : "") + Lang.T(" Наличие компонентов и служб проверяется при выполнении.");
             }
         }

@@ -94,7 +94,7 @@ namespace Wintools
                     values = action == "restore" ? new UpdateValue[0] : WindowsUpdates.Plan(action, argument, DateTime.UtcNow).Values.Where(v => v.Data != null).ToArray();
                     return Task.FromResult(new EngineResult { Code = 0, Output = "Тест: настройки Windows не менялись." });
                 };
-                ShowPage(8);
+                OpenMaintenance(UpdatesChoice);
                 await RefreshUpdates();
                 Assert(updateCurrent.Text.Contains("не приостановлены") && !updateResume.IsEnabled && updatePause.IsEnabled && updateHistory.Items.Count == 1, "Update state unclear");
                 SetBusy(true);
@@ -138,7 +138,7 @@ namespace Wintools
                 {
                     Window.Width = size.Width;
                     Window.Height = size.Height;
-                    ShowPage(8);
+                    OpenMaintenance(UpdatesChoice);
                     Window.UpdateLayout();
                     updatePause.BringIntoView();
                     await Task.Delay(80);
@@ -147,6 +147,7 @@ namespace Wintools
                     Capture(size.Width == 800 ? "portable-ui-updates-compact.png" : "portable-ui-windows-update.png");
                 }
 
+                integrityChoice.SelectedIndex = 0;
                 File.WriteAllText(Path.Combine(directory, id + ".json"), "{broken");
                 ReadHistory();
                 Assert(!Get<ListBox>("History").Items.Cast<HistoryRow>().Any(r => r.UpdateChange), "Corrupt update history was accepted");

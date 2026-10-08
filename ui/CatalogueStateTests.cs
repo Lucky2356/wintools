@@ -62,7 +62,7 @@ namespace Wintools
                 };
                 var states = TweakStates.Read(items);
                 Assert(states["SMOKE-LIVE"].Applied == true, "Live registry value not read: " + states["SMOKE-LIVE"].Text);
-                Assert(states["SMOKE-DEFAULT"].Applied == false && states["SMOKE-DEFAULT"].Text.Contains("«x»"), "Default registry value not read: " + states["SMOKE-DEFAULT"].Text);
+                Assert(states["SMOKE-DEFAULT"].Applied == false && states["SMOKE-DEFAULT"].Full.Contains("«x»"), "Default registry value not read: " + states["SMOKE-DEFAULT"].Full);
                 Assert(states["SMOKE-ABSENT"].Applied == false, "Absent key reported as applied");
                 Assert(states["SMOKE-TASK"].Applied == null && states["SMOKE-TASK"].Text.Contains("отсутствует"), "Missing task not reported: " + states["SMOKE-TASK"].Text);
             }
@@ -89,7 +89,7 @@ namespace Wintools
                 ChooseCollection(new[] { "UI-FILEEXT", "UI-LAUNCHTO" });
                 var rows = Get<ListBox>("Items").Items.Cast<ActionRow>().ToArray();
                 Assert(rows.Length == 2 && rows.Single(r => r.Item.Id == "UI-FILEEXT").Applied && rows.Single(r => r.Item.Id == "UI-FILEEXT").ServiceStatus.Contains("Уже применено"), "Applied action not marked");
-                Assert(!rows.Single(r => r.Item.Id == "UI-LAUNCHTO").Applied && rows.Single(r => r.Item.Id == "UI-LAUNCHTO").ServiceStatus.Contains("сейчас 2"), "Pending action not described");
+                Assert(!rows.Single(r => r.Item.Id == "UI-LAUNCHTO").Applied && rows.Single(r => r.Item.Id == "UI-LAUNCHTO").ServiceStatus == "Не применено", "Pending action not described");
                 Get<ListBox>("Items").SelectedItem = rows.Single(r => r.Item.Id == "UI-FILEEXT");
                 Assert(Get<TextBlock>("Description").Text.Contains("ничего не изменит"), "Details hide current state");
                 Get<CheckBox>("HideApplied").IsChecked = true;

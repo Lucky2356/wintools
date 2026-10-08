@@ -17,8 +17,31 @@ namespace Wintools
     {
         internal double? Cpu, Memory, Receive, Send;
         internal ulong TotalMemory, AvailableMemory, Uptime;
-        internal string[] Processes = new string[0];
+        internal ProcessUsage[] Processes = new ProcessUsage[0];
         internal string Error = "";
+    }
+
+    // One program in the "largest in memory" list: copies of the same program (every browser tab) are added up.
+    internal sealed class ProcessUsage
+    {
+        public string Name { get; set; }
+        public string Size { get; set; }
+        public string Detail { get; set; }
+        public double BarWidth { get; set; }
+        internal long Bytes;
+
+        internal static ProcessUsage[] Top(IEnumerable<Tuple<string, long>> rows, int count)
+        {
+            var groups = rows.GroupBy(r => r.Item1, StringComparer.OrdinalIgnoreCase).Select(g => new ProcessUsage { Name = g.First().Item1, Bytes = g.Sum(r => r.Item2), Detail = g.Count() > 1 ? g.Count() + Lang.T(" процессов") : Lang.T("1 процесс") }).OrderByDescending(p => p.Bytes).Take(count).ToArray();
+            long peak = Math.Max(1, groups.Select(p => p.Bytes).DefaultIfEmpty(1).Max());
+            foreach (var item in groups)
+            {
+                item.Size = item.Bytes >= 1073741824 ? (item.Bytes / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" ГБ") : (item.Bytes / 1048576.0).ToString("N0", Lang.Culture) + Lang.T(" МБ");
+                item.BarWidth = Math.Max(3, 160.0 * item.Bytes / peak);
+            }
+
+            return groups;
+        }
     }
 
     internal sealed class ResourceReader
@@ -136,7 +159,7 @@ namespace Wintools
                 {
                     try
                     {
-                        rows.Add(Tuple.Create(process.ProcessName + " · PID " + process.Id, process.WorkingSet64));
+                        rows.Add(Tuple.Create(process.ProcessName, process.WorkingSet64));
                     }
                     catch (InvalidOperationException)
                     {
@@ -149,7 +172,7 @@ namespace Wintools
                 }
             }
 
-            sample.Processes = rows.OrderByDescending(r => r.Item2).Take(8).Select(r => r.Item1 + "   —   " + (r.Item2 / 1048576.0).ToString("N0") + Lang.T(" МБ")).ToArray();
+            sample.Processes = ProcessUsage.Top(rows, 8);
             if (inaccessible > 0)
                 errors.Add(Lang.T("Недоступных или завершившихся процессов: ") + inaccessible + ".");
             sample.Error = string.Join(" ", errors);
@@ -334,8 +357,9 @@ namespace Wintools
             InitializeTemperatures(panel);
             InitializeMeasurements(panel);
             var processPanel = new StackPanel();
-            processPanel.Children.Add(Paragraph(Lang.T("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ.")));
+            processPanel.Children.Add(Intro(Lang.T("Программы, которые сейчас занимают больше всего памяти."), Lang.T("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ.")));
             resourceProcesses = new ItemsControl();
+            resourceProcesses.ItemTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><Grid Margin='0,0,0,10'><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='172'/><ColumnDefinition Width='84'/></Grid.ColumnDefinitions><TextBlock Text='{Binding Name}' ToolTip='{Binding Detail}' TextTrimming='CharacterEllipsis' TextWrapping='NoWrap' Margin='0,0,12,0'/><Border Grid.Column='1' Height='6' Width='160' HorizontalAlignment='Left' CornerRadius='3' Background='{DynamicResource Border}' VerticalAlignment='Center'><Border HorizontalAlignment='Left' Width='{Binding BarWidth}' CornerRadius='3' Background='{DynamicResource Accent}'/></Border><TextBlock Grid.Column='2' Text='{Binding Size}' TextAlignment='Right' Foreground='{DynamicResource Muted}' TextWrapping='NoWrap'/></Grid></DataTemplate>");
             processPanel.Children.Add(resourceProcesses);
             var expander = new Expander
             {
@@ -424,7 +448,7 @@ namespace Wintools
 
         private static string ResourceRate(double? value)
         {
-            return !value.HasValue ? "—" : value.Value >= 1048576 ? (value.Value / 1048576).ToString("N1") + Lang.T(" МБ/с") : (value.Value / 1024).ToString("N1") + Lang.T(" КБ/с");
+            return !value.HasValue ? "—" : value.Value >= 1048576 ? (value.Value / 1048576).ToString("N1", Lang.Culture) + Lang.T(" МБ/с") : (value.Value / 1024).ToString("N1", Lang.Culture) + Lang.T(" КБ/с");
         }
 
         private async Task SampleResources()
@@ -438,9 +462,9 @@ namespace Wintools
                 var sample = await Task.Run(() => resourceReader.Read(adapter));
                 if (closed || page != 6 || resourcesPaused)
                     return;
-                cpuValue.Text = sample.Cpu.HasValue ? sample.Cpu.Value.ToString("N0") + " %" : Lang.T("Нет замера");
-                memoryValue.Text = sample.Memory.HasValue ? sample.Memory.Value.ToString("N0") + " %" : Lang.T("Недоступно");
-                memoryDetail.Text = sample.Memory.HasValue ? Lang.T("Свободно ") + (sample.AvailableMemory / 1073741824.0).ToString("N1") + Lang.T(" из ") + (sample.TotalMemory / 1073741824.0).ToString("N1") + Lang.T(" ГБ") : Lang.T("Не удалось прочитать память");
+                cpuValue.Text = sample.Cpu.HasValue ? sample.Cpu.Value.ToString("N0", Lang.Culture) + " %" : Lang.T("Нет замера");
+                memoryValue.Text = sample.Memory.HasValue ? sample.Memory.Value.ToString("N0", Lang.Culture) + " %" : Lang.T("Недоступно");
+                memoryDetail.Text = sample.Memory.HasValue ? Lang.T("Свободно ") + (sample.AvailableMemory / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" из ") + (sample.TotalMemory / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" ГБ") : Lang.T("Не удалось прочитать память");
                 cpuGraph.Push(sample.Cpu);
                 memoryGraph.Push(sample.Memory);
                 if (adapter == networkAdapter.SelectedValue as string)

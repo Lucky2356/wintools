@@ -424,7 +424,7 @@
        <Button x:Name="NavIntegrity" Content="Обслуживание" ToolTip="Обслуживание" Tag="&#xE90F;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavNetwork" Content="Сеть и DNS" ToolTip="Сеть и DNS" Tag="&#xE701;" Style="{StaticResource Nav}"/>
        <!-- Expert tools stay one click away but out of a newcomer's first glance; ShowPage opens the group for its own pages. -->
-       <Button x:Name="AdvancedToggle" Content="Для опытных  ▾" ToolTip="Автозагрузка, процессы и службы" Tag="&#xE943;" Style="{StaticResource Nav}"/>
+       <Button x:Name="AdvancedToggle" Content="Для опытных  ▾" ToolTip="Автозагрузка, процессы и службы" Tag="&#xE7EF;" Style="{StaticResource Nav}"/>
        <StackPanel x:Name="AdvancedNav" Visibility="Collapsed">
         <Button x:Name="NavStartup" Content="Автозагрузка" ToolTip="Автозагрузка" Tag="&#xE768;" Style="{StaticResource Nav}"/>
         <Button x:Name="NavProcesses" Content="Процессы" ToolTip="Процессы" Tag="&#xE7C4;" Style="{StaticResource Nav}"/>
@@ -516,22 +516,23 @@
          <ListBox.ItemTemplate><DataTemplate>
           <Grid>
            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-           <Grid Width="38" Height="38" VerticalAlignment="Top" Margin="0,1,14,0">
+           <Grid x:Name="Badge" Width="38" Height="38" VerticalAlignment="Top" Margin="0,1,14,0">
             <Border x:Name="Tint" CornerRadius="11" Background="{DynamicResource Accent}" Opacity="0.15"/>
             <TextBlock x:Name="Glyph" Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="17" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
            </Grid>
            <StackPanel Grid.Column="1">
-            <TextBlock Text="{Binding DisplayTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+            <TextBlock Text="{Binding DisplayTitle}" ToolTip="{Binding DisplayTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="42" LineHeight="21" LineStackingStrategy="BlockLineHeight"/>
             <DockPanel Margin="0,5,0,0" LastChildFill="True">
              <Border x:Name="Risk" DockPanel.Dock="Left" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="9" Padding="8,1" Margin="0,0,8,0" VerticalAlignment="Center">
               <TextBlock x:Name="RiskText" Text="{Binding RiskText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Success}" TextWrapping="NoWrap"/>
              </Border>
              <TextBlock Text="{Binding Group}" Foreground="{DynamicResource Muted}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
             </DockPanel>
-            <TextBlock x:Name="State" Text="{Binding ServiceStatus}" Visibility="{Binding ServiceVisibility}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+            <TextBlock x:Name="State" Text="{Binding ServiceStatus}" Visibility="{Binding ServiceVisibility}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Muted}" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
            </StackPanel>
           </Grid>
           <DataTemplate.Triggers>
+           <DataTrigger Binding="{Binding ShowIcon}" Value="False"><Setter TargetName="Badge" Property="Visibility" Value="Collapsed"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="violet"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Accent2}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent2}"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="green"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Success}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="amber"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Warning}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
@@ -606,16 +607,25 @@
        <ListBox.ItemTemplate><DataTemplate>
         <StackPanel>
          <TextBlock Text="{Binding DisplayTitle}" FontWeight="SemiBold" FontSize="15"/>
-         <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource Muted}" Margin="0,6,0,0" LineHeight="21"/>
+         <DockPanel Margin="0,6,0,0">
+          <Border x:Name="Risk" DockPanel.Dock="Left" BorderBrush="{DynamicResource Success}" BorderThickness="1" CornerRadius="9" Padding="8,1" Margin="0,0,10,0" VerticalAlignment="Top">
+           <TextBlock x:Name="RiskText" Text="{Binding RiskText}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Success}" TextWrapping="NoWrap"/>
+          </Border>
+          <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource Muted}" LineHeight="21" TextWrapping="Wrap"/>
+         </DockPanel>
         </StackPanel>
+        <DataTemplate.Triggers>
+         <DataTrigger Binding="{Binding RiskLevel}" Value="med"><Setter TargetName="Risk" Property="BorderBrush" Value="{DynamicResource Warning}"/><Setter TargetName="RiskText" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
+         <DataTrigger Binding="{Binding RiskLevel}" Value="high"><Setter TargetName="Risk" Property="BorderBrush" Value="{DynamicResource Danger}"/><Setter TargetName="RiskText" Property="Foreground" Value="{DynamicResource Danger}"/></DataTrigger>
+        </DataTemplate.Triggers>
        </DataTemplate></ListBox.ItemTemplate>
       </ListBox>
       <Grid Grid.Row="2" Margin="0,12,0,0">
        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <WrapPanel>
-        <Button x:Name="PlanUp" Content="Выше ↑" Style="{StaticResource Ghost}" Margin="0,0,4,8"/>
-        <Button x:Name="PlanDown" Content="Ниже ↓" Style="{StaticResource Ghost}" Margin="0,0,4,8"/>
-        <Button x:Name="PlanRemove" Content="Убрать из плана" Style="{StaticResource Ghost}" Margin="0,0,12,8"/>
+        <Button x:Name="PlanUp" Content="↑ Выше" ToolTip="Переместить выбранное действие выше" Margin="0,0,6,8"/>
+        <Button x:Name="PlanDown" Content="↓ Ниже" ToolTip="Переместить выбранное действие ниже" Margin="0,0,6,8"/>
+        <Button x:Name="PlanRemove" Content="Убрать из плана" Margin="0,0,12,8"/>
         <Button x:Name="ProfileImport" Content="Загрузить профиль" Style="{StaticResource Ghost}" Margin="0,0,4,8"/>
         <Button x:Name="ProfileExport" Content="Сохранить профиль" Style="{StaticResource Ghost}" Margin="0,0,4,8"/>
        </WrapPanel>
@@ -650,8 +660,13 @@
         <StackPanel>
          <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
          <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Muted}" FontSize="12" Margin="0,4,0,0"/>
-         <TextBlock Text="{Binding Status}" Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Accent}"/>
+         <TextBlock x:Name="Outcome" Text="{Binding Status}" Margin="0,4,0,0" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Success}"/>
         </StackPanel>
+        <DataTemplate.Triggers>
+         <DataTrigger Binding="{Binding Tone}" Value="Danger"><Setter TargetName="Outcome" Property="Foreground" Value="{DynamicResource Danger}"/></DataTrigger>
+         <DataTrigger Binding="{Binding Tone}" Value="Warning"><Setter TargetName="Outcome" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
+         <DataTrigger Binding="{Binding Tone}" Value="Muted"><Setter TargetName="Outcome" Property="Foreground" Value="{DynamicResource Muted}"/></DataTrigger>
+        </DataTemplate.Triggers>
        </DataTemplate></ListBox.ItemTemplate>
       </ListBox>
       <Grid Grid.Row="2" Margin="0,12,0,0">
@@ -678,8 +693,9 @@
          <TextBlock Text="Обновления Wintools" FontFamily="{StaticResource DisplayFont}" FontSize="18" FontWeight="SemiBold"/>
          <TextBlock x:Name="UpdateStatus" Text="Проверяем наличие новой версии…" Style="{StaticResource MutedText}" Margin="0,8,0,10"/>
          <CheckBox x:Name="AutoCheck" Content="Проверять при запуске и каждые 6 часов"/>
-         <CheckBox x:Name="AutoInstall" Content="Скачивать и устанавливать при закрытии"/>
+         <CheckBox x:Name="AutoInstall" Content="Скачивать и устанавливать найденное обновление при закрытии"/>
          <CheckBox x:Name="PreviewChannel" Content="Получать предварительные версии (RC)"/>
+         <TextBlock x:Name="UpdateMode" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,0"/>
          <TextBlock Text="Токен и вход в GitHub не нужны. Обновление устанавливается после закрытия приложения: в следующий раз откроется новая версия. История и данные для отката сохраняются." Style="{StaticResource MutedText}" FontSize="13" Margin="0,8,0,0"/>
          <ProgressBar x:Name="DownloadProgress" Margin="0,16,0,0" Visibility="Collapsed"/>
          <WrapPanel Margin="0,16,0,0">
@@ -691,11 +707,16 @@
        <Border Style="{StaticResource Card}" Padding="22">
         <StackPanel>
          <TextBlock Text="Оформление" FontFamily="{StaticResource DisplayFont}" FontSize="18" FontWeight="SemiBold"/>
-         <TextBlock Text="Тема применяется сразу. «Как в Windows» следует системной настройке и высокой контрастности." Style="{StaticResource MutedText}" FontSize="13" Margin="0,8,0,14"/>
+         <TextBlock Text="Цветовая тема" FontWeight="SemiBold" Margin="0,14,0,6"/>
          <ComboBox x:Name="Theme" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Цветовая тема">
           <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Светлая"/><ComboBoxItem Content="Тёмная"/>
          </ComboBox>
-         <TextBlock Text="Язык интерфейса · Language" FontWeight="SemiBold" Margin="0,16,0,6"/>
+         <TextBlock Text="Тема применяется сразу. «Как в Windows» следует системной настройке и высокой контрастности." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
+         <!-- The second word is in the other language, so someone who cannot read the current one still finds the switch. -->
+         <StackPanel Orientation="Horizontal" Margin="0,16,0,6">
+          <TextBlock Text="Язык интерфейса" FontWeight="SemiBold"/>
+          <TextBlock Text="Language" Style="{StaticResource MutedText}" Margin="8,0,0,0"/>
+         </StackPanel>
          <ComboBox x:Name="Language" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Язык интерфейса">
           <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Русский"/><ComboBoxItem Content="English"/>
          </ComboBox>

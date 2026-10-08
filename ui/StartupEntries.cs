@@ -256,7 +256,7 @@ namespace Wintools
             errors.AddRange(scheduled.Errors);
             return new StartupSnapshot
             {
-                Entries = entries.OrderBy(e => e.Name, StringComparer.CurrentCultureIgnoreCase).ToArray(),
+                Entries = entries.OrderBy(e => e.Name, NaturalOrder.Instance).ToArray(),
                 Errors = errors.ToArray()
             };
         }
