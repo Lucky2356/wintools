@@ -24,7 +24,7 @@ namespace Wintools
         private void InitializePackages()
         {
             var panel = ToolPage("PackagesPage");
-            panel.Children.Add(Paragraph(Lang.T("Устанавливает и обновляет программы из официального каталога winget от Microsoft. Установщики скачиваются с сайтов издателей, winget проверяет их контрольные суммы. Отметьте нужные программы и нажмите «Установить выбранные». Удалить программу можно в разделе «Приложения».")));
+            panel.Children.Add(Intro(Lang.T("Проверенные программы из каталога Microsoft: отметьте нужные и нажмите «Установить выбранные»."), Lang.T("Устанавливает и обновляет программы из официального каталога winget от Microsoft. Установщики скачиваются с сайтов издателей, winget проверяет их контрольные суммы. Отметьте нужные программы и нажмите «Установить выбранные». Удалить программу можно в разделе «Приложения».")));
             packageStatus = Paragraph(Lang.T("Нажмите «Проверить установленные», чтобы узнать, какие программы уже есть."));
             panel.Children.Add(packageStatus);
             var buttons = new WrapPanel
@@ -52,6 +52,7 @@ namespace Wintools
                 Content = Lang.T("Обновить все программы…"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
+            packageUpgradeAll.Style = (Style)Window.FindResource("Ghost");
             packageUpgradeAll.Click += async (s, e) => await RunPackages("upgrade-all");
             buttons.Children.Add(packageUpgradeAll);
             packageCheck = new Button
@@ -59,6 +60,7 @@ namespace Wintools
                 Content = Lang.T("Проверить установленные"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
+            packageCheck.Style = (Style)Window.FindResource("Ghost");
             packageCheck.Click += async (s, e) => await RefreshPackages();
             buttons.Children.Add(packageCheck);
             packageStop = new Button
@@ -94,7 +96,7 @@ namespace Wintools
                 {
                     Child = section,
                     Padding = new Thickness(16),
-                    CornerRadius = new CornerRadius(12),
+                    CornerRadius = new CornerRadius(14),
                     Margin = new Thickness(0, 0, 10, 12)
                 };
                 Card(card);
@@ -130,6 +132,7 @@ namespace Wintools
                         Margin = new Thickness(0, 0, 0, 10),
                         ToolTip = "winget: " + package.Id
                     };
+                    check.SetResourceReference(FrameworkElement.StyleProperty, "Tick");
                     check.Click += (s, e) => RefreshPackagesEnabled();
                     section.Children.Add(check);
                     packageChecks[package.Id] = check;
@@ -189,9 +192,10 @@ namespace Wintools
                     return;
                 }
 
-                packageStatus.Text = "winget " + wingetVersion + Lang.T(". Читаем установленные программы… Первый запуск может обновить каталог winget.");
+                packageStatus.ToolTip = "winget " + wingetVersion;
+                packageStatus.Text = Lang.T("Читаем установленные программы… Первый запуск может обновить каталог winget.");
                 installedPackages = await packageInventory();
-                packageStatus.Text = "winget " + wingetVersion + Lang.T(". Установлено из списка: ") + Packages.Catalog.Count(p => installedPackages.Contains(p.Id)) + Lang.T(" из ") + Packages.Catalog.Length + ".";
+                packageStatus.Text = Lang.T("Установлено из списка: ") + Packages.Catalog.Count(p => installedPackages.Contains(p.Id)) + Lang.T(" из ") + Packages.Catalog.Length + ".";
             }
             catch (Exception ex)
             {

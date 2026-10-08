@@ -85,7 +85,7 @@ namespace Wintools
         internal static TweakState Compare(Tweak item, RegistryValueKind kind, object value)
         {
             if (value == null)
-                return TweakState.Known(false, Lang.T("значение не задано, действует поведение Windows по умолчанию"));
+                return TweakState.Known(false, Lang.T("стандартное значение Windows"));
             if (item.ValueType == "REG_DWORD")
             {
                 uint wanted;

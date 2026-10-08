@@ -50,6 +50,8 @@ namespace Wintools
             LayoutResource("NavSeparatorVisibility", tight ? Visibility.Visible : Visibility.Collapsed);
             LayoutResource("NavItemHeight", dense ? 30.0 : 38.0);
             Get<Grid>("Body").ColumnDefinitions[0].Width = new GridLength(rail ? 64 : 236);
+            // The icon rail is too narrow for a scrollbar; the wheel still scrolls it.
+            Get<ScrollViewer>("NavScroll").VerticalScrollBarVisibility = rail ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
             Get<Border>("Sidebar").Padding = rail ? new Thickness(8, 12, 8, 8) : new Thickness(12, dense ? 12 : 18, 12, 12);
             var brand = Get<FrameworkElement>("Brand");
             brand.Visibility = height >= 600 ? Visibility.Visible : Visibility.Collapsed;
@@ -59,9 +61,15 @@ namespace Wintools
             var main = Get<Grid>("Workspace");
             main.Margin = tight ? new Thickness(16, 12, 16, 10) : new Thickness(32, 22, 32, 16);
             Get<FrameworkElement>("PageHeader").Margin = new Thickness(0, 0, 0, dense ? 10 : 20);
-            Get<TextBlock>("PageTitle").FontSize = dense ? 20 : 26;
+            Get<TextBlock>("PageTitle").FontSize = dense ? 22 : 28;
             Visible("PageEyebrow", !dense);
             Visible("PageHint", !dense);
+            // The section badge stays on typical laptop heights and shrinks in short windows.
+            Visible("PageBadge", height >= 680);
+            var badge = Get<Border>("PageBadge");
+            badge.Width = badge.Height = dense ? 44 : 56;
+            badge.CornerRadius = new CornerRadius(dense ? 13 : 16);
+            Get<TextBlock>("PageIcon").FontSize = dense ? 20 : 26;
             double available = Math.Max(0, width - (rail ? 64 : 236) - main.Margin.Left - main.Margin.Right);
             LayoutResource("BrowseColumns", available >= 1300 ? 3 : available >= 640 ? 2 : 1);
             if (collectionCards != null)

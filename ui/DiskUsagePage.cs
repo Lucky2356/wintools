@@ -34,7 +34,7 @@ namespace Wintools
                 Child = card,
                 Padding = new Thickness(16),
                 Margin = new Thickness(0, 0, 0, 10),
-                CornerRadius = new CornerRadius(12)
+                CornerRadius = new CornerRadius(14)
             };
             Card(border);
             panel.Children.Add(border);

@@ -83,7 +83,7 @@ namespace Wintools
                 }
             };
             var root = new StackPanel();
-            root.Children.Add(Paragraph(Lang.T("Настройте одну из трёх подборок под себя. Отмечайте дополнительные группы только для функций, которыми не пользуетесь. Выбор ничего не меняет в Windows: сначала посмотрите действия или добавьте их в план.")));
+            root.Children.Add(Intro(Lang.T("Выберите готовую подборку и снимите отметки с того, чем пользуетесь."), Lang.T("Настройте одну из трёх подборок под себя. Отмечайте дополнительные группы только для функций, которыми не пользуетесь. Выбор ничего не меняет в Windows: сначала посмотрите действия или добавьте их в план.")));
             InitializeCollectionAssistant(root);
             collectionCards = new UniformGrid
             {
@@ -118,6 +118,7 @@ namespace Wintools
                         ToolTip = available < section.Ids.Length ? Lang.T("Действия для другой версии Windows исключены из выбора.") : null,
                         Margin = new Thickness(0, 8, 0, 4)
                     };
+                    check.SetResourceReference(FrameworkElement.StyleProperty, "Tick");
                     check.Click += (s, e) => RefreshCollectionCounts();
                     choice.Checks.Add(check);
                     content.Children.Add(check);
@@ -139,7 +140,7 @@ namespace Wintools
                     Child = content,
                     Padding = new Thickness(18),
                     Margin = new Thickness(0, 0, 12, 12),
-                    CornerRadius = new CornerRadius(12),
+                    CornerRadius = new CornerRadius(14),
                     VerticalAlignment = VerticalAlignment.Top
                 };
                 Card(card);

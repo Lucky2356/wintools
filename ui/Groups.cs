@@ -9,6 +9,70 @@ namespace Wintools
         public string Key { get; set; }
         public string Title { get; set; }
         public string Detail { get; set; }
+
+        // Segoe Fluent / MDL2 glyph shown in the tile badge; subgroups inside a category share a folder glyph.
+        public string Icon
+        {
+            get
+            {
+                return Key != null && Key.StartsWith("category:") ? IconFor(Key.Substring(9)) : "\uE8B7";
+            }
+        }
+
+        public string Tint
+        {
+            get
+            {
+                return Key != null && Key.StartsWith("category:") ? TintFor(Key.Substring(9)) : "";
+            }
+        }
+
+        // Colour families help scanning: privacy and scheduling violet, cleanup and updates green, performance amber, the rest accent blue.
+        internal static string TintFor(string category)
+        {
+            switch (category)
+            {
+                case "PRIV":
+                case "TASK":
+                    return "violet";
+                case "CLEAN":
+                case "UPD":
+                    return "green";
+                case "PERF":
+                    return "amber";
+                default:
+                    return "";
+            }
+        }
+
+        internal static string IconFor(string category)
+        {
+            switch (category)
+            {
+                case "PRIV":
+                    return "\uE72E";
+                case "UI":
+                    return "\uE790";
+                case "SVC":
+                    return "\uE713";
+                case "APPS":
+                    return "\uE71D";
+                case "SYS":
+                    return "\uE770";
+                case "CLEAN":
+                    return "\uE74D";
+                case "EDGE":
+                    return "\uE774";
+                case "PERF":
+                    return "\uE945";
+                case "TASK":
+                    return "\uE823";
+                case "UPD":
+                    return "\uE895";
+                default:
+                    return "\uE8B7";
+            }
+        }
     }
 
     internal static class Groups

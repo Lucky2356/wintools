@@ -41,7 +41,7 @@ namespace Wintools
             Grid.SetRow(cleanupPanel, 1);
             Grid.SetRowSpan(cleanupPanel, 4);
             root.Children.Add(cleanupPanel);
-            panel.Children.Add(Paragraph(Lang.T("Сначала рассчитайте объём, затем отметьте нужные категории. Удаление необратимо. Возраст определяется по последнему изменению файла; занятые файлы могут остаться.")));
+            panel.Children.Add(Intro(Lang.T("Рассчитайте объём, отметьте ненужное и удалите."), Lang.T("Сначала рассчитайте объём, затем отметьте нужные категории. Удаление необратимо. Возраст определяется по последнему изменению файла; занятые файлы могут остаться.")));
             var controls = new WrapPanel();
             panel.Children.Add(controls);
             cleanupScan = ToolButton(controls, Lang.T("Рассчитать объём"), async () => await ScanCleanup());
@@ -65,17 +65,23 @@ namespace Wintools
                     IsEnabled = false,
                     Margin = new Thickness(0, 0, 0, 6)
                 };
+                cleanupChecks[i].SetResourceReference(FrameworkElement.StyleProperty, "Tick");
                 cleanupChecks[i].Click += (s, e) => RefreshCleanupEnabled();
                 card.Children.Add(cleanupChecks[i]);
-                card.Children.Add(Paragraph(i == 3 ? Lang.T("Дисковый кэш Chrome, Edge, Brave, Яндекс Браузера, Vivaldi и Firefox. История, пароли, вкладки и вход на сайты сохраняются. Открытые браузеры пропускаются; первые страницы после очистки загрузятся чуть дольше.") : i == 2 ? Lang.T("Файлы CrashDumps старше 7 дней. Они могут понадобиться для выяснения причин сбоев.") : Lang.T("Файлы Temp старше 3 дней. Папки и ссылки пропускаются.")));
+                var about = Paragraph(i == 3 ?Lang.T("Дисковый кэш Chrome, Edge, Brave, Яндекс Браузера, Vivaldi и Firefox. История, пароли, вкладки и вход на сайты сохраняются. Открытые браузеры пропускаются; первые страницы после очистки загрузятся чуть дольше.") : i == 2 ? Lang.T("Файлы CrashDumps старше 7 дней. Они могут понадобиться для выяснения причин сбоев.") : Lang.T("Файлы Temp старше 3 дней. Папки и ссылки пропускаются."));
+                about.Margin = new Thickness(0, 0, 0, 8);
+                about.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+                card.Children.Add(about);
                 cleanupValues[i] = Paragraph(Lang.T("Объём неизвестен"));
+                cleanupValues[i].Margin = new Thickness(0);
+                cleanupValues[i].FontWeight = FontWeights.SemiBold;
                 card.Children.Add(cleanupValues[i]);
                 var border = new Border
                 {
                     Child = card,
                     Padding = new Thickness(16),
                     Margin = new Thickness(0, 0, 0, 10),
-                    CornerRadius = new CornerRadius(12)
+                    CornerRadius = new CornerRadius(14)
                 };
                 Card(border);
                 panel.Children.Add(border);
@@ -133,7 +139,9 @@ namespace Wintools
                     var result = await Task.Run(() => read(id, token));
                     token.ThrowIfCancellationRequested();
                     cleanupEstimates[i] = result;
-                    cleanupValues[i].Text = result.Source + "\n" + CleanupPreview.Size(result.Bytes) + Lang.T(" · Файлов: ") + result.Files + Lang.T(" · Пропущено ссылок: ") + result.SkippedLinks + (result.Errors > 0 ? Lang.T("\nРасчёт неполный. ") + result.Error : "");
+                    // Folder paths only matter when something looks wrong, so they move to the tooltip; browser names stay visible.
+                    cleanupValues[i].ToolTip = result.Source;
+                    cleanupValues[i].Text = (i == 3 ? result.Source + "\n" : "") + CleanupPreview.Size(result.Bytes) + Lang.T(" · Файлов: ") + result.Files + (result.SkippedLinks > 0 ? Lang.T(" · Пропущено ссылок: ") + result.SkippedLinks : "") + (result.Errors > 0 ? Lang.T("\nРасчёт неполный. ") + result.Error : "");
                 }
 
                 cleanupStatus.Text = Lang.T("Расчёт завершён. Объём приблизительный: это размеры файлов, а не гарантированно освобождаемое место. Перед удалением состав будет проверен заново.");

@@ -132,7 +132,7 @@ namespace Wintools
                     Child = content,
                     Padding = new Thickness(16),
                     Margin = new Thickness(0, 0, 10, 10),
-                    CornerRadius = new CornerRadius(12)
+                    CornerRadius = new CornerRadius(14)
                 };
                 Card(card);
                 columns[index++ % columns.Length].Children.Add(card);

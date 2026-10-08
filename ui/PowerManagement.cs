@@ -23,7 +23,7 @@ namespace Wintools
             {
                 Child = panel,
                 Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(12),
+                CornerRadius = new CornerRadius(14),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);

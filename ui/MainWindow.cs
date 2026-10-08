@@ -42,6 +42,32 @@ namespace Wintools
                 return Item == null ? null : Item.Risk;
             }
         }
+
+        public string RiskText
+        {
+            get
+            {
+                return Item == null ? "" : Item.Risk == "high" ? Lang.T("Высокий риск") : Item.Risk == "med" ? Lang.T("Средний риск") : Lang.T("Низкий риск");
+            }
+        }
+
+        public string Group { get; set; }
+
+        public string Icon
+        {
+            get
+            {
+                return Item == null ? "" : BrowseGroup.IconFor(Item.Category);
+            }
+        }
+
+        public string Tint
+        {
+            get
+            {
+                return Item == null ? "" : BrowseGroup.TintFor(Item.Category);
+            }
+        }
     }
 
     internal sealed class HistoryRow
@@ -99,7 +125,8 @@ namespace Wintools
             Lang.T("Обслуживание Windows"),
             Lang.T("Автозагрузка программ"),
             Lang.T("Работающие процессы"),
-            Lang.T("Установка программ")
+            Lang.T("Установка программ"),
+            Lang.T("Ваш компьютер сегодня")
         };
         private readonly string[] pages =
         {
@@ -117,7 +144,8 @@ namespace Wintools
             "IntegrityPage",
             "StartupPage",
             "ProcessesPage",
-            "PackagesPage"
+            "PackagesPage",
+            "HomePage"
         };
         private readonly string[] nav =
         {
@@ -135,7 +163,8 @@ namespace Wintools
             "NavIntegrity",
             "NavStartup",
             "NavProcesses",
-            "NavPackages"
+            "NavPackages",
+            "NavHome"
         };
         private readonly string[] operations =
         {
@@ -329,6 +358,10 @@ namespace Wintools
                 Click(nav[i], () => ShowPage(index));
             }
 
+            Click("EmptyPlanOpen", () => ShowPage(0));
+            Click("EmptyHistoryHome", () => ShowPage(HomeIndex));
+            Click("AdvancedToggle", () => ShowAdvancedNav(Get<UIElement>("AdvancedNav").Visibility != Visibility.Visible));
+
             Click("ClearCollection", () =>
             {
                 collection = null;
@@ -337,6 +370,7 @@ namespace Wintools
             });
             InitializeCollections();
             InitializeHealth();
+            InitializeHome();
             InitializeApplications();
             InitializePackages();
             InitializeNetworkDiagnostics();
@@ -543,7 +577,7 @@ namespace Wintools
 
             ReadHistory();
             RefreshPlan();
-            ShowPage(0);
+            ShowPage(smoke ? 0 : HomeIndex);
             SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
         }
 
@@ -556,6 +590,8 @@ namespace Wintools
         {
             foreach (var pair in NativeTheme.Colors(PaletteDark()))
                 Window.Resources[pair.Key] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(pair.Value));
+            // Decorative badges use a diagonal accent gradient; high contrast keeps a single system colour.
+            Window.Resources["AccentGradient"] = new LinearGradientBrush(((SolidColorBrush)Window.Resources["Accent"]).Color, ((SolidColorBrush)Window.Resources["Accent2"]).Color, new Point(0, 0), new Point(1, 1));
             if (new WindowInteropHelper(Window).Handle != IntPtr.Zero)
                 NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle, PaletteDark(), CaptionColor());
             ShowPage(page);
@@ -577,8 +613,17 @@ namespace Wintools
                 }));
         }
 
+        private void ShowAdvancedNav(bool value)
+        {
+            Visible("AdvancedNav", value);
+            Get<Button>("AdvancedToggle").Content = Lang.T("Для опытных") + (value ? "  ▴" : "  ▾");
+        }
+
         private void ShowPage(int index)
         {
+            // Startup, processes and services live in the collapsed expert group; opening one of them shows the group.
+            if (index == 5 || index == 12 || index == 13)
+                ShowAdvancedNav(true);
             page = index;
             ResourceVisibility();
             ServiceVisibility();
@@ -591,9 +636,12 @@ namespace Wintools
                     button.SetResourceReference(Control.BackgroundProperty, "Selection");
                     button.SetResourceReference(Control.ForegroundProperty, "Text");
                     button.SetResourceReference(Control.BorderBrushProperty, "Accent");
+                    button.FontWeight = FontWeights.SemiBold;
+                    button.BringIntoView();
                 }
                 else
                 {
+                    button.ClearValue(Control.FontWeightProperty);
                     button.ClearValue(Control.BackgroundProperty);
                     button.ClearValue(Control.ForegroundProperty);
                     button.ClearValue(Control.BorderBrushProperty);
@@ -601,8 +649,11 @@ namespace Wintools
             }
 
             Text("PageTitle", PageTitles[index]);
-            Text("PageEyebrow", new[] { Lang.T("КАТАЛОГ ДЕЙСТВИЙ"), Lang.T("ЖУРНАЛ ЭТОГО КОМПЬЮТЕРА"), Lang.T("ПОДБОРКИ"), Lang.T("ВАШИ ПРЕДПОЧТЕНИЯ"), Lang.T("ПОДГОТОВКА И ВЫПОЛНЕНИЕ"), Lang.T("РАБОТА И АВТОЗАПУСК"), Lang.T("ПОНЯТНАЯ ДИАГНОСТИКА"), Lang.T("ПРОВЕРКА БЕЗ ИЗМЕНЕНИЙ"), Lang.T("ПРАКТИЧЕСКИЕ ШАГИ"), Lang.T("ПРОГРАММЫ НА КОМПЬЮТЕРЕ"), Lang.T("СОЕДИНЕНИЕ И DNS"), Lang.T("ОБСЛУЖИВАНИЕ"), Lang.T("ЗАПУСК ПРИ ВХОДЕ"), Lang.T("РАСПРЕДЕЛЕНИЕ РЕСУРСОВ"), Lang.T("WINGET · КАТАЛОГ MICROSOFT") }[index]);
-            Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди.") }[index]);
+            Text("PageIcon", Get<Button>(nav[index]).Tag as string ?? "");
+            if (index == HomeIndex && cpuGauge != null)
+                UpdateDashboard();
+            Text("PageEyebrow", new[] { Lang.T("Каталог действий"), Lang.T("Журнал этого компьютера"), Lang.T("Готовые подборки"), Lang.T("Ваши предпочтения"), Lang.T("Подготовка и выполнение"), Lang.T("Работа и автозапуск"), Lang.T("Понятная диагностика"), Lang.T("Проверка без изменений"), Lang.T("Практические шаги"), Lang.T("Программы на компьютере"), Lang.T("Соединение и DNS"), Lang.T("Обслуживание Windows"), Lang.T("Запуск при входе"), Lang.T("Распределение ресурсов"), Lang.T("Winget · каталог Microsoft"), Lang.T("Главная") }[index]);
+            Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди."), Lang.T("Состояние ПК и самые частые задачи в один клик.") }[index]);
             if (index == 9 && ready && !smoke && !applicationsLoaded && !readingApplications)
             {
                 var read = ReadApplications();
@@ -660,7 +711,7 @@ namespace Wintools
             Visible("ShowAll", browsing);
             Text("BrowseTitle", group == "ALL" ? Lang.T("Выберите раздел") : Catalogue.Categories[group]);
             Visible("RefreshCatalogueServices", !browsing && scope.Any(t => t.Kind == "SVC" || TweakStates.Supported(t)));
-            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
+            var rows = (browsing ? new Tweak[0] : scope).Select(t => new ActionRow { Item = t, DisplayTitle = (preferences.Favorites.Contains(t.Id) ? "★  " : "") + t.Title, Summary = Risk(t) + "  ·  " + Groups.For(t), Group = Groups.For(t), ServiceStatus = InlineStatus(t), Applied = KnownApplied(t) }).ToArray();
             var list = Get<ListBox>("Items");
             list.ItemsSource = rows;
             list.SelectedItem = rows.FirstOrDefault(t => t.Item.Id == id) ?? rows.FirstOrDefault();
@@ -817,7 +868,7 @@ namespace Wintools
         private void ExpandOutput(bool value)
         {
             Visible("Output", value);
-            Get<Button>("LogToggle").Content = value ? Lang.T("Вывод операции  ▴") : Lang.T("Вывод операции  ▾");
+            Get<Button>("LogToggle").Content = value ? Lang.T("Подробности  ▴") : Lang.T("Подробности  ▾");
         }
 
         private async Task Run(string verb, string id, string run, bool dry)
@@ -1195,6 +1246,7 @@ namespace Wintools
             Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + Lang.T(". Обновления загружаются автоматически."));
             await Task.Delay(100);
             Capture("portable-ui-updates.png");
+            await HomeSmoke();
             await HealthSmoke();
             await WorkspaceSmoke();
             await MonitorSmoke();
