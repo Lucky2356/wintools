@@ -95,6 +95,8 @@ namespace Wintools
         private readonly Preferences preferences = Preferences.Load();
         private readonly List<Tweak> catalogue = Catalogue.Load();
         private readonly bool smoke;
+        private bool placementPlanned, placementMaximize;
+        private Int32Rect placementBounds, placementWork;
         private bool ready, busy, checking, closed, downloading, replacing;
         private string stagedDirectory;
         private Update stagedUpdate;
@@ -514,7 +516,15 @@ namespace Wintools
                 updateTimer.Stop();
                 SystemEvents.UserPreferenceChanged -= SystemPreferenceChanged;
             };
-            Window.SourceInitialized += (s, e) => NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle, PaletteDark(), CaptionColor());
+            Window.SourceInitialized += (s, e) =>
+            {
+                NativeTheme.TitleBar(new WindowInteropHelper(Window).Handle, PaletteDark(), CaptionColor());
+                // The smoke run keeps its fixed sizes; it only checks that the monitor could be measured.
+                if (smoke)
+                    placementPlanned = WindowPlacement.Plan(Window, out placementBounds, out placementWork, out placementMaximize);
+                else
+                    WindowPlacement.Apply(Window);
+            };
             Window.SizeChanged += (s, e) =>
             {
                 Window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() =>
@@ -651,7 +661,7 @@ namespace Wintools
             Text("PageTitle", PageTitles[index]);
             Text("PageIcon", Get<Button>(nav[index]).Tag as string ?? "");
             if (index == HomeIndex && cpuGauge != null)
-                UpdateDashboard();
+                RefreshDashboard();
             Text("PageEyebrow", new[] { Lang.T("Каталог действий"), Lang.T("Журнал этого компьютера"), Lang.T("Готовые подборки"), Lang.T("Ваши предпочтения"), Lang.T("Подготовка и выполнение"), Lang.T("Работа и автозапуск"), Lang.T("Понятная диагностика"), Lang.T("Проверка без изменений"), Lang.T("Практические шаги"), Lang.T("Программы на компьютере"), Lang.T("Соединение и DNS"), Lang.T("Обслуживание Windows"), Lang.T("Запуск при входе"), Lang.T("Распределение ресурсов"), Lang.T("Winget · каталог Microsoft"), Lang.T("Главная") }[index]);
             Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди."), Lang.T("Состояние ПК и самые частые задачи в один клик.") }[index]);
             if (index == 9 && ready && !smoke && !applicationsLoaded && !readingApplications)

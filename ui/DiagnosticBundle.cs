@@ -53,6 +53,7 @@ namespace Wintools
             {
             }
 
+            text.AppendLine("Displays: " + WindowPlacement.Describe());
             text.AppendLine("64-bit OS: " + Environment.Is64BitOperatingSystem + "; culture: " + CultureInfo.CurrentUICulture.Name + "; created: " + DateTime.UtcNow.ToString("o"));
             return text.ToString();
         }
