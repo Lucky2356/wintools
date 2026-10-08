@@ -1384,7 +1384,9 @@ namespace Wintools
         {
             Window.UpdateLayout();
             var root = (FrameworkElement)Window.Content;
-            var bitmap = new RenderTargetBitmap((int)root.ActualWidth, (int)root.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            // Larger text zooms the root; the picture must cover the zoomed size, not the layout size.
+            double zoom = root.LayoutTransform.Value.M11 > 0 ? root.LayoutTransform.Value.M11 : 1;
+            var bitmap = new RenderTargetBitmap((int)Math.Round(root.ActualWidth * zoom), (int)Math.Round(root.ActualHeight * zoom), 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(root);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
