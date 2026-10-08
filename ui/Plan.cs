@@ -97,6 +97,9 @@ namespace Wintools
         private void RefreshPlan()
         {
             var items = PlanItems();
+            // The transparent list would sit over the empty-state button, so only one of them is shown.
+            Visible("EmptyPlan", items.Length == 0);
+            Visible("PlanItems", items.Length > 0);
             Get<ListBox>("PlanItems").ItemsSource = items.Select((t, i) => new ActionRow { Item = t, DisplayTitle = (i + 1) + ". " + t.Title, Summary = Risk(t) + " · " + t.Description }).ToArray();
             Get<Button>("NavPlan").Content = items.Length == 0 ? Lang.T("План изменений") : Lang.T("План изменений · ") + items.Length;
             Text("PlanStatus", items.Length == 0 ? Lang.T("План пуст. Откройте действие в каталоге и нажмите «В план». Список сохраняется между запусками.") : Lang.T("В плане: ") + items.Length + Lang.T(". Сначала проверьте предпросмотр. Очистка файлов и удаление Edge выполняются отдельно."));

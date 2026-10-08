@@ -19,6 +19,32 @@ namespace Wintools
             }
         }
 
+        public string Tint
+        {
+            get
+            {
+                return Key != null && Key.StartsWith("category:") ? TintFor(Key.Substring(9)) : "";
+            }
+        }
+
+        // Colour families help scanning: privacy and scheduling violet, cleanup and updates green, performance amber, the rest accent blue.
+        internal static string TintFor(string category)
+        {
+            switch (category)
+            {
+                case "PRIV":
+                case "TASK":
+                    return "violet";
+                case "CLEAN":
+                case "UPD":
+                    return "green";
+                case "PERF":
+                    return "amber";
+                default:
+                    return "";
+            }
+        }
+
         internal static string IconFor(string category)
         {
             switch (category)

@@ -52,6 +52,7 @@ namespace Wintools
                 Content = Lang.T("Обновить все программы…"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
+            packageUpgradeAll.Style = (Style)Window.FindResource("Ghost");
             packageUpgradeAll.Click += async (s, e) => await RunPackages("upgrade-all");
             buttons.Children.Add(packageUpgradeAll);
             packageCheck = new Button
@@ -59,6 +60,7 @@ namespace Wintools
                 Content = Lang.T("Проверить установленные"),
                 Margin = new Thickness(0, 0, 10, 8)
             };
+            packageCheck.Style = (Style)Window.FindResource("Ghost");
             packageCheck.Click += async (s, e) => await RefreshPackages();
             buttons.Children.Add(packageCheck);
             packageStop = new Button

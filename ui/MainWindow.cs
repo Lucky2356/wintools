@@ -60,6 +60,14 @@ namespace Wintools
                 return Item == null ? "" : BrowseGroup.IconFor(Item.Category);
             }
         }
+
+        public string Tint
+        {
+            get
+            {
+                return Item == null ? "" : BrowseGroup.TintFor(Item.Category);
+            }
+        }
     }
 
     internal sealed class HistoryRow
@@ -350,6 +358,8 @@ namespace Wintools
                 Click(nav[i], () => ShowPage(index));
             }
 
+            Click("EmptyPlanOpen", () => ShowPage(0));
+            Click("EmptyHistoryHome", () => ShowPage(HomeIndex));
             Click("AdvancedToggle", () => ShowAdvancedNav(Get<UIElement>("AdvancedNav").Visibility != Visibility.Visible));
 
             Click("ClearCollection", () =>
@@ -858,7 +868,7 @@ namespace Wintools
         private void ExpandOutput(bool value)
         {
             Visible("Output", value);
-            Get<Button>("LogToggle").Content = value ? Lang.T("Вывод операции  ▴") : Lang.T("Вывод операции  ▾");
+            Get<Button>("LogToggle").Content = value ? Lang.T("Подробности  ▴") : Lang.T("Подробности  ▾");
         }
 
         private async Task Run(string verb, string id, string run, bool dry)

@@ -79,6 +79,12 @@
   <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
    <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
    <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/><Setter Property="FontWeight" Value="SemiBold"/>
+   <Style.Triggers>
+    <!-- A disabled main button turns neutral so it never reads as available. -->
+    <Trigger Property="IsEnabled" Value="False">
+     <Setter Property="Background" Value="{DynamicResource Raised}"/><Setter Property="Foreground" Value="{DynamicResource Muted}"/><Setter Property="BorderBrush" Value="{DynamicResource Border}"/>
+    </Trigger>
+   </Style.Triggers>
   </Style>
   <Style x:Key="Ghost" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
    <Setter Property="Background" Value="Transparent"/><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Text}"/>
@@ -386,7 +392,7 @@
        <Viewbox Margin="7"><Path Data="M 0,0 L 4,18 L 9,9 L 14,18 L 18,0" Stroke="{DynamicResource AccentText}" StrokeThickness="3" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Viewbox>
       </Border>
       <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="{DynamicResource NavLabelVisibility}">
-       <TextBlock Text="wintools" FontWeight="SemiBold" FontSize="18" TextWrapping="NoWrap"/>
+       <TextBlock Text="Wintools" FontWeight="SemiBold" FontSize="18" TextWrapping="NoWrap"/>
        <TextBlock Text="Windows под контролем" FontSize="11" Foreground="{DynamicResource Muted}" TextWrapping="NoWrap"/>
       </StackPanel>
      </Grid>
@@ -481,9 +487,10 @@
           <Button Tag="{Binding Key}" Style="{StaticResource Tile}">
            <Grid>
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <Border Width="40" Height="40" CornerRadius="12" Background="{DynamicResource Selection}" VerticalAlignment="Center" Margin="0,0,14,0">
-             <TextBlock Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
-            </Border>
+            <Grid Width="42" Height="42" VerticalAlignment="Center" Margin="0,0,14,0">
+             <Border x:Name="Tint" CornerRadius="12" Background="{DynamicResource Accent}" Opacity="0.15"/>
+             <TextBlock x:Name="Glyph" Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="19" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+            </Grid>
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
              <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="SemiBold"/>
              <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Muted}" FontSize="13" Margin="0,4,0,0"/>
@@ -491,6 +498,11 @@
             <TextBlock Grid.Column="2" Text="&#xE76C;" FontFamily="{StaticResource IconFont}" FontSize="12" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" Margin="12,0,0,0"/>
            </Grid>
           </Button>
+          <DataTemplate.Triggers>
+           <DataTrigger Binding="{Binding Tint}" Value="violet"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Accent2}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent2}"/></DataTrigger>
+           <DataTrigger Binding="{Binding Tint}" Value="green"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Success}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
+           <DataTrigger Binding="{Binding Tint}" Value="amber"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Warning}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
+          </DataTemplate.Triggers>
          </DataTemplate></ItemsControl.ItemTemplate>
         </ItemsControl>
        </StackPanel>
@@ -502,9 +514,10 @@
          <ListBox.ItemTemplate><DataTemplate>
           <Grid>
            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-           <Border Width="38" Height="38" CornerRadius="11" Background="{DynamicResource Selection}" VerticalAlignment="Top" Margin="0,1,14,0">
-            <TextBlock Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="17" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
-           </Border>
+           <Grid Width="38" Height="38" VerticalAlignment="Top" Margin="0,1,14,0">
+            <Border x:Name="Tint" CornerRadius="11" Background="{DynamicResource Accent}" Opacity="0.15"/>
+            <TextBlock x:Name="Glyph" Text="{Binding Icon}" FontFamily="{StaticResource IconFont}" FontSize="17" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="NoWrap"/>
+           </Grid>
            <StackPanel Grid.Column="1">
             <TextBlock Text="{Binding DisplayTitle}" FontSize="15" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
             <DockPanel Margin="0,5,0,0" LastChildFill="True">
@@ -517,6 +530,9 @@
            </StackPanel>
           </Grid>
           <DataTemplate.Triggers>
+           <DataTrigger Binding="{Binding Tint}" Value="violet"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Accent2}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent2}"/></DataTrigger>
+           <DataTrigger Binding="{Binding Tint}" Value="green"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Success}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
+           <DataTrigger Binding="{Binding Tint}" Value="amber"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Warning}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
            <DataTrigger Binding="{Binding RiskLevel}" Value="med"><Setter TargetName="Risk" Property="BorderBrush" Value="{DynamicResource Warning}"/><Setter TargetName="RiskText" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
            <DataTrigger Binding="{Binding RiskLevel}" Value="high"><Setter TargetName="Risk" Property="BorderBrush" Value="{DynamicResource Danger}"/><Setter TargetName="RiskText" Property="Foreground" Value="{DynamicResource Danger}"/></DataTrigger>
            <DataTrigger Binding="{Binding Applied}" Value="True"><Setter TargetName="State" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
@@ -539,9 +555,9 @@
           </Grid>
           <Grid Margin="0,6,0,0">
            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="44"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-           <Button x:Name="Revert" Content="Откатить" Style="{StaticResource Ghost}" Padding="4,6" MinHeight="32"/>
+           <Button x:Name="Revert" Content="Откатить" Padding="4,6" MinHeight="34"/>
            <Button x:Name="Star" Grid.Column="1" Content="☆" ToolTip="Избранное" AutomationProperties.Name="Избранное" Style="{StaticResource Ghost}" Padding="4,6" MinHeight="32" FontSize="16"/>
-           <Button x:Name="PlanAdd" Grid.Column="2" Content="В план +" ToolTip="Добавить в план изменений; очистка и удаление Edge выполняются отдельно" Style="{StaticResource Ghost}" Padding="4,6" MinHeight="32"/>
+           <Button x:Name="PlanAdd" Grid.Column="2" Content="В план +" ToolTip="Добавить в план изменений; очистка и удаление Edge выполняются отдельно" Padding="4,6" MinHeight="34"/>
           </Grid>
          </StackPanel>
          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -576,6 +592,14 @@
         <TextBlock x:Name="PlanStatus" Grid.Column="1" Style="{StaticResource MutedText}"/>
        </Grid>
       </Border>
+      <StackPanel x:Name="EmptyPlan" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="440" Margin="22">
+       <Border Width="72" Height="72" CornerRadius="36" Background="{DynamicResource Selection}" HorizontalAlignment="Center">
+        <TextBlock Text="&#xE8FD;" Style="{StaticResource Icon}" FontSize="30" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
+       </Border>
+       <TextBlock Text="План пока пуст" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+       <TextBlock Text="Откройте действие в каталоге и нажмите «В план +». Так можно собрать несколько изменений, проверить их предпросмотром и выполнить за один раз." Style="{StaticResource MutedText}" TextAlignment="Center" Margin="0,8,0,16"/>
+       <Button x:Name="EmptyPlanOpen" Content="Открыть каталог →" Style="{StaticResource Primary}" HorizontalAlignment="Center"/>
+      </StackPanel>
       <ListBox x:Name="PlanItems" Grid.Row="1" AutomationProperties.Name="План изменений">
        <ListBox.ItemTemplate><DataTemplate>
         <StackPanel>
@@ -611,6 +635,14 @@
         <TextBlock x:Name="HistoryStatus" Grid.Column="1" Style="{StaticResource MutedText}"/>
        </Grid>
       </Border>
+      <StackPanel x:Name="EmptyHistory" Grid.Row="1" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="440" Margin="22">
+       <Border Width="72" Height="72" CornerRadius="36" Background="{DynamicResource Selection}" HorizontalAlignment="Center">
+        <TextBlock Text="&#xE81C;" Style="{StaticResource Icon}" FontSize="30" Foreground="{DynamicResource Accent}" HorizontalAlignment="Center"/>
+       </Border>
+       <TextBlock Text="Изменений пока нет" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+       <TextBlock Text="Когда вы примените настройку, здесь появится запись. Любое изменение можно будет откатить к прежнему состоянию." Style="{StaticResource MutedText}" TextAlignment="Center" Margin="0,8,0,16"/>
+       <Button x:Name="EmptyHistoryHome" Content="На главную →" Style="{StaticResource Primary}" HorizontalAlignment="Center"/>
+      </StackPanel>
       <ListBox x:Name="History" Grid.Row="1" AutomationProperties.Name="История запусков">
        <ListBox.ItemTemplate><DataTemplate>
         <StackPanel>
@@ -697,8 +729,8 @@
       <Grid DockPanel.Dock="Top" Margin="14,0,4,0">
        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource Success}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-       <TextBlock x:Name="Status" Grid.Column="1" Text="Готово к работе" Foreground="{DynamicResource Muted}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-       <Button x:Name="LogToggle" Grid.Column="2" Content="Вывод операции  ▾" Style="{StaticResource Ghost}" FontSize="12" Padding="10,4" MinHeight="32" Margin="0,2"/>
+       <TextBlock x:Name="Status" Grid.Column="1" Text="Готово к работе" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Foreground="{DynamicResource Muted}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+       <Button x:Name="LogToggle" Grid.Column="2" Content="Подробности  ▾" Style="{StaticResource Ghost}" FontSize="12" Padding="10,4" MinHeight="32" Margin="0,2"/>
       </Grid>
       <TextBox x:Name="Output" IsReadOnly="True" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
                Height="110" Margin="6,0,6,6" Padding="8,6" Background="{DynamicResource Background}" BorderThickness="0" Visibility="Collapsed" Text="Результаты предпросмотра и выполнения появятся здесь."/>

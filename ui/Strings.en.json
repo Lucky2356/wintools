@@ -1777,5 +1777,14 @@
 "Выберите готовую подборку и снимите отметки с того, чем пользуетесь.": "Pick a ready-made collection and untick what you still use.",
 "Программы, которые запускаются вместе с Windows. Отключите лишние, чтобы вход был быстрее.": "Programs that start with Windows. Turn off the ones you do not need for a faster sign-in.",
 "Проверьте, как быстро отвечает сервер и не теряются ли запросы.": "Check how fast a server answers and whether requests get lost.",
-"стандартное значение Windows": "Windows default"
+"стандартное значение Windows": "Windows default",
+"Подробности  ▾": "Details  ▾",
+"Подробности  ▴": "Details  ▴",
+"План пока пуст": "The plan is empty",
+"Откройте действие в каталоге и нажмите «В план +». Так можно собрать несколько изменений, проверить их предпросмотром и выполнить за один раз.": "Open an action in the catalogue and press Add to plan +. This way you can collect several changes, check them with a preview and run them in one go.",
+"Открыть каталог →": "Open the catalogue →",
+"Изменений пока нет": "No changes yet",
+"Когда вы примените настройку, здесь появится запись. Любое изменение можно будет откатить к прежнему состоянию.": "When you apply a setting, a record appears here. Any change can be rolled back to the previous state.",
+"На главную →": "Go to Home →",
+"Wintools": "Wintools"
 }
