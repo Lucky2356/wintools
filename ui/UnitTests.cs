@@ -547,6 +547,13 @@ namespace Wintools
             }
         }
 
+        private static void TextScale()
+        {
+            Assert(MainWindow.RequestedTextScale("system", 1) == 1 && MainWindow.RequestedTextScale("system", 1.3) == 1.3 && MainWindow.RequestedTextScale("system", 2.25) == 1.5 && MainWindow.RequestedTextScale("125", 2) == 1.25 && MainWindow.RequestedTextScale("100", 2) == 1, "Requested text size wrong");
+            Assert(MainWindow.EffectiveTextScale(1.5, 1600, 1000) == 1.5 && MainWindow.EffectiveTextScale(1.5, 1366, 768) == 1.35 && MainWindow.EffectiveTextScale(1.5, 800, 560) == 1 && MainWindow.EffectiveTextScale(1.25, 1000, 700) == 1.25, "Text zoom does not respect the smallest layout");
+            Assert(!WindowPlacement.Plausible(null) && !WindowPlacement.Plausible(new[] { 0, 0, 100, 100 }) && !WindowPlacement.Plausible(new[] { -40000, -40000, -39000, -39200 }) && WindowPlacement.Plausible(new[] { 100, 100, 900, 700 }), "Saved window bounds checked wrongly");
+        }
+
         internal static int Run()
         {
             CatalogueState();
@@ -562,6 +569,7 @@ namespace Wintools
             Localization();
             Dashboard();
             Placement();
+            TextScale();
             File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed.");
             return 0;
         }

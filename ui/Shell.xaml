@@ -26,6 +26,8 @@
 
   <!-- Layout values changed by AdaptLayout. -->
   <sys:Double x:Key="NavItemHeight">38</sys:Double>
+  <!-- Larger text zooms the whole window; pop-ups have their own windows and read the same zoom from here. -->
+  <ScaleTransform x:Key="UiZoom" ScaleX="1" ScaleY="1"/>
   <sys:Int32 x:Key="BrowseColumns">2</sys:Int32>
   <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
   <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
@@ -248,7 +250,7 @@
      <ContentPresenter Margin="12,0,32,0" VerticalAlignment="Center" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
      <Border x:Name="Focus" BorderBrush="{DynamicResource Accent}" BorderThickness="2" CornerRadius="10" Visibility="Collapsed" IsHitTestVisible="False"/>
      <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="4" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" PopupAnimation="Fade">
-      <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="5"
+      <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="12" Padding="5" LayoutTransform="{DynamicResource UiZoom}"
               MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="340">
        <ScrollViewer><ItemsPresenter/></ScrollViewer>
       </Border>
@@ -353,7 +355,7 @@
   <Style TargetType="ToolTip">
    <Setter Property="Foreground" Value="{DynamicResource Text}"/><Setter Property="MaxWidth" Value="460"/>
    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToolTip">
-    <Border Background="{DynamicResource Raised}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="10" Padding="12,8">
+    <Border Background="{DynamicResource Raised}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="10" Padding="12,8" LayoutTransform="{DynamicResource UiZoom}">
      <ContentPresenter TextElement.FontSize="13">
       <ContentPresenter.Resources><Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/></Style></ContentPresenter.Resources>
      </ContentPresenter>
@@ -374,7 +376,7 @@
   <Style x:Key="FlatMenu" TargetType="ContextMenu">
    <Setter Property="ItemContainerStyle" Value="{StaticResource FlatMenuItem}"/>
    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContextMenu">
-    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="10" Padding="5"><StackPanel IsItemsHost="True"/></Border>
+    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="10" Padding="5" LayoutTransform="{DynamicResource UiZoom}"><StackPanel IsItemsHost="True"/></Border>
    </ControlTemplate></Setter.Value></Setter>
   </Style>
  </Window.Resources>
@@ -698,6 +700,11 @@
           <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Русский"/><ComboBoxItem Content="English"/>
          </ComboBox>
          <TextBlock Text="Язык применится после перезапуска Wintools." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
+         <TextBlock Text="Размер текста" FontWeight="SemiBold" Margin="0,16,0,6"/>
+         <ComboBox x:Name="TextSize" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Размер текста">
+          <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Обычный"/><ComboBoxItem Content="Крупный · 125 %"/><ComboBoxItem Content="Очень крупный · 150 %"/>
+         </ComboBox>
+         <TextBlock Text="Увеличивает весь интерфейс сразу. «Как в Windows» следует параметру «Размер текста» в специальных возможностях." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
         </StackPanel>
        </Border>
        <Border Style="{StaticResource Card}" Padding="22">

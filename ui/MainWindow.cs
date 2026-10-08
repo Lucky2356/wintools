@@ -493,6 +493,7 @@ namespace Wintools
                 }
 
                 FinishConfirmation(false);
+                RememberWindow();
                 if (!replacing && preferences.AutoInstall && stagedDirectory != null)
                 {
                     try
@@ -522,7 +523,7 @@ namespace Wintools
                 // The smoke run keeps its fixed sizes; it only checks that the monitor could be measured.
                 if (smoke)
                     placementPlanned = WindowPlacement.Plan(Window, out placementBounds, out placementWork, out placementMaximize);
-                else
+                else if (!WindowPlacement.Restore(Window, preferences.WindowBounds, preferences.WindowMaximized))
                     WindowPlacement.Apply(Window);
             };
             Window.SizeChanged += (s, e) =>
@@ -573,6 +574,7 @@ namespace Wintools
             };
             if (!smoke)
                 updateTimer.Start();
+            InitializeTextScale();
             InitializeResponsive();
             InitializePlan();
             InitializeProfiles();
@@ -618,8 +620,10 @@ namespace Wintools
             if (!closed)
                 Window.Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    if (!closed)
-                        ApplyTheme();
+                    if (closed)
+                        return;
+                    ApplyTheme();
+                    RefreshSystemTextScale();
                 }));
         }
 
@@ -1257,6 +1261,7 @@ namespace Wintools
             await Task.Delay(100);
             Capture("portable-ui-updates.png");
             await HomeSmoke();
+            await TextScaleSmoke();
             await HealthSmoke();
             await WorkspaceSmoke();
             await MonitorSmoke();

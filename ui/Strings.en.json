@@ -1786,5 +1786,9 @@
 "Изменений пока нет": "No changes yet",
 "Когда вы примените настройку, здесь появится запись. Любое изменение можно будет откатить к прежнему состоянию.": "When you apply a setting, a record appears here. Any change can be rolled back to the previous state.",
 "На главную →": "Go to Home →",
-"Wintools": "Wintools"
+"Wintools": "Wintools",
+"Размер текста": "Text size",
+"Крупный · 125 %": "Large · 125%",
+"Очень крупный · 150 %": "Extra large · 150%",
+"Увеличивает весь интерфейс сразу. «Как в Windows» следует параметру «Размер текста» в специальных возможностях.": "Enlarges the whole interface at once. “Like Windows” follows the Text size setting in Accessibility."
 }

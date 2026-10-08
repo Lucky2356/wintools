@@ -24,6 +24,27 @@ namespace Wintools
             internal uint Flags;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NativePoint
+        {
+            internal int X, Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private sealed class NativePlacement
+        {
+            internal int Length = Marshal.SizeOf(typeof(NativePlacement));
+            internal int Flags, ShowCommand;
+            internal NativePoint Minimized, Maximized;
+            internal NativeRect Normal;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool GetWindowPlacement(IntPtr window, [In, Out] NativePlacement placement);
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool SetWindowPlacement(IntPtr window, [In] NativePlacement placement);
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromRect([In] ref NativeRect rect, uint flags);
         [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromWindow(IntPtr window, uint flags);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
@@ -107,6 +128,43 @@ namespace Wintools
             bounds = new Int32Rect(work.X + (work.Width - width) / 2, work.Y + (work.Height - height) / 2, width, height);
             window.MinWidth = Math.Min(MinimumWidth, work.Width / scaleX);
             window.MinHeight = Math.Min(MinimumHeight, work.Height / scaleY);
+            return true;
+        }
+
+        // Normal bounds as left, top, right, bottom in Windows workspace pixels; maximized also covers a window minimized from maximized.
+        internal static int[] Remember(Window window, out bool maximized)
+        {
+            maximized = false;
+            var placement = new NativePlacement();
+            var handle = new WindowInteropHelper(window).Handle;
+            if (handle == IntPtr.Zero || !GetWindowPlacement(handle, placement))
+                return null;
+            maximized = placement.ShowCommand == 3 || placement.ShowCommand == 2 && (placement.Flags & 2) != 0;
+            return new[] { placement.Normal.Left, placement.Normal.Top, placement.Normal.Right, placement.Normal.Bottom };
+        }
+
+        // Saved bounds are used only while they still land on a connected monitor: an unplugged screen must not hide the window.
+        internal static bool Plausible(int[] bounds)
+        {
+            if (bounds == null || bounds.Length != 4)
+                return false;
+            var rect = new NativeRect { Left = bounds[0], Top = bounds[1], Right = bounds[2], Bottom = bounds[3] };
+            int width = rect.Right - rect.Left, height = rect.Bottom - rect.Top;
+            return width >= 320 && height >= 240 && width <= 32768 && height <= 32768 && MonitorFromRect(ref rect, 0) != IntPtr.Zero;
+        }
+
+        internal static bool Restore(Window window, int[] bounds, bool maximized)
+        {
+            var handle = new WindowInteropHelper(window).Handle;
+            if (handle == IntPtr.Zero || !Plausible(bounds))
+                return false;
+            // SW_HIDE keeps the window invisible until WPF shows it. The second call runs once the window is on its monitor,
+            // so a DPI change on the way there cannot rescale the remembered size.
+            var placement = new NativePlacement { ShowCommand = 0, Normal = new NativeRect { Left = bounds[0], Top = bounds[1], Right = bounds[2], Bottom = bounds[3] } };
+            if (!SetWindowPlacement(handle, placement) || !SetWindowPlacement(handle, placement))
+                return false;
+            if (maximized)
+                window.WindowState = WindowState.Maximized;
             return true;
         }
 

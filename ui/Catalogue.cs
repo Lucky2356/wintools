@@ -106,6 +106,11 @@ namespace Wintools
     {
         public string Theme = "system";
         public string Language = "system";
+        // "system" follows the Windows text size; "100", "125" and "150" are fixed percentages.
+        public string TextSize = "system";
+        // Normal (not maximized) window bounds as Windows reports them, in pixels; null until the first close.
+        public int[] WindowBounds;
+        public bool WindowMaximized;
         public bool AutoCheck = true;
         public bool AutoInstall = true;
         public bool IncludePreview = Program.Version.Contains("-");
@@ -114,6 +119,14 @@ namespace Wintools
         public string WindowsBuild;
         public List<string> Favorites = new List<string>();
         public List<string> Plan = new List<string>();
+        internal static readonly string[] TextSizes =
+        {
+            "system",
+            "100",
+            "125",
+            "150"
+        };
+
         internal static Preferences Load()
         {
             try
@@ -133,6 +146,8 @@ namespace Wintools
                     "en"
                 }.Contains(result.Language))
                     result.Language = "system";
+                if (!TextSizes.Contains(result.TextSize))
+                    result.TextSize = "system";
                 if (result.Favorites == null)
                     result.Favorites = new List<string>();
                 if (result.Plan == null)
