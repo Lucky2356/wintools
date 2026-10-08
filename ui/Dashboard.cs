@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -42,7 +43,7 @@ namespace Wintools
             internal TextBlock Value, Detail;
         }
 
-        private const double RingSize = 76, RingStroke = 8;
+        private const double RingSize = 64, RingStroke = 7;
         private readonly ResourceReader dashboardReader = new ResourceReader();
         private DispatcherTimer dashboardTimer;
         private Gauge cpuGauge, memoryGauge, diskGauge, uptimeGauge;
@@ -68,43 +69,37 @@ namespace Wintools
 
         private Gauge AddGauge(Panel row, string title, string icon)
         {
+            // Four compact tiles in one row keep the everyday goals below them on the first screen of a laptop.
             var tile = new Border
             {
-                Width = 272,
-                Padding = new Thickness(16, 14, 16, 14),
+                Padding = new Thickness(12, 14, 12, 12),
                 CornerRadius = new CornerRadius(14),
-                Margin = new Thickness(0, 0, 12, 12)
+                Margin = new Thickness(6)
             };
             tile.SetResourceReference(Border.BackgroundProperty, "Raised");
-            var grid = new Grid();
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            grid.ColumnDefinitions.Add(new ColumnDefinition());
+            var grid = new StackPanel();
             tile.Child = grid;
-            var ring = new Grid { Width = RingSize, Height = RingSize, VerticalAlignment = VerticalAlignment.Center };
+            var ring = new Grid { Width = RingSize, Height = RingSize, HorizontalAlignment = HorizontalAlignment.Center };
             var track = new Ellipse { StrokeThickness = RingStroke };
             track.SetResourceReference(Shape.StrokeProperty, "Border");
             ring.Children.Add(track);
             var arc = new System.Windows.Shapes.Path { StrokeThickness = RingStroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round, Data = Geometry.Empty };
             arc.SetResourceReference(Shape.StrokeProperty, "Accent");
             ring.Children.Add(arc);
-            var value = new TextBlock { Text = "—", FontSize = 18, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
+            var value = new TextBlock { Text = "—", FontSize = 15, FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
             value.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
             ring.Children.Add(value);
             grid.Children.Add(ring);
-            var text = new StackPanel { Margin = new Thickness(14, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetColumn(text, 1);
-            var heading = new Grid();
-            heading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            heading.ColumnDefinitions.Add(new ColumnDefinition());
-            var glyph = new TextBlock { Text = icon, FontSize = 14, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
+            var text = new StackPanel { Margin = new Thickness(0, 10, 0, 0) };
+            var heading = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+            var glyph = new TextBlock { Text = icon, FontSize = 13, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.NoWrap };
             glyph.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
             glyph.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
             heading.Children.Add(glyph);
-            var name = new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
-            Grid.SetColumn(name, 1);
+            var name = new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
             heading.Children.Add(name);
             text.Children.Add(heading);
-            var detail = new TextBlock { FontSize = 12, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap, LineHeight = 17 };
+            var detail = new TextBlock { FontSize = 12, Margin = new Thickness(0, 3, 0, 0), TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, LineHeight = 17 };
             detail.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             text.Children.Add(detail);
             grid.Children.Add(text);
@@ -116,14 +111,14 @@ namespace Wintools
         {
             var card = new Border
             {
-                Padding = new Thickness(22, 20, 10, 8),
+                Padding = new Thickness(22, 20, 22, 14),
                 CornerRadius = new CornerRadius(14),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             var content = new StackPanel();
             card.Child = content;
-            var head = new Grid { Margin = new Thickness(0, 0, 12, 16) };
+            var head = new Grid { Margin = new Thickness(0, 0, 0, 10) };
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.ColumnDefinitions.Add(new ColumnDefinition());
             dashboardBadge = new Border { Width = 44, Height = 44, CornerRadius = new CornerRadius(22), VerticalAlignment = VerticalAlignment.Center };
@@ -143,7 +138,8 @@ namespace Wintools
             words.Children.Add(dashboardDetail);
             head.Children.Add(words);
             content.Children.Add(head);
-            var row = new WrapPanel();
+            var row = new UniformGrid { Columns = 4, Margin = new Thickness(-6, 0, -6, 0) };
+            row.SizeChanged += (s, e) => row.Columns = row.ActualWidth >= 600 ? 4 : 2;
             content.Children.Add(row);
             cpuGauge = AddGauge(row, Lang.T("Процессор"), "");
             memoryGauge = AddGauge(row, Lang.T("Память"), "");

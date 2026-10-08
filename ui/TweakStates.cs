@@ -10,13 +10,24 @@ namespace Wintools
     internal sealed class TweakState
     {
         public bool? Applied;
-        public string Text;
+        // Text is the short verdict for list rows; Detail keeps the raw current value for the details panel only.
+        public string Text, Detail;
+
+        public string Full
+        {
+            get
+            {
+                return string.IsNullOrEmpty(Detail) ? Text : Text + " · " + Detail;
+            }
+        }
+
         internal static TweakState Known(bool applied, string detail)
         {
             return new TweakState
             {
                 Applied = applied,
-                Text = (applied ? Lang.T("✓ Уже применено") : Lang.T("Не применено")) + (string.IsNullOrEmpty(detail) ? "" : " · " + detail)
+                Text = applied ? Lang.T("✓ Уже применено") : Lang.T("Не применено"),
+                Detail = detail
             };
         }
 

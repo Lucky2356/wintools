@@ -10,7 +10,16 @@ namespace Wintools
 {
     internal sealed partial class MainWindow
     {
-        private ScrollViewer cleanupPanel;
+        private ScrollViewer cleanupPanel, updatesPanel;
+
+        private int UpdatesChoice
+        {
+            get
+            {
+                return integrityActions.Length + 1;
+            }
+        }
+
         private FrameworkElement[] integrityContent;
         private readonly string[] cleanupTitles =
         {
@@ -89,16 +98,29 @@ namespace Wintools
 
             InitializeDiskUsage(panel);
             RefreshCleanupEnabled();
+            // Windows Update settings are maintenance, not speed-up: they live here as the last choice of the list.
+            var updates = new StackPanel();
+            updatesPanel = new ScrollViewer
+            {
+                Content = updates,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Visibility = Visibility.Collapsed
+            };
+            Grid.SetRow(updatesPanel, 1);
+            Grid.SetRowSpan(updatesPanel, 4);
+            root.Children.Add(updatesPanel);
+            InitializeWindowsUpdate(updates);
         }
 
         private void MaintenanceView()
         {
-            if (cleanupPanel == null)
+            if (cleanupPanel == null || updatesPanel == null)
                 return;
-            bool cleanup = integrityChoice.SelectedIndex == integrityActions.Length;
+            bool cleanup = integrityChoice.SelectedIndex == integrityActions.Length, updates = integrityChoice.SelectedIndex == UpdatesChoice;
             cleanupPanel.Visibility = cleanup ? Visibility.Visible : Visibility.Collapsed;
+            updatesPanel.Visibility = updates ? Visibility.Visible : Visibility.Collapsed;
             foreach (var item in integrityContent)
-                item.Visibility = cleanup ? Visibility.Collapsed : Visibility.Visible;
+                item.Visibility = cleanup || updates ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private void RefreshCleanupEnabled()

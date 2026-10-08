@@ -50,6 +50,7 @@ namespace Wintools
                     return Task.FromResult(report);
                 };
                 ShowPage(6);
+                ShowHealthTab(2);
                 await ReadBoot();
                 Assert(elevations == 1 && bootSummary.Text.Contains("42,0 с") && bootCulprits.Items.Count == 2, "Elevated boot read not used or shown");
                 SetBusy(true);

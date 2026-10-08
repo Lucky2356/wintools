@@ -55,7 +55,8 @@ namespace Wintools
                     Lang.T("Восстановить Windows · DISM → SFC"),
                     Lang.T("Восстановить только компоненты · DISM"),
                     Lang.T("Восстановить только системные файлы · SFC"),
-                    Lang.T("Очистка · расчёт объёма и удаление")
+                    Lang.T("Очистка · расчёт объёма и удаление"),
+                    Lang.T("Обновления Windows · пауза и часы активности")
                 },
                 SelectedIndex = 0,
                 Margin = new Thickness(0, 0, 0, 12)

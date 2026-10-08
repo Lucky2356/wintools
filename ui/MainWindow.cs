@@ -77,6 +77,14 @@ namespace Wintools
         public string Status { get; set; }
         public bool CanRevert { get; set; }
 
+        public string Tone
+        {
+            get
+            {
+                return StatusTone.Of(Status);
+            }
+        }
+
         internal string ServiceName;
         internal bool PowerChange, DnsChange, HostsChange, UpdateChange, PackageChange, IntegrityCheck, StartupChange, ProcessChange, StoreChange;
         internal DateTime TimeUtc;
@@ -185,7 +193,10 @@ namespace Wintools
 
         private void Text(string name, string value)
         {
-            Get<TextBlock>(name).Text = value;
+            if (name == "Status")
+                SetStatus(value);
+            else
+                Get<TextBlock>(name).Text = value;
         }
 
         private void Click(string name, Action action)
@@ -246,6 +257,7 @@ namespace Wintools
             Get<CheckBox>("VerifyAfterUpdates").IsChecked = preferences.VerifyAfterUpdates;
             Get<CheckBox>("PreviewChannel").IsChecked = preferences.IncludePreview;
             Get<CheckBox>("AutoInstall").IsChecked = preferences.AutoInstall;
+            ShowUpdateMode();
             Get<ComboBox>("Theme").SelectionChanged += (s, e) =>
             {
                 if (!ready)
@@ -317,6 +329,7 @@ namespace Wintools
             {
                 preferences.AutoCheck = Checked("AutoCheck");
                 SavePreferences();
+                ShowUpdateMode();
                 await RefreshServices();
                 if (preferences.AutoCheck)
                     await CheckUpdates(false);
@@ -325,6 +338,7 @@ namespace Wintools
             {
                 preferences.AutoInstall = Checked("AutoInstall");
                 SavePreferences();
+                ShowUpdateMode();
                 if (preferences.AutoInstall)
                 {
                     if (stagedDirectory != null)
@@ -639,6 +653,7 @@ namespace Wintools
             if (index == 5 || index == 12 || index == 13)
                 ShowAdvancedNav(true);
             page = index;
+            StatusForPage(index);
             ResourceVisibility();
             ServiceVisibility();
             for (int i = 0; i < pages.Length; i++)
@@ -825,11 +840,14 @@ namespace Wintools
                 startupEpoch++;
             }
 
-            Get<System.Windows.Shapes.Ellipse>("StatusDot").SetResourceReference(System.Windows.Shapes.Shape.FillProperty, value ? "Warning" : "Success");
             ServiceVisibility();
             RefreshEnabled();
             if (value)
                 Text("Status", Lang.T("Выполняется операция…"));
+            else if (Get<TextBlock>("Status").Text == Lang.T("Выполняется операция…"))
+                Text("Status", Lang.T("Готово к работе"));
+            else
+                UpdateStatusDot();
         }
 
         internal static HistoryRow[] HistoryRows(string path, List<Tweak> catalogue)
@@ -1021,6 +1039,17 @@ namespace Wintools
             stagedUpdate = null;
         }
 
+        // One sentence that says what the two update switches do together, so they never read as contradicting each other.
+        internal static string UpdateMode(bool check, bool install)
+        {
+            return check && install ? Lang.T("Итог: новые версии проверяются и устанавливаются автоматически.") : check ? Lang.T("Итог: новые версии проверяются автоматически, установка — по вашей команде.") : install ? Lang.T("Итог: автоматической проверки нет; обновление, найденное кнопкой «Проверить сейчас», установится при закрытии.") : Lang.T("Итог: автообновление выключено, проверяйте вручную.");
+        }
+
+        private void ShowUpdateMode()
+        {
+            Text("UpdateMode", UpdateMode(preferences.AutoCheck, preferences.AutoInstall));
+        }
+
         private async Task PrepareAutomaticUpdate()
         {
             if (closed || busy || checking || downloading || confirmation != null || !preferences.AutoInstall || available == null || stagedDirectory != null)
@@ -1130,7 +1159,7 @@ namespace Wintools
             available = null;
             preferences.AutoInstall = true;
             download = Updates.Download;
-            Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Автообновление включено."));
+            Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Проверьте наличие обновления."));
             Text("Status", Lang.T("Готово к работе"));
             await RefreshTweakStates();
             await Task.Delay(100);
@@ -1257,7 +1286,7 @@ namespace Wintools
             await Task.Delay(100);
             Capture("portable-ui-collections.png");
             ShowPage(3);
-            Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + Lang.T(". Обновления загружаются автоматически."));
+            Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + ".");
             await Task.Delay(100);
             Capture("portable-ui-updates.png");
             await HomeSmoke();

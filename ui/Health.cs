@@ -230,13 +230,12 @@ namespace Wintools
         private void InitializeHealth()
         {
             InitializeServiceBrowser();
-            var panel = ToolPage("HealthPage");
-            InitializeHardware(panel);
-            InitializeMonitor(panel);
-            InitializeBoot(panel);
-            InitializeBackups(panel);
-            var outer = panel;
-            panel = Section(outer, Lang.T("Снимок состояния ПК"));
+            var views = Tabs(ToolPage("HealthPage"), out showHealthTab, Lang.T("Сейчас"), Lang.T("Характеристики"), Lang.T("Загрузка Windows"), Lang.T("Батарея и восстановление"));
+            InitializeMonitor(views[0]);
+            InitializeHardware(views[1]);
+            InitializeBoot(views[2]);
+            InitializeBackups(views[3]);
+            var panel = Section(views[0], Lang.T("Снимок состояния ПК"));
             panel.Children.Add(Paragraph(Lang.T("Проверка читает загрузку процессора, доступную оперативную память, свободное место на дисках, список автозагрузки и самые крупные процессы в памяти. Настройки не меняются, файлы не удаляются. Это снимок текущего состояния, а не тест скорости или оценка FPS.")));
             healthStart = ToolButton(panel, Lang.T("Проверить состояние ПК"), async () => await ReadHealth());
             healthProgress = new ProgressBar
@@ -264,7 +263,6 @@ namespace Wintools
             ToolButton(panel, Lang.T("Открыть историю и откат →"), () => ShowPage(1));
             panel = ToolPage("OptimizationPage");
             InitializePowerManagement(panel);
-            InitializeWindowsUpdate(panel);
             var start = Section(panel, Lang.T("С чего начать"));
             start.Children.Add(Paragraph(Lang.T("Начните со снимка состояния ПК, изменяйте по одному пункту и повторяйте проверку при той же нагрузке. Эти инструменты открывают штатные настройки Windows; решение об изменении остаётся за вами.")));
             ToolButton(start, Lang.T("Снять показатели ПК →"), () => ShowPage(6));

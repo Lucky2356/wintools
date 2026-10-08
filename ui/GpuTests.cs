@@ -39,6 +39,7 @@ namespace Wintools
             try
             {
                 ShowPage(6);
+                ShowHealthTab(0);
                 resourceTimer.Stop();
                 while (readingGpu || readingGpuAdapters)
                     await Task.Delay(50);

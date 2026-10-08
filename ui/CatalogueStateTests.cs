@@ -89,7 +89,7 @@ namespace Wintools
                 ChooseCollection(new[] { "UI-FILEEXT", "UI-LAUNCHTO" });
                 var rows = Get<ListBox>("Items").Items.Cast<ActionRow>().ToArray();
                 Assert(rows.Length == 2 && rows.Single(r => r.Item.Id == "UI-FILEEXT").Applied && rows.Single(r => r.Item.Id == "UI-FILEEXT").ServiceStatus.Contains("Уже применено"), "Applied action not marked");
-                Assert(!rows.Single(r => r.Item.Id == "UI-LAUNCHTO").Applied && rows.Single(r => r.Item.Id == "UI-LAUNCHTO").ServiceStatus.Contains("сейчас 2"), "Pending action not described");
+                Assert(!rows.Single(r => r.Item.Id == "UI-LAUNCHTO").Applied && rows.Single(r => r.Item.Id == "UI-LAUNCHTO").ServiceStatus == "Не применено", "Pending action not described");
                 Get<ListBox>("Items").SelectedItem = rows.Single(r => r.Item.Id == "UI-FILEEXT");
                 Assert(Get<TextBlock>("Description").Text.Contains("ничего не изменит"), "Details hide current state");
                 Get<CheckBox>("HideApplied").IsChecked = true;

@@ -32,12 +32,12 @@ namespace Wintools
             };
             Assert(TweakStates.Compare(dword, RegistryValueKind.DWord, 0).Applied == true, "Matching DWORD not recognised as applied");
             var other = TweakStates.Compare(dword, RegistryValueKind.DWord, 1);
-            Assert(other.Applied == false && other.Text.Contains("сейчас 1"), "Different DWORD not reported");
+            Assert(other.Applied == false && other.Full.Contains("сейчас 1") && other.Text == "Не применено", "Different DWORD not reported");
             Assert(TweakStates.Compare(dword, RegistryValueKind.Unknown, null).Applied == false, "Missing value reported as applied");
             Assert(TweakStates.Compare(dword, RegistryValueKind.String, "0").Applied == false, "Value of another type reported as applied");
             uint parsed;
             Assert(TweakStates.TryDword("0xffffffff", out parsed) && parsed == uint.MaxValue && TweakStates.TryDword("4294967295", out parsed) && parsed == uint.MaxValue && !TweakStates.TryDword("abc", out parsed), "DWORD parsing differs from the engine");
-            Assert(TweakStates.Compare(dword, RegistryValueKind.DWord, -1).Text.Contains("4294967295"), "Negative DWORD shown incorrectly");
+            Assert(TweakStates.Compare(dword, RegistryValueKind.DWord, -1).Full.Contains("4294967295"), "Negative DWORD shown incorrectly");
             var empty = new Tweak
             {
                 Id = "SMOKE-SZ",
@@ -554,6 +554,14 @@ namespace Wintools
             Assert(!WindowPlacement.Plausible(null) && !WindowPlacement.Plausible(new[] { 0, 0, 100, 100 }) && !WindowPlacement.Plausible(new[] { -40000, -40000, -39000, -39200 }) && WindowPlacement.Plausible(new[] { 100, 100, 900, 700 }), "Saved window bounds checked wrongly");
         }
 
+        private static void Tones()
+        {
+            Assert(StatusTone.Of("Не удалось выполнить операцию") == "Danger" && StatusTone.Of("Готово: 3, с ошибкой: 1. Подробности — в выводе.") == "Danger" && StatusTone.Of("Не подтверждено · Fixture package failure") == "Danger", "Failure not shown as an error");
+            Assert(StatusTone.Of("Требует внимания") == "Warning" && StatusTone.Of("Запрос администратора отменён. Действие не запускалось.") == "Warning", "Attention not shown as a warning");
+            Assert(StatusTone.Of("Откат выполнен") == "Muted" && StatusTone.Of("Применено") == "Success" && StatusTone.Of("Повреждения не найдены") == "Success" && StatusTone.Of("Проверка завершена: ошибок нет") == "Success" && StatusTone.Of("Готово: 3.") == "Success", "Neutral or good results coloured as problems");
+            Assert(MainWindow.UpdateMode(true, true).Contains("автоматически") && MainWindow.UpdateMode(false, true).Contains("Проверить сейчас") && MainWindow.UpdateMode(false, false).Contains("выключено"), "Update mode summary wrong");
+        }
+
         internal static int Run()
         {
             CatalogueState();
@@ -570,6 +578,7 @@ namespace Wintools
             Dashboard();
             Placement();
             TextScale();
+            Tones();
             File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed.");
             return 0;
         }

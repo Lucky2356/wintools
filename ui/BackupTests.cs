@@ -62,6 +62,7 @@ namespace Wintools
             {
                 batteryReader = html => Task.FromResult(batteries);
                 ShowPage(6);
+                ShowHealthTab(3);
                 await ReadBattery();
                 Assert(batteryStatus.Text.Contains("75 %") && !batteryOpen.IsEnabled, "Battery result not shown or missing report enabled");
                 batteryReader = html =>
