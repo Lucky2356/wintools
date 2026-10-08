@@ -131,7 +131,7 @@ namespace Wintools
             panel.Children.Add(networkTestStatus);
             var card = new Border
             {
-                CornerRadius = new CornerRadius(12),
+                CornerRadius = new CornerRadius(14),
                 Padding = new Thickness(18),
                 Margin = new Thickness(0, 0, 0, 14)
             };

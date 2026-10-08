@@ -9,6 +9,39 @@ namespace Wintools
         public string Key { get; set; }
         public string Title { get; set; }
         public string Detail { get; set; }
+
+        // Segoe Fluent / MDL2 glyph shown in the tile badge; subgroups inside a category share a folder glyph.
+        public string Icon
+        {
+            get
+            {
+                switch (Key)
+                {
+                    case "category:PRIV":
+                        return "\uE72E";
+                    case "category:UI":
+                        return "\uE790";
+                    case "category:SVC":
+                        return "\uE713";
+                    case "category:APPS":
+                        return "\uE71D";
+                    case "category:SYS":
+                        return "\uE770";
+                    case "category:CLEAN":
+                        return "\uE74D";
+                    case "category:EDGE":
+                        return "\uE774";
+                    case "category:PERF":
+                        return "\uE945";
+                    case "category:TASK":
+                        return "\uE823";
+                    case "category:UPD":
+                        return "\uE895";
+                    default:
+                        return "\uE8B7";
+                }
+            }
+        }
     }
 
     internal static class Groups

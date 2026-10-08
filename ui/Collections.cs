@@ -139,7 +139,7 @@ namespace Wintools
                     Child = content,
                     Padding = new Thickness(18),
                     Margin = new Thickness(0, 0, 12, 12),
-                    CornerRadius = new CornerRadius(12),
+                    CornerRadius = new CornerRadius(14),
                     VerticalAlignment = VerticalAlignment.Top
                 };
                 Card(card);

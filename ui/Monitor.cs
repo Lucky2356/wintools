@@ -378,7 +378,7 @@ namespace Wintools
             var border = new Border
             {
                 Child = panel,
-                CornerRadius = new CornerRadius(12),
+                CornerRadius = new CornerRadius(14),
                 Padding = new Thickness(16),
                 Margin = new Thickness(0, 0, 10, 12)
             };

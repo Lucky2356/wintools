@@ -59,7 +59,7 @@ namespace Wintools
             var main = Get<Grid>("Workspace");
             main.Margin = tight ? new Thickness(16, 12, 16, 10) : new Thickness(32, 22, 32, 16);
             Get<FrameworkElement>("PageHeader").Margin = new Thickness(0, 0, 0, dense ? 10 : 20);
-            Get<TextBlock>("PageTitle").FontSize = dense ? 20 : 26;
+            Get<TextBlock>("PageTitle").FontSize = dense ? 22 : 28;
             Visible("PageEyebrow", !dense);
             Visible("PageHint", !dense);
             double available = Math.Max(0, width - (rail ? 64 : 236) - main.Margin.Left - main.Margin.Right);

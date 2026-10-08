@@ -145,8 +145,31 @@ namespace Wintools
             {
                 Text = text,
                 TextWrapping = TextWrapping.Wrap,
+                LineHeight = 22,
                 Margin = new Thickness(0, 0, 0, 14)
             };
+        }
+
+        // A titled card for loose text and buttons on code-built pages; returns the panel to fill.
+        private static StackPanel Section(Panel parent, string title)
+        {
+            var card = new Border
+            {
+                Padding = new Thickness(22, 20, 22, 6),
+                CornerRadius = new CornerRadius(14),
+                Margin = new Thickness(0, 0, 0, 14)
+            };
+            Card(card);
+            var content = new StackPanel();
+            var heading = Paragraph(title);
+            heading.FontSize = 18;
+            heading.FontWeight = FontWeights.SemiBold;
+            heading.Margin = new Thickness(0, 0, 0, 10);
+            heading.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+            content.Children.Add(heading);
+            card.Child = content;
+            parent.Children.Add(card);
+            return content;
         }
 
         private Button ToolButton(Panel panel, string caption, Action action)
@@ -164,9 +187,12 @@ namespace Wintools
 
         private StackPanel ToolPage(string name)
         {
+            // Long lines are hard to read on wide screens, so tool pages keep a comfortable column width.
             var panel = new StackPanel
             {
-                Margin = new Thickness(4)
+                Margin = new Thickness(4),
+                MaxWidth = 1080,
+                HorizontalAlignment = HorizontalAlignment.Left
             };
             var scroll = new ScrollViewer
             {
@@ -187,6 +213,8 @@ namespace Wintools
             InitializeMonitor(panel);
             InitializeBoot(panel);
             InitializeBackups(panel);
+            var outer = panel;
+            panel = Section(outer, Lang.T("Снимок состояния ПК"));
             panel.Children.Add(Paragraph(Lang.T("Проверка читает загрузку процессора, доступную оперативную память, свободное место на дисках, список автозагрузки и самые крупные процессы в памяти. Настройки не меняются, файлы не удаляются. Это снимок текущего состояния, а не тест скорости или оценка FPS.")));
             healthStart = ToolButton(panel, Lang.T("Проверить состояние ПК"), async () => await ReadHealth());
             healthProgress = new ProgressBar
@@ -202,7 +230,7 @@ namespace Wintools
             healthResult = Paragraph("");
             panel.Children.Add(healthResult);
             ToolButton(panel, Lang.T("Что можно улучшить →"), () => ShowPage(8));
-            panel = ToolPage("VerificationPage");
+            panel = Section(ToolPage("VerificationPage"), Lang.T("Сверка с историей"));
             panel.Children.Add(Paragraph(Lang.T("Сверяем записи истории Wintools с текущими настройками Windows: реестром, типом запуска служб и другими поддерживаемыми параметрами. Так можно заметить, что обновление Windows или другая программа изменила настройку. Проверка ничего не исправляет и не оценивает скорость ПК. Повторные записи одного действия проверяются отдельно.")));
             verificationStart = ToolButton(panel, Lang.T("Сверить настройки с историей"), async () => await ReadVerification());
             verificationStatus = Paragraph(Lang.T("Совпадает — настройка соответствует каталогу. Изменилась — текущее значение отличается. Не проверено — для записи нет доступной проверки. Отменённые действия пропускаются."));
@@ -215,8 +243,9 @@ namespace Wintools
             panel = ToolPage("OptimizationPage");
             InitializePowerManagement(panel);
             InitializeWindowsUpdate(panel);
-            panel.Children.Add(Paragraph(Lang.T("Начните со снимка состояния ПК, изменяйте по одному пункту и повторяйте проверку при той же нагрузке. Эти инструменты открывают штатные настройки Windows; решение об изменении остаётся за вами.")));
-            ToolButton(panel, Lang.T("Снять показатели ПК →"), () => ShowPage(6));
+            var start = Section(panel, Lang.T("С чего начать"));
+            start.Children.Add(Paragraph(Lang.T("Начните со снимка состояния ПК, изменяйте по одному пункту и повторяйте проверку при той же нагрузке. Эти инструменты открывают штатные настройки Windows; решение об изменении остаётся за вами.")));
+            ToolButton(start, Lang.T("Снять показатели ПК →"), () => ShowPage(6));
             AddAdvice(panel, Lang.T("Ускорить вход в Windows"), Lang.T("В автозагрузке отключите приложения, которые не нужны сразу после входа. Сохраните защиту, драйверы и нужную синхронизацию. В Диспетчере задач можно посмотреть влияние приложения на запуск."), "ms-settings:startupapps");
             AddAdvice(panel, Lang.T("Освободить место на диске"), Lang.T("Просмотрите категории хранилища и настройте Контроль памяти. Перед очисткой проверьте корзину и загрузки: удаление файлов может быть необратимым."), "ms-settings:storagesense");
             AddAdvice(panel, Lang.T("Настроить визуальные эффекты"), Lang.T("На слабом ПК отключение анимации может сделать интерфейс отзывчивее. В окне параметров быстродействия можно сохранить сглаживание экранных шрифтов."), Path.Combine(Environment.SystemDirectory, "SystemPropertiesPerformance.exe"));
@@ -241,16 +270,17 @@ namespace Wintools
         {
             var card = new Border
             {
-                Padding = new Thickness(18),
-                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(22, 20, 22, 6),
+                CornerRadius = new CornerRadius(14),
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
             var content = new StackPanel();
             card.Child = content;
             var heading = Paragraph(title);
-            heading.FontSize = 19;
+            heading.FontSize = 17;
             heading.FontWeight = FontWeights.SemiBold;
+            heading.Margin = new Thickness(0, 0, 0, 8);
             content.Children.Add(heading);
             content.Children.Add(Paragraph(description));
             ToolButton(content, Lang.T("Открыть настройки ↗"), () => OpenTool(target));

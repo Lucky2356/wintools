@@ -166,7 +166,7 @@ namespace Wintools
             {
                 Child = assistantSummary,
                 Padding = new Thickness(16),
-                CornerRadius = new CornerRadius(12),
+                CornerRadius = new CornerRadius(14),
                 Margin = new Thickness(0, 0, 0, 16),
                 VerticalAlignment = VerticalAlignment.Top
             };
