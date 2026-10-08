@@ -50,6 +50,8 @@ namespace Wintools
             LayoutResource("NavSeparatorVisibility", tight ? Visibility.Visible : Visibility.Collapsed);
             LayoutResource("NavItemHeight", dense ? 30.0 : 38.0);
             Get<Grid>("Body").ColumnDefinitions[0].Width = new GridLength(rail ? 64 : 236);
+            // The icon rail is too narrow for a scrollbar; the wheel still scrolls it.
+            Get<ScrollViewer>("NavScroll").VerticalScrollBarVisibility = rail ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
             Get<Border>("Sidebar").Padding = rail ? new Thickness(8, 12, 8, 8) : new Thickness(12, dense ? 12 : 18, 12, 12);
             var brand = Get<FrameworkElement>("Brand");
             brand.Visibility = height >= 600 ? Visibility.Visible : Visibility.Collapsed;

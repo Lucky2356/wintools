@@ -68,8 +68,13 @@ namespace Wintools
                 cleanupChecks[i].SetResourceReference(FrameworkElement.StyleProperty, "Tick");
                 cleanupChecks[i].Click += (s, e) => RefreshCleanupEnabled();
                 card.Children.Add(cleanupChecks[i]);
-                card.Children.Add(Paragraph(i == 3 ? Lang.T("Дисковый кэш Chrome, Edge, Brave, Яндекс Браузера, Vivaldi и Firefox. История, пароли, вкладки и вход на сайты сохраняются. Открытые браузеры пропускаются; первые страницы после очистки загрузятся чуть дольше.") : i == 2 ? Lang.T("Файлы CrashDumps старше 7 дней. Они могут понадобиться для выяснения причин сбоев.") : Lang.T("Файлы Temp старше 3 дней. Папки и ссылки пропускаются.")));
+                var about = Paragraph(i == 3 ?Lang.T("Дисковый кэш Chrome, Edge, Brave, Яндекс Браузера, Vivaldi и Firefox. История, пароли, вкладки и вход на сайты сохраняются. Открытые браузеры пропускаются; первые страницы после очистки загрузятся чуть дольше.") : i == 2 ? Lang.T("Файлы CrashDumps старше 7 дней. Они могут понадобиться для выяснения причин сбоев.") : Lang.T("Файлы Temp старше 3 дней. Папки и ссылки пропускаются."));
+                about.Margin = new Thickness(0, 0, 0, 8);
+                about.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+                card.Children.Add(about);
                 cleanupValues[i] = Paragraph(Lang.T("Объём неизвестен"));
+                cleanupValues[i].Margin = new Thickness(0);
+                cleanupValues[i].FontWeight = FontWeights.SemiBold;
                 card.Children.Add(cleanupValues[i]);
                 var border = new Border
                 {
