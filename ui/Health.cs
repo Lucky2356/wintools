@@ -150,6 +150,28 @@ namespace Wintools
             };
         }
 
+        // One readable line up front; the full explanation opens on request so pages start with what matters.
+        private static FrameworkElement Intro(string brief, string details)
+        {
+            var box = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+            box.Children.Add(new TextBlock { Text = brief, FontSize = 15, LineHeight = 22, TextWrapping = TextWrapping.Wrap });
+            var more = Paragraph(details);
+            more.Margin = new Thickness(0, 4, 0, 0);
+            more.Visibility = Visibility.Collapsed;
+            more.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            var link = new Button { Content = Lang.T("Подробнее ▾"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 8, 2), MinHeight = 28 };
+            link.SetResourceReference(FrameworkElement.StyleProperty, "Link");
+            link.Click += (s, e) =>
+            {
+                bool open = more.Visibility != Visibility.Visible;
+                more.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                link.Content = open ? Lang.T("Скрыть ▴") : Lang.T("Подробнее ▾");
+            };
+            box.Children.Add(link);
+            box.Children.Add(more);
+            return box;
+        }
+
         // A titled card for loose text and buttons on code-built pages; returns the panel to fill.
         private static StackPanel Section(Panel parent, string title)
         {

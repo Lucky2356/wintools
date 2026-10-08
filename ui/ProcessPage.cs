@@ -245,6 +245,7 @@ namespace Wintools
                             IsChecked = (settings.Affinity & (1UL << i)) != 0,
                             Margin = new Thickness(0, 0, 10, 8)
                         };
+                        box.SetResourceReference(FrameworkElement.StyleProperty, "Tick");
                         box.Checked += (s, e) => RefreshProcessEnabled();
                         box.Unchecked += (s, e) => RefreshProcessEnabled();
                         processCpus.Children.Add(box);

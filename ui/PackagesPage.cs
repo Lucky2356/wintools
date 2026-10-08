@@ -24,7 +24,7 @@ namespace Wintools
         private void InitializePackages()
         {
             var panel = ToolPage("PackagesPage");
-            panel.Children.Add(Paragraph(Lang.T("Устанавливает и обновляет программы из официального каталога winget от Microsoft. Установщики скачиваются с сайтов издателей, winget проверяет их контрольные суммы. Отметьте нужные программы и нажмите «Установить выбранные». Удалить программу можно в разделе «Приложения».")));
+            panel.Children.Add(Intro(Lang.T("Проверенные программы из каталога Microsoft: отметьте нужные и нажмите «Установить выбранные»."), Lang.T("Устанавливает и обновляет программы из официального каталога winget от Microsoft. Установщики скачиваются с сайтов издателей, winget проверяет их контрольные суммы. Отметьте нужные программы и нажмите «Установить выбранные». Удалить программу можно в разделе «Приложения».")));
             packageStatus = Paragraph(Lang.T("Нажмите «Проверить установленные», чтобы узнать, какие программы уже есть."));
             panel.Children.Add(packageStatus);
             var buttons = new WrapPanel
@@ -130,6 +130,7 @@ namespace Wintools
                         Margin = new Thickness(0, 0, 0, 10),
                         ToolTip = "winget: " + package.Id
                     };
+                    check.SetResourceReference(FrameworkElement.StyleProperty, "Tick");
                     check.Click += (s, e) => RefreshPackagesEnabled();
                     section.Children.Add(check);
                     packageChecks[package.Id] = check;
@@ -189,9 +190,10 @@ namespace Wintools
                     return;
                 }
 
-                packageStatus.Text = "winget " + wingetVersion + Lang.T(". Читаем установленные программы… Первый запуск может обновить каталог winget.");
+                packageStatus.ToolTip = "winget " + wingetVersion;
+                packageStatus.Text = Lang.T("Читаем установленные программы… Первый запуск может обновить каталог winget.");
                 installedPackages = await packageInventory();
-                packageStatus.Text = "winget " + wingetVersion + Lang.T(". Установлено из списка: ") + Packages.Catalog.Count(p => installedPackages.Contains(p.Id)) + Lang.T(" из ") + Packages.Catalog.Length + ".";
+                packageStatus.Text = Lang.T("Установлено из списка: ") + Packages.Catalog.Count(p => installedPackages.Contains(p.Id)) + Lang.T(" из ") + Packages.Catalog.Length + ".";
             }
             catch (Exception ex)
             {

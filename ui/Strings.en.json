@@ -1767,5 +1767,15 @@
 "Тонкая настройка: каталог действий →": "Fine-tuning: action catalogue →",
 "Готовые подборки: меньше рекламы, телеметрии и навязчивых советов Windows.": "Ready-made collections: fewer ads, less telemetry and fewer Windows nags.",
 "Автозагрузка, схема питания, обновления и подсказки, что ещё можно улучшить.": "Startup, power plan, updates and tips on what else to improve.",
-"Автозагрузка, процессы и службы": "Startup, processes and services"
+"Автозагрузка, процессы и службы": "Startup, processes and services",
+"Подробнее ▾": "More ▾",
+"Скрыть ▴": "Hide ▴",
+"Проверенные программы из каталога Microsoft: отметьте нужные и нажмите «Установить выбранные».": "Trusted programs from the Microsoft catalogue: tick the ones you need and press Install selected.",
+"Читаем установленные программы… Первый запуск может обновить каталог winget.": "Reading installed programs… The first run may update the winget catalogue.",
+"Установлено из списка: ": "Installed from the list: ",
+"Рассчитайте объём, отметьте ненужное и удалите.": "Measure the size, tick what you do not need and delete it.",
+"Выберите готовую подборку и снимите отметки с того, чем пользуетесь.": "Pick a ready-made collection and untick what you still use.",
+"Программы, которые запускаются вместе с Windows. Отключите лишние, чтобы вход был быстрее.": "Programs that start with Windows. Turn off the ones you do not need for a faster sign-in.",
+"Проверьте, как быстро отвечает сервер и не теряются ли запросы.": "Check how fast a server answers and whether requests get lost.",
+"стандартное значение Windows": "Windows default"
 }
