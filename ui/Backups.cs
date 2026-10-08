@@ -25,7 +25,7 @@ namespace Wintools
             get
             {
                 DateTime time;
-                return (DateTime.TryParse(TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time) ? time.ToLocalTime().ToString("g") : Lang.T("дата неизвестна")) + " · №" + Sequence;
+                return (DateTime.TryParse(TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time) ? time.ToLocalTime().ToString("g", Lang.Culture) : Lang.T("дата неизвестна")) + " · №" + Sequence;
             }
         }
     }
@@ -309,7 +309,7 @@ namespace Wintools
         {
             if (batteries.Length == 0)
                 return Lang.T("Батарея не найдена: похоже, это настольный ПК или Windows не видит батарею.");
-            return string.Join("\n", batteries.Select(b => b.Name + ": " + (b.Health.HasValue ? Lang.T("сохранилось ") + b.Health.Value.ToString("0", CultureInfo.InvariantCulture) + Lang.T(" % ёмкости (") + (b.FullMWh / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" из ") + (b.DesignMWh / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" Вт·ч)") : Lang.T("ёмкость неизвестна")) + (b.Cycles > 0 ? Lang.T(", циклов заряда: ") + b.Cycles : "") + ".")) + Lang.T("\nЁмкость ниже 80 % обычно заметна по времени работы; это естественный износ, а не неисправность Windows.");
+            return string.Join("\n", batteries.Select(b => b.Name + ": " + (b.Health.HasValue ? Lang.T("сохранилось ") + b.Health.Value.ToString("0", CultureInfo.InvariantCulture) + Lang.T(" % ёмкости (") + (b.FullMWh / 1000.0).ToString("0.0", Lang.Culture) + Lang.T(" из ") + (b.DesignMWh / 1000.0).ToString("0.0", Lang.Culture) + Lang.T(" Вт·ч)") : Lang.T("ёмкость неизвестна")) + (b.Cycles > 0 ? Lang.T(", циклов заряда: ") + b.Cycles : "") + ".")) + Lang.T("\nЁмкость ниже 80 % обычно заметна по времени работы; это естественный износ, а не неисправность Windows.");
         }
 
         internal static async Task<BatteryInfo[]> ReadBatteries(string htmlPath)

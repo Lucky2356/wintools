@@ -178,12 +178,12 @@ namespace Wintools
 
         internal static string Seconds(long milliseconds)
         {
-            return (milliseconds / 1000.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" с");
+            return (milliseconds / 1000.0).ToString("0.0", Lang.Culture) + Lang.T(" с");
         }
 
         internal static BootCulprit[] Culprits(BootReport report)
         {
-            return report.Delays.GroupBy(d => d.Kind + "|" + d.Name, StringComparer.OrdinalIgnoreCase).Select(g => new { Kind = g.First().Kind, Name = g.First().Name, Count = g.Count(), Max = g.Max(d => d.DegradationMs), Average = (long)g.Average(d => d.DegradationMs), Last = g.Max(d => d.TimeUtc) }).OrderByDescending(g => g.Average * g.Count).Take(15).Select(g => new BootCulprit { Title = g.Name + " · " + g.Kind.ToLowerInvariant(), Detail = Lang.T("Замедлял загрузку ") + g.Count + Lang.T(" раз(а): в среднем на ") + Seconds(g.Average) + Lang.T(", максимум ") + Seconds(g.Max) + Lang.T(". Последний раз ") + DateTime.Parse(g.Last, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("d") }).ToArray();
+            return report.Delays.GroupBy(d => d.Kind + "|" + d.Name, StringComparer.OrdinalIgnoreCase).Select(g => new { Kind = g.First().Kind, Name = g.First().Name, Count = g.Count(), Max = g.Max(d => d.DegradationMs), Average = (long)g.Average(d => d.DegradationMs), Last = g.Max(d => d.TimeUtc) }).OrderByDescending(g => g.Average * g.Count).Take(15).Select(g => new BootCulprit { Title = g.Name + " · " + g.Kind.ToLowerInvariant(), Detail = Lang.T("Замедлял загрузку ") + g.Count + Lang.T(" раз(а): в среднем на ") + Seconds(g.Average) + Lang.T(", максимум ") + Seconds(g.Max) + Lang.T(". Последний раз ") + DateTime.Parse(g.Last, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("d", Lang.Culture) }).ToArray();
         }
 
         internal static string Summary(BootReport report)
@@ -192,7 +192,7 @@ namespace Wintools
                 return Lang.T("Windows ещё не записала ни одной измеренной загрузки. Записи появляются после обычного включения ПК (не после перезапуска из спящего режима и быстрого запуска).");
             var last = report.Boots[0];
             var average = (long)report.Boots.Average(b => b.TotalMs);
-            return Lang.T("Последняя загрузка ") + DateTime.Parse(last.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + ": " + Seconds(last.TotalMs) + Lang.T(" (до рабочего стола ") + Seconds(last.MainPathMs) + Lang.T(", фоновый запуск после входа ") + Seconds(last.PostBootMs) + Lang.T(").\nСреднее по ") + report.Boots.Length + Lang.T(" загрузкам: ") + Seconds(average) + Lang.T(". Быстрее всего: ") + Seconds(report.Boots.Min(b => b.TotalMs)) + Lang.T(", медленнее всего: ") + Seconds(report.Boots.Max(b => b.TotalMs)) + ".";
+            return Lang.T("Последняя загрузка ") + DateTime.Parse(last.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g", Lang.Culture) + ": " + Seconds(last.TotalMs) + Lang.T(" (до рабочего стола ") + Seconds(last.MainPathMs) + Lang.T(", фоновый запуск после входа ") + Seconds(last.PostBootMs) + Lang.T(").\nСреднее по ") + report.Boots.Length + Lang.T(" загрузкам: ") + Seconds(average) + Lang.T(". Быстрее всего: ") + Seconds(report.Boots.Min(b => b.TotalMs)) + Lang.T(", медленнее всего: ") + Seconds(report.Boots.Max(b => b.TotalMs)) + ".";
         }
 
         // The operational log usually requires elevation; the worker writes the parsed report for the non-elevated UI.

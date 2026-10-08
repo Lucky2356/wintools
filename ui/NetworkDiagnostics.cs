@@ -63,6 +63,37 @@ namespace Wintools
             }
         }
 
+        // A plain verdict and its palette key; loss weighs more than delay because lost requests are what break calls and games.
+        internal static string Verdict(IList<PingMeasurement> samples, out string tone)
+        {
+            tone = "Muted";
+            if (samples.Count == 0)
+                return "";
+            var times = samples.Where(s => s.Milliseconds.HasValue).Select(s => s.Milliseconds.Value).ToArray();
+            double loss = 100.0 * (samples.Count - times.Length) / samples.Count;
+            if (times.Length == 0)
+            {
+                tone = "Danger";
+                return Lang.T("Сервер не ответил");
+            }
+
+            double jitter = times.Zip(times.Skip(1), (a, b) => (double)Math.Abs(a - b)).DefaultIfEmpty(0).Average(), average = times.Average();
+            if (loss > 10 || average >= 150)
+            {
+                tone = "Danger";
+                return Lang.T("Связь с сервером плохая");
+            }
+
+            if (loss > 0 || jitter >= 30 || average >= 80)
+            {
+                tone = "Warning";
+                return Lang.T("Есть потери или скачки задержки");
+            }
+
+            tone = "Success";
+            return Lang.T("Соединение стабильное");
+        }
+
         internal static string Summary(IList<PingMeasurement> samples)
         {
             if (samples.Count == 0)
@@ -72,7 +103,7 @@ namespace Wintools
             if (times.Length == 0)
                 return Lang.T("Ответов: 0 из ") + samples.Count + Lang.T(". Отсутствие ICMP-ответов не доказывает отсутствие интернета: сервер или сеть могут блокировать ping.");
             double jitter = times.Zip(times.Skip(1), (a, b) => (double)Math.Abs(a - b)).DefaultIfEmpty(0).Average();
-            return Lang.T("Ответов: ") + times.Length + Lang.T(" из ") + samples.Count + Lang.T(" · Без ответа: ") + loss.ToString("N0") + Lang.T(" %\nЗадержка: минимум ") + times.Min() + Lang.T(" мс · средняя ") + times.Average().ToString("N1") + Lang.T(" мс · максимум ") + times.Max() + Lang.T(" мс\nИзменчивость между полученными ответами: ") + (times.Length > 1 ? jitter.ToString("N1") + Lang.T(" мс") : Lang.T("недостаточно ответов")) + ".";
+            return Lang.T("Ответов: ") + times.Length + Lang.T(" из ") + samples.Count + Lang.T(" · Без ответа: ") + loss.ToString("N0", Lang.Culture) + Lang.T(" %\nЗадержка: минимум ") + times.Min() + Lang.T(" мс · средняя ") + times.Average().ToString("N1", Lang.Culture) + Lang.T(" мс · максимум ") + times.Max() + Lang.T(" мс\nИзменчивость между полученными ответами: ") + (times.Length > 1 ? jitter.ToString("N1", Lang.Culture) + Lang.T(" мс") : Lang.T("недостаточно ответов")) + ".";
         }
     }
 
@@ -80,7 +111,8 @@ namespace Wintools
     {
         private TextBox networkHost;
         private Button networkTestStart, networkTestStop;
-        private TextBlock networkTestStatus, networkTestSummary, networkTestAdvice;
+        private TextBlock networkTestStatus, networkTestSummary, networkTestAdvice, networkVerdict;
+        private StackPanel networkBars;
         private ItemsControl networkTestRows;
         private ProgressBar networkTestProgress;
         private bool probingNetwork, stopNetwork;
@@ -121,7 +153,8 @@ namespace Wintools
             {
                 Minimum = 0,
                 Maximum = 10,
-                Height = 5,
+                Height = 4,
+                Visibility = Visibility.Collapsed,
                 Margin = new Thickness(0, 0, 0, 12)
             };
             networkTestProgress.SetResourceReference(Control.ForegroundProperty, "Accent");
@@ -136,14 +169,30 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
+            var result = new StackPanel();
+            card.Child = result;
+            networkVerdict = new TextBlock { FontSize = 20, FontWeight = FontWeights.SemiBold, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 0, 0, 8) };
+            networkVerdict.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+            result.Children.Add(networkVerdict);
+            // One bar per request: height is the delay, a red stub is a request without an answer.
+            networkBars = new StackPanel { Orientation = Orientation.Horizontal, Height = 48, Margin = new Thickness(0, 0, 0, 10), Visibility = Visibility.Collapsed };
+            result.Children.Add(networkBars);
             networkTestSummary = Paragraph(Lang.T("Здесь появятся задержка, доля запросов без ответа и изменчивость задержки."));
-            networkTestSummary.FontSize = 18;
             networkTestSummary.Margin = new Thickness(0);
-            card.Child = networkTestSummary;
+            result.Children.Add(networkTestSummary);
             panel.Children.Add(card);
             networkTestAdvice = Paragraph(Lang.T("Сравнивайте замеры до и во время вашей обычной нагрузки. Если роутер отвечает стабильно, а внешний сервер — нет, проверьте другое направление: проблема может быть на маршруте или на сервере."));
             panel.Children.Add(networkTestAdvice);
-            networkTestRows = new ItemsControl();
+            networkTestRows = new ItemsControl { Visibility = Visibility.Collapsed };
+            var rowsToggle = new Button { Content = Lang.T("Показать каждый запрос ▾"), HorizontalAlignment = HorizontalAlignment.Left, Padding = new Thickness(0, 2, 8, 2), MinHeight = 28, Margin = new Thickness(0, 0, 0, 8) };
+            rowsToggle.SetResourceReference(FrameworkElement.StyleProperty, "Link");
+            rowsToggle.Click += (s, e) =>
+            {
+                bool open = networkTestRows.Visibility != Visibility.Visible;
+                networkTestRows.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+                rowsToggle.Content = open ? Lang.T("Скрыть запросы ▴") : Lang.T("Показать каждый запрос ▾");
+            };
+            panel.Children.Add(rowsToggle);
             panel.Children.Add(networkTestRows);
             InitializeDns(panel);
             InitializeHosts(panel);
@@ -155,6 +204,31 @@ namespace Wintools
                 networkTestStatus.Text = Lang.T("Остановим после текущего запроса (DNS — до 5 с, ping — до 1,2 с).");
             };
             Window.Closed += (s, e) => stopNetwork = true;
+        }
+
+        private void ShowNetworkResult(IList<PingMeasurement> samples)
+        {
+            string tone;
+            networkVerdict.Text = NetworkProbe.Verdict(samples, out tone);
+            networkVerdict.SetResourceReference(TextBlock.ForegroundProperty, tone);
+            networkVerdict.Visibility = samples.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            networkBars.Children.Clear();
+            networkBars.Visibility = samples.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            long peak = Math.Max(1, samples.Where(s => s.Milliseconds.HasValue).Select(s => s.Milliseconds.Value).DefaultIfEmpty(1).Max());
+            foreach (var sample in samples)
+            {
+                var bar = new Border
+                {
+                    Width = 16,
+                    Height = sample.Milliseconds.HasValue ? Math.Max(4, 44.0 * sample.Milliseconds.Value / peak) : 8,
+                    CornerRadius = new CornerRadius(3),
+                    Margin = new Thickness(0, 0, 6, 0),
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    ToolTip = sample.Status + (sample.Milliseconds.HasValue ? " · " + sample.Milliseconds.Value + Lang.T(" мс") : "")
+                };
+                bar.SetResourceReference(Border.BackgroundProperty, sample.Milliseconds.HasValue ? "Accent" : "Danger");
+                networkBars.Children.Add(bar);
+            }
         }
 
         private async Task ProbeNetwork()
@@ -173,7 +247,9 @@ namespace Wintools
             networkHost.IsEnabled = networkTestStart.IsEnabled = false;
             networkTestStop.IsEnabled = true;
             networkTestProgress.Value = 0;
+            networkTestProgress.Visibility = Visibility.Visible;
             networkTestRows.ItemsSource = null;
+            ShowNetworkResult(new List<PingMeasurement>());
             networkTestSummary.Text = Lang.T("Определяем адрес сервера…");
             networkTestStatus.Text = Lang.T("DNS: определяем адрес ") + host + "…";
             var samples = new List<PingMeasurement>();
@@ -199,6 +275,7 @@ namespace Wintools
                     networkTestRows.ItemsSource = lines.ToArray();
                     networkTestProgress.Value = samples.Count;
                     networkTestSummary.Text = NetworkProbe.Summary(samples);
+                    ShowNetworkResult(samples);
                     if (i < 9 && !stopNetwork)
                         await Task.Delay(200);
                 }
@@ -219,6 +296,8 @@ namespace Wintools
                 probingNetwork = false;
                 if (!closed)
                 {
+                    networkTestProgress.Visibility = Visibility.Collapsed;
+                    ShowNetworkResult(samples);
                     networkHost.IsEnabled = networkTestStart.IsEnabled = true;
                     networkTestStop.IsEnabled = false;
                     if (stopNetwork)

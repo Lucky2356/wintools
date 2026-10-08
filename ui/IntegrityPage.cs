@@ -112,7 +112,11 @@ namespace Wintools
                 AcceptsReturn = true,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Text = Lang.T("Здесь появится итог проверки и сообщения Windows."),
-                Padding = new Thickness(14)
+                Padding = new Thickness(14),
+                // The report grows with its text from the top instead of floating in the middle of an empty frame.
+                VerticalAlignment = VerticalAlignment.Top,
+                VerticalContentAlignment = VerticalAlignment.Top,
+                MinHeight = 96
             };
             System.Windows.Automation.AutomationProperties.SetName(integrityReport, Lang.T("Отчёт проверки Windows"));
             Grid.SetRow(integrityReport, 4);

@@ -33,7 +33,7 @@ namespace Wintools
             heading.FontSize = 21;
             heading.FontWeight = FontWeights.SemiBold;
             panel.Children.Add(heading);
-            panel.Children.Add(Paragraph(Lang.T("DNS превращает имена сайтов в адреса. Другой DNS может ускорить открытие сайтов, блокировать вредоносные или рекламные домены, но не увеличивает скорость скачивания. Меняются адреса IPv4 и IPv6 только выбранного адаптера.")));
+            panel.Children.Add(Intro(Lang.T("DNS влияет на открытие сайтов и может блокировать опасные домены."), Lang.T("DNS превращает имена сайтов в адреса. Другой DNS может ускорить открытие сайтов, блокировать вредоносные или рекламные домены, но не увеличивает скорость скачивания. Меняются адреса IPv4 и IPv6 только выбранного адаптера.")));
             dnsAdapter = new ComboBox
             {
                 DisplayMemberPath = "Label",

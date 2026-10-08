@@ -42,7 +42,7 @@ namespace Wintools
             heading.FontSize = 18;
             heading.FontWeight = FontWeights.SemiBold;
             card.Children.Add(heading);
-            card.Children.Add(Paragraph(Lang.T("Показывает самые крупные папки внутри выбранной. Только чтение: удалять найденное нужно вручную и осознанно. Ссылки и junction не учитываются, системные папки без прав доступа считаются частично.")));
+            card.Children.Add(Intro(Lang.T("Что занимает больше всего места в выбранной папке."), Lang.T("Показывает самые крупные папки внутри выбранной. Только чтение: удалять найденное нужно вручную и осознанно. Ссылки и junction не учитываются, системные папки без прав доступа считаются частично.")));
             var controls = new WrapPanel();
             card.Children.Add(controls);
             usageRoot = new ComboBox

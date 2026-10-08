@@ -71,7 +71,7 @@ namespace Wintools
             title.FontSize = 21;
             title.FontWeight = FontWeights.SemiBold;
             backups.Children.Add(title);
-            backups.Children.Add(Paragraph(Lang.T("Точка восстановления позволяет вернуть системные файлы, драйверы и реестр к прежнему состоянию через «Восстановление системы»; личные файлы она не затрагивает. Копия драйверов пригодится после переустановки Windows: папку можно указать в диспетчере устройств. Действия требуют подтверждения Windows.")));
+            backups.Children.Add(Intro(Lang.T("Точка восстановления вернёт систему к прежнему состоянию, а копия драйверов пригодится после переустановки."), Lang.T("Точка восстановления позволяет вернуть системные файлы, драйверы и реестр к прежнему состоянию через «Восстановление системы»; личные файлы она не затрагивает. Копия драйверов пригодится после переустановки Windows: папку можно указать в диспетчере устройств. Действия требуют подтверждения Windows.")));
             var actions = new WrapPanel();
             backups.Children.Add(actions);
             backupList = new Button
@@ -177,7 +177,7 @@ namespace Wintools
                 backupPoints.ItemsSource = result.Points;
                 if (result.Folder != null)
                     driverFolder = result.Folder;
-                string storage = result.MaxBytes > 0 ? Lang.T(" Занято под точки: ") + (result.UsedBytes / 1073741824.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" из ") + (result.MaxBytes / 1073741824.0).ToString("0.0", CultureInfo.GetCultureInfo("ru-RU")) + Lang.T(" ГБ.") : "";
+                string storage = result.MaxBytes > 0 ? Lang.T(" Занято под точки: ") + (result.UsedBytes / 1073741824.0).ToString("0.0", Lang.Culture) + Lang.T(" из ") + (result.MaxBytes / 1073741824.0).ToString("0.0", Lang.Culture) + Lang.T(" ГБ.") : "";
                 backupStatus.Text = (result.Message == null ? "" : result.Message + " ") + (result.Points.Length == 0 ? Lang.T("Точек восстановления нет: возможно, защита системы выключена.") : Lang.T("Точек восстановления: ") + result.Points.Length + ".") + storage;
                 Text("Status", backupStatus.Text);
             }

@@ -25,10 +25,23 @@ namespace Wintools
             return language == "ru" || language == "uk" || language == "be" || language == "kk";
         }
 
+        private static CultureInfo culture = CultureInfo.CurrentCulture;
+
+        // Numbers and dates on screen follow the interface language: a Russian interface on an English Windows
+        // still shows "08.10.2026" and "3 143", never "10/8/2026" or "3,143" that reads as three.
+        internal static CultureInfo Culture
+        {
+            get
+            {
+                return culture;
+            }
+        }
+
         internal static void Initialize(string preference, bool forceRussian)
         {
             English = !forceRussian && (preference == "en" || (preference != "ru" && !RussianCulture(CultureInfo.CurrentUICulture)));
             table = English ? Load() : new Dictionary<string, string>();
+            culture = English || CultureInfo.CurrentCulture.TwoLetterISOLanguageName == "ru" ? CultureInfo.CurrentCulture : CultureInfo.GetCultureInfo("ru-RU");
         }
 
         internal static Dictionary<string, string> Load()

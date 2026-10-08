@@ -92,7 +92,7 @@ namespace Wintools
         {
             get
             {
-                return TimeUtc == DateTime.MinValue ? Run : TimeUtc.ToLocalTime().ToString("g") + " · " + (PackageChange ? Lang.T("Установка программ") : StoreChange ? Lang.T("Приложение") : ProcessChange ? Lang.T("Процесс") : StartupChange ? Lang.T("Автозагрузка") : IntegrityCheck ? Lang.T("Обслуживание Windows") : PowerChange ? Lang.T("Питание") : DnsChange ? "DNS" : HostsChange ? Lang.T("Файл hosts") : UpdateChange ? Lang.T("Обновления Windows") : ServiceName == null ? Lang.T("Запуск") : ServiceName);
+                return TimeUtc == DateTime.MinValue ? Run : TimeUtc.ToLocalTime().ToString("g", Lang.Culture) + " · " + (PackageChange ? Lang.T("Установка программ") : StoreChange ? Lang.T("Приложение") : ProcessChange ? Lang.T("Процесс") : StartupChange ? Lang.T("Автозагрузка") : IntegrityCheck ? Lang.T("Обслуживание Windows") : PowerChange ? Lang.T("Питание") : DnsChange ? "DNS" : HostsChange ? Lang.T("Файл hosts") : UpdateChange ? Lang.T("Обновления Windows") : ServiceName == null ? Lang.T("Запуск") : ServiceName);
             }
         }
     }

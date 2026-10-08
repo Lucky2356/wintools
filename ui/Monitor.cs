@@ -149,7 +149,7 @@ namespace Wintools
                 }
             }
 
-            sample.Processes = rows.OrderByDescending(r => r.Item2).Take(8).Select(r => r.Item1 + "   —   " + (r.Item2 / 1048576.0).ToString("N0") + Lang.T(" МБ")).ToArray();
+            sample.Processes = rows.OrderByDescending(r => r.Item2).Take(8).Select(r => r.Item1 + "   —   " + (r.Item2 / 1048576.0).ToString("N0", Lang.Culture) + Lang.T(" МБ")).ToArray();
             if (inaccessible > 0)
                 errors.Add(Lang.T("Недоступных или завершившихся процессов: ") + inaccessible + ".");
             sample.Error = string.Join(" ", errors);
@@ -334,7 +334,7 @@ namespace Wintools
             InitializeTemperatures(panel);
             InitializeMeasurements(panel);
             var processPanel = new StackPanel();
-            processPanel.Children.Add(Paragraph(Lang.T("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ.")));
+            processPanel.Children.Add(Intro(Lang.T("Программы, которые сейчас занимают больше всего памяти."), Lang.T("Восемь процессов с наибольшей рабочей памятью. Общая память Windows включает также ядро, драйверы и кэш; сумма строк не равна занятой ОЗУ.")));
             resourceProcesses = new ItemsControl();
             processPanel.Children.Add(resourceProcesses);
             var expander = new Expander
@@ -424,7 +424,7 @@ namespace Wintools
 
         private static string ResourceRate(double? value)
         {
-            return !value.HasValue ? "—" : value.Value >= 1048576 ? (value.Value / 1048576).ToString("N1") + Lang.T(" МБ/с") : (value.Value / 1024).ToString("N1") + Lang.T(" КБ/с");
+            return !value.HasValue ? "—" : value.Value >= 1048576 ? (value.Value / 1048576).ToString("N1", Lang.Culture) + Lang.T(" МБ/с") : (value.Value / 1024).ToString("N1", Lang.Culture) + Lang.T(" КБ/с");
         }
 
         private async Task SampleResources()
@@ -438,9 +438,9 @@ namespace Wintools
                 var sample = await Task.Run(() => resourceReader.Read(adapter));
                 if (closed || page != 6 || resourcesPaused)
                     return;
-                cpuValue.Text = sample.Cpu.HasValue ? sample.Cpu.Value.ToString("N0") + " %" : Lang.T("Нет замера");
-                memoryValue.Text = sample.Memory.HasValue ? sample.Memory.Value.ToString("N0") + " %" : Lang.T("Недоступно");
-                memoryDetail.Text = sample.Memory.HasValue ? Lang.T("Свободно ") + (sample.AvailableMemory / 1073741824.0).ToString("N1") + Lang.T(" из ") + (sample.TotalMemory / 1073741824.0).ToString("N1") + Lang.T(" ГБ") : Lang.T("Не удалось прочитать память");
+                cpuValue.Text = sample.Cpu.HasValue ? sample.Cpu.Value.ToString("N0", Lang.Culture) + " %" : Lang.T("Нет замера");
+                memoryValue.Text = sample.Memory.HasValue ? sample.Memory.Value.ToString("N0", Lang.Culture) + " %" : Lang.T("Недоступно");
+                memoryDetail.Text = sample.Memory.HasValue ? Lang.T("Свободно ") + (sample.AvailableMemory / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" из ") + (sample.TotalMemory / 1073741824.0).ToString("N1", Lang.Culture) + Lang.T(" ГБ") : Lang.T("Не удалось прочитать память");
                 cpuGraph.Push(sample.Cpu);
                 memoryGraph.Push(sample.Memory);
                 if (adapter == networkAdapter.SelectedValue as string)

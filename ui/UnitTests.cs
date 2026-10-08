@@ -559,6 +559,11 @@ namespace Wintools
             Assert(StatusTone.Of("Не удалось выполнить операцию") == "Danger" && StatusTone.Of("Готово: 3, с ошибкой: 1. Подробности — в выводе.") == "Danger" && StatusTone.Of("Не подтверждено · Fixture package failure") == "Danger", "Failure not shown as an error");
             Assert(StatusTone.Of("Требует внимания") == "Warning" && StatusTone.Of("Запрос администратора отменён. Действие не запускалось.") == "Warning", "Attention not shown as a warning");
             Assert(StatusTone.Of("Откат выполнен") == "Muted" && StatusTone.Of("Применено") == "Success" && StatusTone.Of("Повреждения не найдены") == "Success" && StatusTone.Of("Проверка завершена: ошибок нет") == "Success" && StatusTone.Of("Готово: 3.") == "Success", "Neutral or good results coloured as problems");
+            string tone;
+            var good = Enumerable.Range(0, 10).Select(i => new PingMeasurement { Milliseconds = 12 + i % 2 }).ToList();
+            var lossy = good.Take(9).Concat(new[] { new PingMeasurement() }).ToList();
+            Assert(NetworkProbe.Verdict(good, out tone).Length > 0 && tone == "Success" && NetworkProbe.Verdict(lossy, out tone).Length > 0 && tone == "Warning" && NetworkProbe.Verdict(new[] { new PingMeasurement() }, out tone).Length > 0 && tone == "Danger" && NetworkProbe.Verdict(new PingMeasurement[0], out tone) == "", "Network verdict wrong");
+            Assert(NaturalOrder.Instance.Compare("Приложение 2", "Приложение 10") < 0 && NaturalOrder.Instance.Compare("b", "A") > 0, "Names not sorted naturally");
             Assert(MainWindow.UpdateMode(true, true).Contains("автоматически") && MainWindow.UpdateMode(false, true).Contains("Проверить сейчас") && MainWindow.UpdateMode(false, false).Contains("выключено"), "Update mode summary wrong");
         }
 

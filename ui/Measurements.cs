@@ -25,7 +25,7 @@ namespace Wintools
         {
             get
             {
-                return Name + " · " + DateTime.Parse(StartedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + " · " + Points.Count + Lang.T(" замеров");
+                return Name + " · " + DateTime.Parse(StartedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g", Lang.Culture) + " · " + Points.Count + Lang.T(" замеров");
             }
         }
     }

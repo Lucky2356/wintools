@@ -144,7 +144,7 @@ namespace Wintools
         internal static string Report(string id)
         {
             var record = Read(id);
-            return Title(record.Action) + "\n" + DateTime.Parse(record.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g") + "\n\n" + record.Summary + "\n\n" + CleanLog(ReadLog(id));
+            return Title(record.Action) + "\n" + DateTime.Parse(record.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToLocalTime().ToString("g", Lang.Culture) + "\n\n" + record.Summary + "\n\n" + CleanLog(ReadLog(id));
         }
 
         internal static string CleanLog(string value)
