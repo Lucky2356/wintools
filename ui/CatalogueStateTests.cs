@@ -62,7 +62,7 @@ namespace Wintools
                 };
                 var states = TweakStates.Read(items);
                 Assert(states["SMOKE-LIVE"].Applied == true, "Live registry value not read: " + states["SMOKE-LIVE"].Text);
-                Assert(states["SMOKE-DEFAULT"].Applied == false && states["SMOKE-DEFAULT"].Text.Contains("«x»"), "Default registry value not read: " + states["SMOKE-DEFAULT"].Text);
+                Assert(states["SMOKE-DEFAULT"].Applied == false && states["SMOKE-DEFAULT"].Full.Contains("«x»"), "Default registry value not read: " + states["SMOKE-DEFAULT"].Full);
                 Assert(states["SMOKE-ABSENT"].Applied == false, "Absent key reported as applied");
                 Assert(states["SMOKE-TASK"].Applied == null && states["SMOKE-TASK"].Text.Contains("отсутствует"), "Missing task not reported: " + states["SMOKE-TASK"].Text);
             }

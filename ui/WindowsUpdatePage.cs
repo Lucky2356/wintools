@@ -144,9 +144,10 @@ namespace Wintools
             updateHistory = new ItemsControl();
             updateHistory.ItemTemplate = (DataTemplate)System.Windows.Markup.XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'><StackPanel Margin='0,0,0,8'><TextBlock Text='{Binding Title}' TextWrapping='Wrap'/><TextBlock Text='{Binding Detail}' Foreground='{DynamicResource Muted}' FontSize='12'/></StackPanel></DataTemplate>");
             panel.Children.Add(updateHistory);
-            Get<ScrollViewer>("OptimizationPage").IsVisibleChanged += async (s, e) =>
+            // Read the current settings whenever the Windows Update view of Maintenance opens.
+            parent.IsVisibleChanged += async (s, e) =>
             {
-                if (!smoke && Get<ScrollViewer>("OptimizationPage").IsVisible)
+                if (!smoke && parent.IsVisible)
                     await RefreshUpdates();
             };
             RefreshUpdateEnabled();
