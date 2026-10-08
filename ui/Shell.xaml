@@ -376,6 +376,7 @@
      <ScrollViewer x:Name="NavScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
       <StackPanel>
        <TextBlock Text="Обзор" Style="{StaticResource NavHeader}" Margin="12,6,0,6"/>
+       <Button x:Name="NavHome" Content="Главная" ToolTip="Главная" Tag="&#xE80F;" Style="{StaticResource Nav}"/>
        <Button x:Name="Diagnose" Content="Состояние ПК" ToolTip="Состояние ПК" Tag="&#xE9D9;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavOptimize" Content="Ускорение Windows" ToolTip="Ускорение Windows" Tag="&#xE945;" Style="{StaticResource Nav}"/>
        <TextBlock Text="Настройка Windows" Style="{StaticResource NavHeader}"/>
@@ -389,11 +390,15 @@
        <Border Style="{StaticResource NavSeparator}"/>
        <Button x:Name="NavApplications" Content="Приложения" ToolTip="Приложения" Tag="&#xE71D;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavPackages" Content="Установка программ" ToolTip="Установка программ" Tag="&#xE896;" Style="{StaticResource Nav}"/>
-       <Button x:Name="NavStartup" Content="Автозагрузка" ToolTip="Автозагрузка" Tag="&#xE768;" Style="{StaticResource Nav}"/>
-       <Button x:Name="NavProcesses" Content="Процессы" ToolTip="Процессы" Tag="&#xE7C4;" Style="{StaticResource Nav}"/>
-       <Button x:Name="NavServices" Content="Службы" ToolTip="Службы" Tag="&#xE713;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavIntegrity" Content="Обслуживание" ToolTip="Обслуживание" Tag="&#xE90F;" Style="{StaticResource Nav}"/>
        <Button x:Name="NavNetwork" Content="Сеть и DNS" ToolTip="Сеть и DNS" Tag="&#xE701;" Style="{StaticResource Nav}"/>
+       <!-- Expert tools stay one click away but out of a newcomer's first glance; ShowPage opens the group for its own pages. -->
+       <Button x:Name="AdvancedToggle" Content="Для опытных  ▾" ToolTip="Автозагрузка, процессы и службы" Tag="&#xE943;" Style="{StaticResource Nav}"/>
+       <StackPanel x:Name="AdvancedNav" Visibility="Collapsed">
+        <Button x:Name="NavStartup" Content="Автозагрузка" ToolTip="Автозагрузка" Tag="&#xE768;" Style="{StaticResource Nav}"/>
+        <Button x:Name="NavProcesses" Content="Процессы" ToolTip="Процессы" Tag="&#xE7C4;" Style="{StaticResource Nav}"/>
+        <Button x:Name="NavServices" Content="Службы" ToolTip="Службы" Tag="&#xE713;" Style="{StaticResource Nav}"/>
+       </StackPanel>
        <Border Height="1" Background="{DynamicResource Border}" Margin="10,7"/>
        <Button x:Name="NavSettings" Content="Настройки" ToolTip="Настройки" Tag="&#xE115;" Style="{StaticResource Nav}"/>
       </StackPanel>

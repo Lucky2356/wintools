@@ -209,7 +209,6 @@ namespace Wintools
         {
             InitializeServiceBrowser();
             var panel = ToolPage("HealthPage");
-            InitializeDashboard(panel);
             InitializeHardware(panel);
             InitializeMonitor(panel);
             InitializeBoot(panel);

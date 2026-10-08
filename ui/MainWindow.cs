@@ -117,7 +117,8 @@ namespace Wintools
             Lang.T("Обслуживание Windows"),
             Lang.T("Автозагрузка программ"),
             Lang.T("Работающие процессы"),
-            Lang.T("Установка программ")
+            Lang.T("Установка программ"),
+            Lang.T("Ваш компьютер сегодня")
         };
         private readonly string[] pages =
         {
@@ -135,7 +136,8 @@ namespace Wintools
             "IntegrityPage",
             "StartupPage",
             "ProcessesPage",
-            "PackagesPage"
+            "PackagesPage",
+            "HomePage"
         };
         private readonly string[] nav =
         {
@@ -153,7 +155,8 @@ namespace Wintools
             "NavIntegrity",
             "NavStartup",
             "NavProcesses",
-            "NavPackages"
+            "NavPackages",
+            "NavHome"
         };
         private readonly string[] operations =
         {
@@ -347,6 +350,8 @@ namespace Wintools
                 Click(nav[i], () => ShowPage(index));
             }
 
+            Click("AdvancedToggle", () => ShowAdvancedNav(Get<UIElement>("AdvancedNav").Visibility != Visibility.Visible));
+
             Click("ClearCollection", () =>
             {
                 collection = null;
@@ -355,6 +360,7 @@ namespace Wintools
             });
             InitializeCollections();
             InitializeHealth();
+            InitializeHome();
             InitializeApplications();
             InitializePackages();
             InitializeNetworkDiagnostics();
@@ -561,7 +567,7 @@ namespace Wintools
 
             ReadHistory();
             RefreshPlan();
-            ShowPage(0);
+            ShowPage(smoke ? 0 : HomeIndex);
             SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
         }
 
@@ -597,8 +603,17 @@ namespace Wintools
                 }));
         }
 
+        private void ShowAdvancedNav(bool value)
+        {
+            Visible("AdvancedNav", value);
+            Get<Button>("AdvancedToggle").Content = Lang.T("Для опытных") + (value ? "  ▴" : "  ▾");
+        }
+
         private void ShowPage(int index)
         {
+            // Startup, processes and services live in the collapsed expert group; opening one of them shows the group.
+            if (index == 5 || index == 12 || index == 13)
+                ShowAdvancedNav(true);
             page = index;
             ResourceVisibility();
             ServiceVisibility();
@@ -612,6 +627,7 @@ namespace Wintools
                     button.SetResourceReference(Control.ForegroundProperty, "Text");
                     button.SetResourceReference(Control.BorderBrushProperty, "Accent");
                     button.FontWeight = FontWeights.SemiBold;
+                    button.BringIntoView();
                 }
                 else
                 {
@@ -624,10 +640,10 @@ namespace Wintools
 
             Text("PageTitle", PageTitles[index]);
             Text("PageIcon", Get<Button>(nav[index]).Tag as string ?? "");
-            if (index == 6 && cpuGauge != null)
+            if (index == HomeIndex && cpuGauge != null)
                 UpdateDashboard();
-            Text("PageEyebrow", new[] { Lang.T("Каталог действий"), Lang.T("Журнал этого компьютера"), Lang.T("Готовые подборки"), Lang.T("Ваши предпочтения"), Lang.T("Подготовка и выполнение"), Lang.T("Работа и автозапуск"), Lang.T("Понятная диагностика"), Lang.T("Проверка без изменений"), Lang.T("Практические шаги"), Lang.T("Программы на компьютере"), Lang.T("Соединение и DNS"), Lang.T("Обслуживание Windows"), Lang.T("Запуск при входе"), Lang.T("Распределение ресурсов"), Lang.T("Winget · каталог Microsoft") }[index]);
-            Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди.") }[index]);
+            Text("PageEyebrow", new[] { Lang.T("Каталог действий"), Lang.T("Журнал этого компьютера"), Lang.T("Готовые подборки"), Lang.T("Ваши предпочтения"), Lang.T("Подготовка и выполнение"), Lang.T("Работа и автозапуск"), Lang.T("Понятная диагностика"), Lang.T("Проверка без изменений"), Lang.T("Практические шаги"), Lang.T("Программы на компьютере"), Lang.T("Соединение и DNS"), Lang.T("Обслуживание Windows"), Lang.T("Запуск при входе"), Lang.T("Распределение ресурсов"), Lang.T("Winget · каталог Microsoft"), Lang.T("Главная") }[index]);
+            Text("PageHint", new[] { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди."), Lang.T("Состояние ПК и самые частые задачи в один клик.") }[index]);
             if (index == 9 && ready && !smoke && !applicationsLoaded && !readingApplications)
             {
                 var read = ReadApplications();
@@ -1220,6 +1236,7 @@ namespace Wintools
             Text("UpdateStatus", Lang.T("Установлена актуальная версия ") + Program.Version + Lang.T(". Обновления загружаются автоматически."));
             await Task.Delay(100);
             Capture("portable-ui-updates.png");
+            await HomeSmoke();
             await HealthSmoke();
             await WorkspaceSmoke();
             await MonitorSmoke();

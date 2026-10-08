@@ -154,7 +154,7 @@ namespace Wintools
             {
                 if (closed)
                     timer.Stop();
-                else if (page == 6 && Window.WindowState != WindowState.Minimized)
+                else if (page == HomeIndex && Window.WindowState != WindowState.Minimized)
                     UpdateDashboard();
             };
             timer.Start();
