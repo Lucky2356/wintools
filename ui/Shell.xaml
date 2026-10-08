@@ -501,7 +501,6 @@
            </Grid>
           </Button>
           <DataTemplate.Triggers>
-           <DataTrigger Binding="{Binding ShowIcon}" Value="False"><Setter TargetName="Badge" Property="Visibility" Value="Collapsed"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="violet"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Accent2}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent2}"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="green"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Success}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="amber"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Warning}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
@@ -533,6 +532,7 @@
            </StackPanel>
           </Grid>
           <DataTemplate.Triggers>
+           <DataTrigger Binding="{Binding ShowIcon}" Value="False"><Setter TargetName="Badge" Property="Visibility" Value="Collapsed"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="violet"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Accent2}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent2}"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="green"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Success}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Success}"/></DataTrigger>
            <DataTrigger Binding="{Binding Tint}" Value="amber"><Setter TargetName="Tint" Property="Background" Value="{DynamicResource Warning}"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Warning}"/></DataTrigger>
