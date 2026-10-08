@@ -17,7 +17,7 @@ namespace Wintools
         private bool readingDns;
         private Func<DnsAdapter[]> dnsRead = DnsSettings.Read;
         private Func<string, string, string, string, Task<EngineResult>> dnsRun = DnsActions.Run;
-        private void InitializeDns(StackPanel parent)
+        private void InitializeDns(Panel parent)
         {
             var panel = new StackPanel();
             var card = new Border

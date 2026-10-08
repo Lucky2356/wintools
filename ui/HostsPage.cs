@@ -18,7 +18,7 @@ namespace Wintools
         private bool readingHosts;
         private Func<byte[]> hostsRead = HostsFile.ReadBytes;
         private Func<string, string, string, string, Task<EngineResult>> hostsRun = HostsFile.Run;
-        private void InitializeHosts(StackPanel parent)
+        private void InitializeHosts(Panel parent)
         {
             var panel = new StackPanel();
             var card = new Border

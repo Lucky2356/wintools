@@ -236,7 +236,10 @@ namespace Wintools
             InitializeMonitor(views[0]);
             InitializeHardware(views[1]);
             InitializeBoot(views[2]);
-            InitializeBackups(views[3]);
+            // Battery report and restore points are two cards side by side on a wide screen.
+            var backups = new CardFlow(480, 2, false);
+            views[3].Children.Add(backups);
+            InitializeBackups(backups);
             var panel = Section(monitorFlow, Lang.T("Снимок состояния ПК"));
             // The snapshot answers "is everything fine?" first, so it opens the column layout.
             var snapshot = (UIElement)panel.Parent;

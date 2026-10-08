@@ -58,7 +58,7 @@ namespace Wintools
             };
             panel.SizeChanged += (s, e) =>
             {
-                int columns = panel.ActualWidth >= 1350 ? 3 : panel.ActualWidth >= 800 ? 2 : 1;
+                int columns = panel.ActualWidth >= 1800 ? 4 : panel.ActualWidth >= 1300 ? 3 : panel.ActualWidth >= 760 ? 2 : 1;
                 if (columns != hardwareColumns)
                 {
                     hardwareColumns = columns;
@@ -134,6 +134,9 @@ namespace Wintools
                     CornerRadius = new CornerRadius(8)
                 };
                 Card(card);
+                // Inset tiles inside the expander card.
+                card.SetResourceReference(Border.BackgroundProperty, "Layer");
+                card.SetResourceReference(Border.BorderBrushProperty, "Divider");
                 columns[index++ % columns.Length].Children.Add(card);
             }
         }

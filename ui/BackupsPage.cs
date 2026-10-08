@@ -18,7 +18,7 @@ namespace Wintools
         private bool readingBattery, runningBackup;
         private Func<string, Task<BatteryInfo[]>> batteryReader = Backups.ReadBatteries;
         private Func<string, Task<BackupResult>> backupRun = Backups.Run;
-        private void InitializeBackups(StackPanel parent)
+        private void InitializeBackups(Panel parent)
         {
             var panel = new StackPanel();
             var card = new Border

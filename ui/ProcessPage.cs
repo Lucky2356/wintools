@@ -69,8 +69,9 @@ namespace Wintools
             Grid.SetRow(processStatus, 1);
             root.Children.Add(processStatus);
             var body = new Grid();
+            // The settings pane keeps a readable width; a wide screen gives the extra room to the list.
             body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
-            body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star) });
+            body.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(3, GridUnitType.Star), MaxWidth = 560 });
             Grid.SetRow(body, 2);
             root.Children.Add(body);
             processList = new ListBox
@@ -95,8 +96,10 @@ namespace Wintools
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 Padding = new Thickness(4, 0, 8, 0)
             };
-            Grid.SetColumn(scroll, 1);
-            body.Children.Add(scroll);
+            var pane = new Border { Child = scroll, Padding = new Thickness(14, 14, 6, 6), Margin = new Thickness(6, 0, 0, 0) };
+            Card(pane);
+            Grid.SetColumn(pane, 1);
+            body.Children.Add(pane);
             processDetail = Paragraph(Lang.T("Выберите программу слева. Настройки применяются только к выбранному запуску."));
             panel.Children.Add(processDetail);
             panel.Children.Add(Paragraph(Lang.T("Приоритет процессора")));
