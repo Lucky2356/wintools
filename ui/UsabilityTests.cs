@@ -92,6 +92,19 @@ namespace Wintools
             Text("Status", "Готово к работе");
             Assert(Get<UIElement>("ReportProblem").Visibility == Visibility.Collapsed, "Next steps shown without a failure");
 
+            // An unfinished operation is announced on the start page once; hiding it remembers the entry.
+            ShowPage(HomeIndex);
+            var unfinished = new HistoryRow { Run = "smoke-attention", Title = "Тестовая операция", Status = "Требует внимания", TimeUtc = DateTime.UtcNow };
+            ShowAttention(new[] { unfinished });
+            Window.UpdateLayout();
+            Assert(attentionBanner.IsVisible && attentionText.Text.Contains("Тестовая операция"), "Unfinished operation not announced");
+            NameControls(attentionBanner);
+            missing.AddRange(UnnamedControls(attentionBanner).Select(m => "attention: " + m));
+            Capture("portable-ui-attention.png");
+            AcknowledgeAttention();
+            ShowAttention(new[] { unfinished });
+            Assert(attentionBanner.Visibility == Visibility.Collapsed && Preferences.Load().Acknowledged.Contains("smoke-attention|Тестовая операция"), "Hidden notice came back");
+
             // The light interface drops shadows and the pulse; turning it off brings them back.
             Get<CheckBox>("Lite").IsChecked = true;
             Get<CheckBox>("Lite").RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
