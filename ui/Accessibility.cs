@@ -74,35 +74,47 @@ namespace Wintools
                 Window.Resources[type] = style;
             }
 
-            // Pages build controls in code and refill lists later, so names are filled in after each page is shown.
+            // Pages build controls in code and lists create them from templates later, so every control is named as it loads.
+            if (!namingRegistered)
+            {
+                namingRegistered = true;
+                foreach (var type in new[] { typeof(ButtonBase), typeof(ComboBox), typeof(TextBox), typeof(ListBox), typeof(PasswordBox) })
+                    EventManager.RegisterClassHandler(type, FrameworkElement.LoadedEvent, new RoutedEventHandler((s, e) => NameControl(s as Control)));
+            }
+
             Window.Loaded += (s, e) => NameControls(Window);
+        }
+
+        private static bool namingRegistered;
+
+        private static void NameControls(DependencyObject root)
+        {
+            foreach (var element in Descendants(root).OfType<Control>())
+                NameControl(element);
         }
 
         // Fills in names that WPF cannot derive: icon-only buttons take their tooltip, tiles their texts,
         // and fields the label written just before them.
-        private static void NameControls(DependencyObject root)
+        private static void NameControl(Control element)
         {
-            foreach (var element in Descendants(root).OfType<Control>())
+            if (element == null || !string.IsNullOrEmpty(AutomationProperties.GetName(element)) || element is ListBoxItem || element is ComboBoxItem || element is ScrollBar || element is ScrollViewer)
+                return;
+            string name = null;
+            var content = element as ContentControl;
+            var tip = element.ToolTip as string;
+            if (content != null && !(element is Label))
             {
-                if (!string.IsNullOrEmpty(AutomationProperties.GetName(element)) || element is ListBoxItem || element is ComboBoxItem || element is ScrollBar || element is ScrollViewer)
-                    continue;
-                string name = null;
-                var content = element as ContentControl;
-                var tip = element.ToolTip as string;
-                if (content != null && !(element is Label))
-                {
-                    var text = content.Content as string;
-                    if (text != null && Readable(text))
-                        continue;
-                    if (text == null && content.Content is TextBlock && Readable(((TextBlock)content.Content).Text))
-                        continue;
-                    name = tip ?? Words(content.Content as DependencyObject);
-                }
-                else if (element is TextBox || element is ComboBox || element is PasswordBox || element is ListBox)
-                    name = tip ?? LabelBefore(element);
-                if (!string.IsNullOrEmpty(name))
-                    AutomationProperties.SetName(element, name);
+                var text = content.Content as string;
+                if (text != null && Readable(text))
+                    return;
+                if (text == null && content.Content is TextBlock && Readable(((TextBlock)content.Content).Text))
+                    return;
+                name = tip ?? Words(content.Content as DependencyObject);
             }
+            else if (element is TextBox || element is ComboBox || element is PasswordBox || element is ListBox)
+                name = tip ?? LabelBefore(element);
+            if (!string.IsNullOrEmpty(name))
+                AutomationProperties.SetName(element, name);
         }
 
         private static IEnumerable<DependencyObject> Descendants(DependencyObject root)

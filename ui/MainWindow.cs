@@ -242,6 +242,8 @@ namespace Wintools
                 Window.Icon = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             }
 
+            // Before any page builds its own list styles on top of the shared ones.
+            InitializeAccessibility();
             Text("VersionLabel", Lang.T("Версия ") + Program.Version + " · " + Program.Architecture);
             Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Проверьте наличие обновления."));
             Get<ComboBox>("Category").ItemsSource = Catalogue.Categories;
@@ -612,7 +614,6 @@ namespace Wintools
             InitializeSheets();
             InitializeProblems();
             InitializeShortcuts();
-            InitializeAccessibility();
             InitializeModes();
             ready = true;
             ApplyTheme();
