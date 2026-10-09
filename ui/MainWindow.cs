@@ -620,6 +620,7 @@ namespace Wintools
             Timings.Measure("Problems", InitializeProblems);
             Timings.Measure("Shortcuts", InitializeShortcuts);
             Timings.Measure("Modes", InitializeModes);
+            Timings.Measure("Recovery", InitializeRecovery);
             ready = true;
             ApplyTheme();
             Filter();

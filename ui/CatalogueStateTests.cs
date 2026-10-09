@@ -58,12 +58,38 @@ namespace Wintools
                         ValueName = "-",
                         ValueType = "state",
                         Value = "disable"
+                    },
+                    new Tweak
+                    {
+                        Id = "SMOKE-SVC",
+                        Kind = "SVC",
+                        Target = "EventLog",
+                        ValueType = "start",
+                        Value = "disabled"
+                    },
+                    new Tweak
+                    {
+                        Id = "SMOKE-SVC-ABSENT",
+                        Kind = "SVC",
+                        Target = "WintoolsSmoke" + Guid.NewGuid().ToString("N"),
+                        ValueType = "start",
+                        Value = "disabled"
+                    },
+                    new Tweak
+                    {
+                        Id = "SMOKE-APPX",
+                        Kind = "APPX",
+                        Target = "Wintools.Smoke" + Guid.NewGuid().ToString("N"),
+                        ValueType = "appx",
+                        Value = "remove"
                     }
                 };
                 var states = TweakStates.Read(items);
                 Assert(states["SMOKE-LIVE"].Applied == true, "Live registry value not read: " + states["SMOKE-LIVE"].Text);
                 Assert(states["SMOKE-DEFAULT"].Applied == false && states["SMOKE-DEFAULT"].Full.Contains("«x»"), "Default registry value not read: " + states["SMOKE-DEFAULT"].Full);
                 Assert(states["SMOKE-ABSENT"].Applied == false, "Absent key reported as applied");
+                Assert(states["SMOKE-SVC"].Applied == false && states["SMOKE-SVC"].Detail == "запуск автоматический" && states["SMOKE-SVC-ABSENT"].Applied == true, "Service start type not read: " + states["SMOKE-SVC"].Full);
+                Assert(states["SMOKE-APPX"].Applied != false, "Absent Store app reported as installed");
                 Assert(states["SMOKE-TASK"].Applied == null && states["SMOKE-TASK"].Text.Contains("отсутствует"), "Missing task not reported: " + states["SMOKE-TASK"].Text);
             }
             finally
@@ -71,7 +97,7 @@ namespace Wintools
                 Registry.CurrentUser.DeleteSubKeyTree(key, false);
             }
 
-            Assert(tweakStates != null && catalogue.Where(TweakStates.Supported).All(t => tweakStates.ContainsKey(t.Id)), "Catalogue state was not read for every registry and task action");
+            Assert(tweakStates != null && catalogue.Where(TweakStates.Supported).All(t => tweakStates.ContainsKey(t.Id)), "Catalogue state was not read for every registry, service, task and app action");
             var saved = tweakStates;
             try
             {

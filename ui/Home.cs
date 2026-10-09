@@ -15,6 +15,7 @@ namespace Wintools
         private void InitializeHome()
         {
             var panel = ToolPage("HomePage");
+            panel.Children.Add(AttentionBanner());
             InitializeDashboard(panel);
             var heading = new TextBlock { Text = Lang.T("Что хотите сделать?"), FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 12) };
             heading.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");

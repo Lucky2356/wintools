@@ -58,6 +58,10 @@ namespace Wintools
                 return null;
             if (item.Kind == "SVC")
             {
+                TweakState known;
+                // Until the full service list is read, the start type from the registry already answers "applied or not".
+                if (services == null && tweakStates != null && tweakStates.TryGetValue(item.Id, out known))
+                    return known;
                 if (services == null)
                     return TweakState.Unknown(readingServices ? Lang.T("Читаем состояние службы…") : Lang.T("Состояние неизвестно · нажмите ↻"));
                 var service = services.FirstOrDefault(s => string.Equals(s.Name, item.Target, StringComparison.OrdinalIgnoreCase));
@@ -99,6 +103,8 @@ namespace Wintools
             var state = CurrentState(item);
             if (state == null)
                 return "";
+            if (item.Kind == "SVC" && services == null && state.Applied != null)
+                return Lang.T("\nСейчас: ") + state.Full + (state.Applied == true ? Lang.T(". Повторное применение ничего не изменит.") : "");
             if (item.Kind == "SVC")
                 return "\n" + (services == null ? Lang.T("Состояние пока неизвестно. Нажмите «↻ Состояние» над списком.") : state.Applied == null && state.Text == Lang.T("Не установлена на этом ПК") ? Lang.T("Служба не установлена на этом ПК.") : state.Text + Lang.T(" (снимок; обновить кнопкой ↻ над списком)"));
             return Lang.T("\nСейчас: ") + state.Full + (state.Applied == true ? Lang.T(". Повторное применение ничего не изменит.") : "");

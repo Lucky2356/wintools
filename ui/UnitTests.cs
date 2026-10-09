@@ -34,6 +34,8 @@ namespace Wintools
             var other = TweakStates.Compare(dword, RegistryValueKind.DWord, 1);
             Assert(other.Applied == false && other.Full.Contains("сейчас 1") && other.Text == "Не применено", "Different DWORD not reported");
             Assert(TweakStates.Compare(dword, RegistryValueKind.Unknown, null).Applied == false, "Missing value reported as applied");
+            Assert(TweakStates.Service("disabled", 4).Applied == true && TweakStates.Service("disabled", 3).Applied == false && TweakStates.Service("disabled", null).Applied == true && TweakStates.Service("boot", 4).Applied == null, "Service start type misjudged");
+            Assert(TweakStates.Package("Microsoft.BingNews", new[] { "Microsoft.BingNewsPlus_1_x64__a", "Microsoft.BingWeather_1_x64__a" }).Applied == true && TweakStates.Package("Microsoft.BingNews", new[] { "microsoft.bingnews_4.1_x64__8wekyb3d8bbwe" }).Applied == false && TweakStates.Package("Microsoft.BingNews", null).Applied == null, "Store app state misjudged");
             Assert(TweakStates.Compare(dword, RegistryValueKind.String, "0").Applied == false, "Value of another type reported as applied");
             uint parsed;
             Assert(TweakStates.TryDword("0xffffffff", out parsed) && parsed == uint.MaxValue && TweakStates.TryDword("4294967295", out parsed) && parsed == uint.MaxValue && !TweakStates.TryDword("abc", out parsed), "DWORD parsing differs from the engine");
@@ -644,6 +646,21 @@ namespace Wintools
             Assert(MainWindow.StartupSheet(preferences, "1.0.0") == "whats-new", "Updated user gets no What's new");
             preferences.SeenVersion = "1.0.0";
             Assert(MainWindow.StartupSheet(preferences, "1.0.0") == null, "Dialog shown again on a normal start");
+            var attention = new[] { new HistoryRow { Run = "a", Title = "Старое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 1, 1) }, new HistoryRow { Run = "b", Title = "Новое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 2, 1) }, new HistoryRow { Run = "c", Title = "Готово", Status = "Применено" } };
+            var unfinished = MainWindow.Unfinished(attention, new List<string> { "a|Старое" });
+            Assert(unfinished.Length == 1 && unfinished[0].Run == "b" && MainWindow.Unfinished(attention, new List<string>()).First().Run == "b", "Unfinished operations misjudged");
+            var exe = Path.Combine(Path.GetTempPath(), "wintools-previous-" + Guid.NewGuid().ToString("N") + ".exe");
+            Assert(MainWindow.PreviousVersion(exe) == null, "Previous version invented");
+            File.Copy(Program.Exe, exe + ".previous");
+            try
+            {
+                Assert(MainWindow.PreviousVersion(exe) == Program.Version, "Previous version not read");
+            }
+            finally
+            {
+                File.Delete(exe + ".previous");
+            }
+
             Assert(MainWindow.RollbackLevel(catalogue[0]) == "full" && MainWindow.RollbackLevel(catalogue[1]) == "none" && MainWindow.RollbackLevel(new Tweak { Category = "APPS", Kind = "APPX" }) == "partial", "Rollback level wrong");
             Assert(MainWindow.NeedsSignIn(new Tweak { Caveat = "Нужно перезапустить Проводник или выйти и войти в Windows." }) && !MainWindow.NeedsSignIn(new Tweak { Caveat = "Дополнительных условий нет." }), "Sign-in hint wrong");
             Assert(MainWindow.Readable("Обновить") && !MainWindow.Readable("\uE72C") && !MainWindow.Readable("  ") && !MainWindow.Readable("★"), "Readable names misjudged");

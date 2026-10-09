@@ -135,6 +135,8 @@ namespace Wintools
         // The version whose "What's new" was last shown; empty until the first start.
         public string SeenVersion = "";
         public string WindowsBuild;
+        // History entries whose "needs attention" notice on the start page was already seen.
+        public List<string> Acknowledged = new List<string>();
         public List<string> Favorites = new List<string>();
         public List<string> Plan = new List<string>();
         internal static readonly string[] TextSizes =
