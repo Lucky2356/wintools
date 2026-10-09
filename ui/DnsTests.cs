@@ -143,6 +143,21 @@ namespace Wintools
                 FinishConfirmation(true);
                 await restore;
                 Assert(calls == 2 && adapter.Static4.Length == 0 && dnsCurrent.Text.Contains("автоматически"), "DNS history restore did not return automatic DNS");
+                // Speed comparison: the router's DNS is measured too, the fastest complete answer is marked, and "Выбрать" only fills the list.
+                var measured = new System.Collections.Concurrent.ConcurrentBag<string>();
+                dnsMeasure = server =>
+                {
+                    measured.Add(server.Address.ToString());
+                    var ms = server.Address.ToString() == "9.9.9.9" ? 12 : server.Address.ToString() == "1.1.1.1" ? 8 : 30;
+                    return Task.FromResult(new DnsTiming { MedianMs = server.Address.ToString() == "77.88.8.8" ? (long?)null : ms, Sent = 5, Lost = server.Address.ToString() == "1.1.1.1" ? 2 : server.Address.ToString() == "77.88.8.8" ? 5 : 0 });
+                };
+                await CompareDns();
+                var timingRows = dnsTimings.Children.OfType<Grid>().ToArray();
+                Assert(measured.Contains("192.168.1.1") && measured.Count == DnsSettings.Providers.Count(p => p.V4.Length > 0) + 1, "DNS comparison skipped a server");
+                Assert(timingRows.Length == measured.Count && ((TextBlock)timingRows[0].Children[0]).Text.StartsWith("Quad9") && ((TextBlock)timingRows[0].Children[1]).Text.Contains("быстрее всего"), "Fastest complete DNS not ranked first");
+                Assert(((TextBlock)timingRows.Last().Children[1]).Text == "Не отвечает", "Silent DNS server not reported");
+                timingRows[0].Children.OfType<Button>().First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert(dnsProvider.SelectedItem == DnsSettings.Provider("quad9") && calls == 2, "Choosing a measured DNS changed Windows or did not select it");
                 foreach (var size in new[]
                 {
                     new Size(1280, 800),
@@ -178,6 +193,7 @@ namespace Wintools
                     File.Delete(path);
                 dnsRead = read;
                 dnsRun = run;
+                dnsMeasure = server => DnsBenchmark.Measure(server, DnsBenchmark.Names, 1500);
                 ReadHistory();
             }
 

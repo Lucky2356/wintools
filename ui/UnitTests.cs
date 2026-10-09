@@ -667,6 +667,48 @@ namespace Wintools
             Assert(BootPerformance.CommandFile("\"C:\\Program Files\\App\\App.exe\" --tray") == "app.exe" && BootPerformance.CommandFile("C:\\Tools\\Run Me.exe /quiet") == "run me.exe" && BootPerformance.CommandFile("rundll32 shell32.dll") == "rundll32", "Startup command program misread");
             var boot = new BootReport { Delays = new[] { new BootDelay { File = "app.exe", DegradationMs = 1000 }, new BootDelay { File = "app.exe", DegradationMs = 3000 }, new BootDelay { File = null, DegradationMs = 9000 } } };
             Assert(BootPerformance.Impact(boot, "\"C:\\App\\APP.EXE\"") == 2000 && BootPerformance.Impact(boot, "other.exe") == null && BootPerformance.Impact(null, "app.exe") == null, "Sign-in impact misjudged");
+            // DNS comparison against a local server: answers are matched by ID, silence counts as lost.
+            var query = DnsBenchmark.Query(0x1234, "www.example.com");
+            Assert(query.Length == 33 && query[0] == 0x12 && query[1] == 0x34 && query[12] == 3 && query[16] == 7, "DNS query malformed");
+            Assert(DnsBenchmark.Answers(new byte[] { 0x12, 0x34, 0x81, 0x83, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234) && !DnsBenchmark.Answers(new byte[] { 0x12, 0x35, 0x81, 0x80, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234) && !DnsBenchmark.Answers(new byte[] { 0x12, 0x34, 0x01, 0x00, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234) && !DnsBenchmark.Answers(new byte[] { 0x12, 0x34, 0x81, 0x82, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234), "DNS answer check wrong");
+            Assert(DnsBenchmark.Median(new long[] { 5, 1, 9 }) == 5 && DnsBenchmark.Median(new long[] { 4, 2 }) == 3 && DnsBenchmark.Median(new long[0]) == null, "Median wrong");
+            using (var stub = new UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0)))
+            {
+                int answered = 0;
+                var server = new Thread(() =>
+                {
+                    try
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            var from = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
+                            var asked = stub.Receive(ref from);
+                            // The first question gets a stray reply with a wrong ID before the real one.
+                            if (i == 0)
+                                stub.Send(new byte[] { (byte)(asked[0] ^ 0xFF), asked[1], 0x81, 0x80, 0, 1, 0, 0, 0, 0, 0, 0 }, 12, from);
+                            if (i < 2)
+                            {
+                                asked[2] |= 0x80;
+                                stub.Send(asked, asked.Length, from);
+                                answered++;
+                            }
+                        }
+                    }
+                    catch (SocketException)
+                    {
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                }) { IsBackground = true };
+                server.Start();
+                var timing = DnsBenchmark.Measure((System.Net.IPEndPoint)stub.Client.LocalEndPoint, new[] { "a.test", "b.test", "c.test" }, 700).GetAwaiter().GetResult();
+                Assert(answered == 2 && timing.Sent == 3 && timing.Lost == 1 && timing.MedianMs.HasValue && timing.MedianMs < 700, "Local DNS timing wrong: lost " + timing.Lost);
+            }
+
+            var timings = new List<DnsTiming> { new DnsTiming { Title = "A", MedianMs = 5, Lost = 1, Sent = 5 }, new DnsTiming { Title = "B", MedianMs = 20, Sent = 5 }, new DnsTiming { Title = "C", Sent = 5, Lost = 5 } };
+            DnsBenchmark.Rank(timings);
+            Assert(!timings[0].Fastest && timings[1].Fastest && timings[0].Result.Contains("без ответа 1 из 5") && timings[2].Result == "Не отвечает", "DNS ranking wrong");
             var attention = new[] { new HistoryRow { Run = "a", Title = "Старое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 1, 1) }, new HistoryRow { Run = "b", Title = "Новое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 2, 1) }, new HistoryRow { Run = "c", Title = "Готово", Status = "Применено" } };
             var unfinished = MainWindow.Unfinished(attention, new List<string> { "a|Старое" });
             Assert(unfinished.Length == 1 && unfinished[0].Run == "b" && MainWindow.Unfinished(attention, new List<string>()).First().Run == "b", "Unfinished operations misjudged");

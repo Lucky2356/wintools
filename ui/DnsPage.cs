@@ -14,7 +14,11 @@ namespace Wintools
         private ComboBox dnsAdapter, dnsProvider;
         private TextBlock dnsCurrent, dnsDescription, dnsStatus;
         private Button dnsApply, dnsRefresh, dnsRestore;
-        private bool readingDns;
+        private bool readingDns, measuringDns;
+        private Button dnsCompare;
+        private StackPanel dnsTimings;
+        private TextBlock dnsCompareStatus;
+        private Func<System.Net.IPEndPoint, Task<DnsTiming>> dnsMeasure = server => DnsBenchmark.Measure(server, DnsBenchmark.Names, 1500);
         private Func<DnsAdapter[]> dnsRead = DnsSettings.Read;
         private Func<string, string, string, string, Task<EngineResult>> dnsRun = DnsActions.Run;
         private void InitializeDns(Panel parent)
@@ -94,6 +98,24 @@ namespace Wintools
             dnsStatus = Paragraph(Lang.T("Прежние адреса сохраняются в истории. Возврат доступен, пока DNS адаптера не изменили позже вручную или другой программой."));
             dnsStatus.FontSize = 12;
             panel.Children.Add(dnsStatus);
+            // Which server answers fastest from this network; choosing one only fills the list above.
+            var compareTitle = Paragraph(Lang.T("Какой DNS быстрее у вас"));
+            compareTitle.FontWeight = FontWeights.SemiBold;
+            compareTitle.Margin = new Thickness(0, 16, 0, 4);
+            panel.Children.Add(compareTitle);
+            dnsCompareStatus = Paragraph(Lang.T("Wintools спросит у каждого сервера адреса пяти популярных сайтов и сравнит время ответа. Настройки Windows не меняются."));
+            dnsCompareStatus.FontSize = 12;
+            panel.Children.Add(dnsCompareStatus);
+            dnsTimings = new StackPanel { Margin = new Thickness(0, 4, 0, 0) };
+            panel.Children.Add(dnsTimings);
+            dnsCompare = new Button
+            {
+                Content = Lang.T("Сравнить скорость DNS"),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 8, 0, 0)
+            };
+            dnsCompare.Click += async (s, e) => await CompareDns();
+            panel.Children.Add(dnsCompare);
             Get<ScrollViewer>("NetworkPage").IsVisibleChanged += async (s, e) =>
             {
                 if (!smoke && Get<ScrollViewer>("NetworkPage").IsVisible)
@@ -144,6 +166,7 @@ namespace Wintools
             dnsAdapter.IsEnabled = dnsProvider.IsEnabled = dnsRefresh.IsEnabled = !busy && !readingDns;
             dnsApply.IsEnabled = !busy && !readingDns && adapter != null && provider != null && !DnsMatches(adapter, provider);
             dnsRestore.IsEnabled = !busy && !readingDns && dnsRestoreRecord != null;
+            dnsCompare.IsEnabled = !measuringDns;
         }
 
         private async Task RefreshDns()
@@ -180,6 +203,78 @@ namespace Wintools
                     RefreshDnsEnabled();
                 }
             }
+        }
+
+        private async Task CompareDns()
+        {
+            if (measuringDns)
+                return;
+            measuringDns = true;
+            RefreshDnsEnabled();
+            dnsTimings.Children.Clear();
+            dnsCompareStatus.Text = Lang.T("Сравниваем серверы… Это займёт несколько секунд.");
+            try
+            {
+                var candidates = DnsSettings.Providers.Where(p => p.V4.Length > 0).Select(p => new DnsTiming { Title = p.Name, Provider = p }).ToList();
+                var adapter = SelectedDnsAdapter();
+                var current = adapter == null ? null : adapter.Effective.FirstOrDefault(a => a.Contains(".") && !candidates.Any(c => c.Provider.V4.Contains(a)));
+                if (current != null)
+                    candidates.Insert(0, new DnsTiming { Title = Lang.T("Текущий DNS · ") + current });
+                var measure = dnsMeasure;
+                var results = await Task.WhenAll(candidates.Select(c => Task.Run(() => measure(new System.Net.IPEndPoint(System.Net.IPAddress.Parse(c.Provider == null ? current : c.Provider.V4[0]), 53)))));
+                if (closed)
+                    return;
+                for (int i = 0; i < candidates.Count; i++)
+                {
+                    candidates[i].MedianMs = results[i].MedianMs;
+                    candidates[i].Lost = results[i].Lost;
+                    candidates[i].Sent = results[i].Sent;
+                }
+
+                DnsBenchmark.Rank(candidates);
+                foreach (var timing in candidates.OrderBy(t => t.MedianMs.HasValue && t.Lost < t.Sent ? 0 : 1).ThenBy(t => t.Lost).ThenBy(t => t.MedianMs ?? long.MaxValue))
+                    dnsTimings.Children.Add(DnsTimingRow(timing));
+                dnsCompareStatus.Text = candidates.All(t => !t.MedianMs.HasValue) ? Lang.T("Ни один сервер не ответил. Возможно, сеть блокирует DNS-запросы к внешним серверам.") : Lang.T("Меньше — лучше. Разница меньше 10 мс на глаз не заметна. Замер отражает текущую сеть и время суток.");
+            }
+            catch (Exception ex)
+            {
+                dnsCompareStatus.Text = Lang.T("Не удалось сравнить DNS: ") + ex.Message;
+            }
+            finally
+            {
+                measuringDns = false;
+                if (!closed)
+                    RefreshDnsEnabled();
+            }
+        }
+
+        private UIElement DnsTimingRow(DnsTiming timing)
+        {
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var title = new TextBlock { Text = timing.Title, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center, FontWeight = timing.Fastest ? FontWeights.SemiBold : FontWeights.Normal };
+            row.Children.Add(title);
+            var result = new TextBlock { Text = timing.Result, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(8, 0, 8, 0) };
+            result.SetResourceReference(TextBlock.ForegroundProperty, timing.Fastest ? "Success" : timing.MedianMs.HasValue ? "Muted" : "Danger");
+            Grid.SetColumn(result, 1);
+            row.Children.Add(result);
+            if (timing.Provider != null)
+            {
+                var choose = new Button { Content = Lang.T("Выбрать"), Padding = new Thickness(10, 3, 10, 3) };
+                System.Windows.Automation.AutomationProperties.SetName(choose, Lang.T("Выбрать ") + timing.Title);
+                choose.Click += (s, e) =>
+                {
+                    dnsProvider.SelectedItem = timing.Provider;
+                    dnsCompareStatus.Text = Lang.T("Выбран ") + timing.Provider.Name + Lang.T(". Нажмите «Использовать DNS», чтобы применить; прежние адреса сохранятся для возврата.");
+                    dnsApply.Focus();
+                };
+                Grid.SetColumn(choose, 2);
+                row.Children.Add(choose);
+            }
+
+            return row;
         }
 
         private async Task SelectDns()
