@@ -108,6 +108,7 @@ namespace Wintools
             {
                 HorizontalContentAlignment = HorizontalAlignment.Stretch
             };
+            System.Windows.Automation.AutomationProperties.SetName(serviceList, Lang.T("Службы Windows"));
             Grid.SetRow(serviceList, 3);
             pageRoot.Children.Add(serviceList);
             VirtualizingPanel.SetIsVirtualizing(serviceList, true);
