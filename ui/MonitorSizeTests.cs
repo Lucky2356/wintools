@@ -101,7 +101,8 @@ namespace Wintools
                     {
                         ShowPage(index);
                         await CaptureAt("portable-ui-at-fhd-text200-" + index + ".png", size.Width, size.Height, text);
-                        Assert(IsVisibleInWindow("NavHome") && IsVisibleInWindow("PageTitle"), "Navigation clipped at 200 % text");
+                        // The menu scrolls to the open page, so the page's own item and title must be on screen.
+                        Assert(IsVisibleInWindow(nav[index]) && IsVisibleInWindow("PageTitle"), "Navigation clipped at 200 % text on page " + index + ": item " + IsVisibleInWindow(nav[index]) + ", title " + IsVisibleInWindow("PageTitle"));
                     }
                 }
 
