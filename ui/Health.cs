@@ -449,8 +449,15 @@ namespace Wintools
             Filter();
             Assert(((ActionRow)Get<ListBox>("Items").Items[0]).ServiceStatus.Contains("Не установлена"), "Absent service confused with disabled service");
             services = null;
+            // Without the service list the start type read from the registry answers; without both the state is unknown.
+            var savedStates = tweakStates;
+            tweakStates = null;
             Filter();
             Assert(((ActionRow)Get<ListBox>("Items").Items[0]).ServiceStatus.Contains("неизвестно"), "Unknown service state confused with disabled");
+            tweakStates = new Dictionary<string, TweakState> { { serviceTweak.Id, TweakState.Known(false, "запуск вручную") } };
+            Filter();
+            Assert(((ActionRow)Get<ListBox>("Items").Items[0]).ServiceStatus.Contains("Не применено"), "Registry start type not used before the service list is read");
+            tweakStates = savedStates;
             Get<Button>("ClearCollection").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             services = new[]
             {
