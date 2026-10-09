@@ -8,7 +8,7 @@ Wintools is a portable Windows app that applies selected system settings (privac
 
 Download **WintoolsPortable.exe** from [GitHub Releases](https://github.com/Lucky2356/wintools/releases/latest) and put it in its own writable folder. Nothing is installed: the interface and the engine are one EXE, and the `WintoolsData` folder next to it keeps settings, history and rollback data.
 
-- Windows 10 1809+ or Windows 11, **x64** or **ARM64**, with the built-in .NET Framework 4.7.2 or later (4.8.1 for native ARM64).
+- Windows 10 1809+ or Windows 11, **x64** or **ARM64**, with the built-in .NET Framework 4.7.2 or later (native ARM64 needs Windows 11 24H2 or later with 4.8.1; older systems run it under x64 emulation).
 - Check the download in PowerShell: `Get-FileHash .\WintoolsPortable.exe` must match `WintoolsPortable.exe.sha256` from the release.
 - The program is not code-signed, so SmartScreen may warn about an unknown publisher: **More info → Run anyway**.
 - The interface is in English or Russian. **Settings → Appearance → Interface language** switches it (applied after a restart); "Like Windows" picks Russian on Russian, Ukrainian, Belarusian and Kazakh Windows and English otherwise.

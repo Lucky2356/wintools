@@ -17,10 +17,13 @@ function Run-Portable($path,$arguments,$expected=0){
 Run-Portable $exe '--unit-test'
 $result=Get-Content (Join-Path $fixture 'portable-unit-tests.txt') -Raw
 Write-Output $result
-# .NET Framework 4.8.1 (release 533320) runs AnyCPU programs natively on Arm; older versions run them as x64.
+# With .NET Framework 4.8.1 (release 533320) on Windows 11 24H2 (build 26100) or later, the manifest's supportedArchitectures
+# starts the program natively on Arm; older systems run it under x64 emulation.
 $release=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full' -Name Release).Release
 Write-Output ".NET Framework release $release"
-if($release -ge 533320 -and $result -notmatch 'Process: ARM64'){throw "Not running natively on ARM64 with .NET release $release"}
+$build=[int](Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name CurrentBuild).CurrentBuild
+Write-Output "Windows build $build"
+if($release -ge 533320 -and $build -ge 26100 -and $result -notmatch 'Process: ARM64'){throw "Not running natively on ARM64 with .NET release $release on build $build"}
 # A profile dry run through the command line exercises the engine worker on this architecture.
 $profileFile=Join-Path $fixture 'cli-profile.json';$report=Join-Path $fixture 'cli-report.txt'
 [IO.File]::WriteAllText($profileFile,'{"Schema":"wintools/profile/1","Actions":["UI-FILEEXT"]}')
