@@ -706,6 +706,10 @@ namespace Wintools
                 Assert(answered == 2 && timing.Sent == 3 && timing.Lost == 1 && timing.MedianMs.HasValue && timing.MedianMs < 700, "Local DNS timing wrong: lost " + timing.Lost);
             }
 
+            string loadTone;
+            Assert(LoadLatency.Verdict(new LoadLatencyResult { IdleMs = 10, LoadedMs = 25, LoadedSent = 20, Mbps = 90 }, out loadTone).StartsWith("Отлично") && loadTone == "Success", "Low latency growth misjudged");
+            Assert(LoadLatency.Verdict(new LoadLatencyResult { IdleMs = 10, LoadedMs = 70, LoadedSent = 20 }, out loadTone).Contains("заметно") && loadTone == "Warning", "Moderate latency growth misjudged");
+            Assert(LoadLatency.Verdict(new LoadLatencyResult { IdleMs = 10, LoadedMs = null, LoadedSent = 20, LoadedLost = 20 }, out loadTone).Contains("перестал") && loadTone == "Danger", "Lost answers under load misjudged");
             var timings = new List<DnsTiming> { new DnsTiming { Title = "A", MedianMs = 5, Lost = 1, Sent = 5 }, new DnsTiming { Title = "B", MedianMs = 20, Sent = 5 }, new DnsTiming { Title = "C", Sent = 5, Lost = 5 } };
             DnsBenchmark.Rank(timings);
             Assert(!timings[0].Fastest && timings[1].Fastest && timings[0].Result.Contains("без ответа 1 из 5") && timings[2].Result == "Не отвечает", "DNS ranking wrong");
