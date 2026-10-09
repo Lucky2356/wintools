@@ -14,7 +14,7 @@ namespace Wintools
         private TextBox startupSearch;
         private ComboBox startupFilter, startupSource;
         private TextBlock startupStatus, startupDetail;
-        private Button startupRefresh, startupEnable, startupDisable;
+        private Button startupRefresh, startupEnable, startupDisable, startupImpact;
         private bool readingStartup, startupReadPending;
         private int startupEpoch;
         private Func<StartupSnapshot> startupRead = StartupEntries.Read;
@@ -39,7 +39,7 @@ namespace Wintools
 
             )
                 root.RowDefinitions.Add(new RowDefinition { Height = height });
-            var intro = Intro(Lang.T("Программы, которые запускаются вместе с Windows. Отключите лишние, чтобы вход был быстрее."), Lang.T("Реестр Run, папки автозагрузки и задачи входа в Windows. «Включено» означает разрешение запуска, а не работающий процесс. У задач могут быть дополнительные условия; автозапуск Store пока не включён."));
+            var intro = Intro(Lang.T("Программы, которые запускаются вместе с Windows. Отключите лишние, чтобы вход был быстрее."), Lang.T("Реестр Run, папки автозагрузки, задачи входа в Windows и автозапуск приложений Store. «Включено» означает разрешение запуска, а не работающий процесс. У задач могут быть дополнительные условия."));
             root.Children.Add(intro);
             var filters = new Grid
             {
@@ -94,7 +94,8 @@ namespace Wintools
                     Lang.T("Все источники"),
                     Lang.T("Реестр Run"),
                     Lang.T("Папки"),
-                    Lang.T("Задачи входа")
+                    Lang.T("Задачи входа"),
+                    Lang.T("Приложения Store")
                 },
                 SelectedIndex = 0
             };
@@ -118,11 +119,13 @@ namespace Wintools
             rowStyle.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(10, 6, 10, 6)));
             rowStyle.Setters.Add(new Setter(FrameworkElement.MarginProperty, new Thickness(0, 0, 0, 4)));
             startupList.ItemContainerStyle = rowStyle;
-            startupList.ItemTemplate = (DataTemplate)XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='105'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,12,0'><TextBlock Text='{Binding Name}' ToolTip='{Binding Name}' FontWeight='SemiBold' TextTrimming='CharacterEllipsis'/><TextBlock Text='{Binding Location}' Foreground='{DynamicResource Muted}' FontSize='12' Margin='0,4,0,0'/><TextBlock Text='{Binding Command}' ToolTip='{Binding Command}' Foreground='{DynamicResource Muted}' FontSize='12' TextTrimming='CharacterEllipsis' Margin='0,4,0,0'/></StackPanel><Border Grid.Column='1' x:Name='Pill' BorderBrush='{DynamicResource Warning}' BorderThickness='1' CornerRadius='9' Padding='8,1' HorizontalAlignment='Center' VerticalAlignment='Center'><TextBlock x:Name='PillText' Text='{Binding State}' FontSize='12' FontWeight='SemiBold' Foreground='{DynamicResource Warning}' TextWrapping='NoWrap'/></Border></Grid><DataTemplate.Triggers><DataTrigger Binding='{Binding Enabled}' Value='True'><Setter TargetName='Pill' Property='BorderBrush' Value='{DynamicResource Success}'/><Setter TargetName='PillText' Property='Foreground' Value='{DynamicResource Success}'/></DataTrigger><DataTrigger Binding='{Binding Enabled}' Value='False'><Setter TargetName='Pill' Property='BorderBrush' Value='{DynamicResource Border}'/><Setter TargetName='PillText' Property='Foreground' Value='{DynamicResource Muted}'/></DataTrigger></DataTemplate.Triggers></DataTemplate>");
+            startupList.ItemTemplate = (DataTemplate)XamlReader.Parse("<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' xmlns:x='http://schemas.microsoft.com/winfx/2006/xaml'><Grid><Grid.ColumnDefinitions><ColumnDefinition Width='*'/><ColumnDefinition Width='105'/></Grid.ColumnDefinitions><StackPanel Margin='0,0,12,0'><TextBlock Text='{Binding Title}' ToolTip='{Binding Title}' FontWeight='SemiBold' TextTrimming='CharacterEllipsis'/><TextBlock Text='{Binding Location}' Foreground='{DynamicResource Muted}' FontSize='12' Margin='0,4,0,0'/><TextBlock Text='{Binding Command}' ToolTip='{Binding Command}' Foreground='{DynamicResource Muted}' FontSize='12' TextTrimming='CharacterEllipsis' Margin='0,4,0,0'/><TextBlock x:Name='Impact' Text='{Binding Impact}' Foreground='{DynamicResource Warning}' FontSize='12' FontWeight='SemiBold' Margin='0,4,0,0'/></StackPanel><Border Grid.Column='1' x:Name='Pill' BorderBrush='{DynamicResource Warning}' BorderThickness='1' CornerRadius='9' Padding='8,1' HorizontalAlignment='Center' VerticalAlignment='Center'><TextBlock x:Name='PillText' Text='{Binding State}' FontSize='12' FontWeight='SemiBold' Foreground='{DynamicResource Warning}' TextWrapping='NoWrap'/></Border></Grid><DataTemplate.Triggers><DataTrigger Binding='{Binding Impact}' Value='{x:Null}'><Setter TargetName='Impact' Property='Visibility' Value='Collapsed'/></DataTrigger><DataTrigger Binding='{Binding Enabled}' Value='True'><Setter TargetName='Pill' Property='BorderBrush' Value='{DynamicResource Success}'/><Setter TargetName='PillText' Property='Foreground' Value='{DynamicResource Success}'/></DataTrigger><DataTrigger Binding='{Binding Enabled}' Value='False'><Setter TargetName='Pill' Property='BorderBrush' Value='{DynamicResource Border}'/><Setter TargetName='PillText' Property='Foreground' Value='{DynamicResource Muted}'/></DataTrigger></DataTemplate.Triggers></DataTemplate>");
             startupList.SelectionChanged += (s, e) =>
             {
                 var selected = startupList.SelectedItem as StartupEntry;
-                startupDetail.Text = selected == null ? Lang.T("Выберите программу. Исходное состояние сохраняется в истории.") : selected.Error ?? (selected.Source == StartupTasks.Source ? (selected.Restriction ?? Lang.T("Можно изменить разрешение запуска всей задачи. Работающий экземпляр не останавливается.")) + "\n" + selected.Details : ("«" + selected.Name + "» · " + selected.Location + Lang.T(". Отключайте только программы, которые не нужны сразу после входа; например, мессенджер перестанет автоматически показывать сообщения.")));
+                startupDetail.Text = selected == null ? Lang.T("Выберите программу. Исходное состояние сохраняется в истории.") : selected.Error ?? (selected.Source == StartupTasks.Source ? (selected.Restriction ?? Lang.T("Можно изменить разрешение запуска всей задачи. Работающий экземпляр не останавливается.")) + "\n" + selected.Details : selected.Source == StoreStartup.Source ? (selected.Restriction ?? Lang.T("Приложение само просит запускаться при входе. Отключение здесь — то же, что в «Параметрах» Windows.")) + "\n" + selected.Details : ("«" + selected.Name + "» · " + selected.Location + Lang.T(". Отключайте только программы, которые не нужны сразу после входа; например, мессенджер перестанет автоматически показывать сообщения.")));
+                if (selected != null && selected.Impact != null)
+                    startupDetail.Text += "\n" + selected.Impact + Lang.T(" — оценка Windows по журналу загрузки.");
                 startupDetail.ToolTip = startupDetail.Text;
                 RefreshStartupEnabled();
             };
@@ -155,6 +158,18 @@ namespace Wintools
             };
             startupEnable.Click += async (s, e) => await ChangeStartup(true);
             buttons.Children.Add(startupEnable);
+            startupImpact = new Button
+            {
+                Content = Lang.T("Оценить влияние на вход"),
+                ToolTip = Lang.T("Прочитать журнал загрузки Windows и показать, какие программы замедляют вход. Может понадобиться подтверждение администратора."),
+                Margin = new Thickness(0, 0, 8, 4)
+            };
+            startupImpact.Click += async (s, e) =>
+            {
+                await ReadBoot();
+                FilterStartup();
+            };
+            buttons.Children.Add(startupImpact);
             startupRefresh = new Button
             {
                 Content = Lang.T("Обновить список"),
@@ -180,6 +195,7 @@ namespace Wintools
             startupEnable.Content = task ? Lang.T("Включить задачу") : Lang.T("Включить при входе");
             startupDisable.Content = task ? Lang.T("Отключить задачу") : Lang.T("Отключить при входе");
             startupRefresh.IsEnabled = available;
+            startupImpact.IsEnabled = available && !readingBoot;
             startupEnable.IsEnabled = available && selected != null && selected.CanChange && selected.Enabled == false;
             startupDisable.IsEnabled = available && selected != null && selected.CanChange && selected.Enabled == true;
         }
@@ -190,7 +206,12 @@ namespace Wintools
                 return;
             string key = (startupList.SelectedItem as StartupEntry) == null ? null : ((StartupEntry)startupList.SelectedItem).Key;
             string query = startupSearch.Text.Trim();
-            var rows = (startupSnapshot == null ? new StartupEntry[0] : startupSnapshot.Entries).Where(r => (startupSource == null || startupSource.SelectedIndex == 0 || startupSource.SelectedIndex == 1 && r.Source.EndsWith("run") || startupSource.SelectedIndex == 1 && r.Source == "machine-run32" || startupSource.SelectedIndex == 2 && r.Source.EndsWith("folder") || startupSource.SelectedIndex == 3 && r.Source == StartupTasks.Source) && (r.Name + " " + r.Command + " " + r.Location).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0 && (startupFilter.SelectedIndex == 0 || startupFilter.SelectedIndex == 1 && r.Enabled == true || startupFilter.SelectedIndex == 2 && r.Enabled == false || startupFilter.SelectedIndex == 3 && !r.Enabled.HasValue)).ToArray();
+            foreach (var entry in startupSnapshot == null ? new StartupEntry[0] : startupSnapshot.Entries)
+                entry.ImpactMs = BootPerformance.Impact(bootReport, entry.Command);
+            var rows = (startupSnapshot == null ? new StartupEntry[0] : startupSnapshot.Entries).Where(r => (startupSource == null || startupSource.SelectedIndex == 0 || startupSource.SelectedIndex == 1 && r.Source.EndsWith("run") || startupSource.SelectedIndex == 1 && r.Source == "machine-run32" || startupSource.SelectedIndex == 2 && r.Source.EndsWith("folder") || startupSource.SelectedIndex == 3 && r.Source == StartupTasks.Source || startupSource.SelectedIndex == 4 && r.Source == StoreStartup.Source) && (r.Title + " " + r.Name + " " + r.Command + " " + r.Location).IndexOf(query, StringComparison.CurrentCultureIgnoreCase) >= 0 && (startupFilter.SelectedIndex == 0 || startupFilter.SelectedIndex == 1 && r.Enabled == true || startupFilter.SelectedIndex == 2 && r.Enabled == false || startupFilter.SelectedIndex == 3 && !r.Enabled.HasValue)).ToArray();
+            // With the boot log read, the programs that slow the sign-in the most come first.
+            if (bootReport != null)
+                rows = rows.OrderByDescending(r => r.ImpactMs ?? -1).ToArray();
             startupList.ItemsSource = rows;
             startupList.SelectedItem = rows.FirstOrDefault(r => r.Key == key);
             if (startupSnapshot != null)
@@ -255,7 +276,7 @@ namespace Wintools
             var entry = startupList.SelectedItem as StartupEntry;
             if (busy || readingStartup || entry == null || !entry.CanChange || entry.Enabled.Value == enabled)
                 return;
-            if (!await Confirm((enabled ? Lang.T("Включить") : Lang.T("Отключить")) + Lang.T(" запуск «") + entry.Name + Lang.T("» при входе в Windows?\n\n") + entry.Location + "\n" + entry.Command + "\n" + (entry.Details ?? "") + "\n\n" + (enabled ? Lang.T("При следующем входе Windows сможет запустить эту команду.") : Lang.T("Программа не запустится через эту запись. Её уведомления, синхронизация и другие фоновые функции могут стать недоступны до ручного запуска.")) + Lang.T(" Уже работающие процессы не изменятся. Прежнее состояние можно вернуть через историю.")))
+            if (!await Confirm((enabled ? Lang.T("Включить") : Lang.T("Отключить")) + Lang.T(" запуск «") + entry.Title + Lang.T("» при входе в Windows?\n\n") + entry.Location + "\n" + entry.Command + "\n" + (entry.Details ?? "") + "\n\n" + (enabled ? Lang.T("При следующем входе Windows сможет запустить эту команду.") : Lang.T("Программа не запустится через эту запись. Её уведомления, синхронизация и другие фоновые функции могут стать недоступны до ручного запуска.")) + Lang.T(" Уже работающие процессы не изменятся. Прежнее состояние можно вернуть через историю.")))
                 return;
             await RunStartupChange(entry, enabled ? "enable" : "disable", null);
         }
@@ -310,7 +331,7 @@ namespace Wintools
 
         private static HistoryRow[] StartupHistoryRows()
         {
-            return StartupActions.History().Select(r => new HistoryRow { Run = r.Id, StartupChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Action == "restore" ? Lang.T("Возврат автозагрузки: ") : r.Action == "enable" ? Lang.T("Автозагрузка включена: ") : Lang.T("Автозагрузка отключена: ")) + r.Name, Status = r.Status == "OK" ? Lang.T("Применено") : r.Status == "REVERTED" ? Lang.T("Откат выполнен") : Lang.T("Требует внимания"), CanRevert = r.Action != "restore" && r.Status != "REVERTED" }).ToArray();
+            return StartupActions.History().Select(r => new HistoryRow { Run = r.Id, StartupChange = true, TimeUtc = DateTime.Parse(r.TimeUtc, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind), Title = (r.Action == "restore" ? Lang.T("Возврат автозагрузки: ") : r.Action == "enable" ? Lang.T("Автозагрузка включена: ") : Lang.T("Автозагрузка отключена: ")) + (r.Source == StoreStartup.Source ? r.Name.Split('_')[0] : r.Name), Status = r.Status == "OK" ? Lang.T("Применено") : r.Status == "REVERTED" ? Lang.T("Откат выполнен") : Lang.T("Требует внимания"), CanRevert = r.Action != "restore" && r.Status != "REVERTED" }).ToArray();
         }
     }
 }

@@ -15,7 +15,27 @@ namespace Wintools
         public string Command { get; set; }
         public string Error { get; set; }
 
-        internal string Approval, Identity, Restriction, Details;
+        internal string Approval, Identity, Restriction, Details, Display;
+        // Windows' own estimate from the boot log, once it was read.
+        internal long? ImpactMs;
+
+        public string Impact
+        {
+            get
+            {
+                return ImpactMs.HasValue ? Lang.T("Замедляет вход на ~") + BootPerformance.Seconds(ImpactMs.Value) : null;
+            }
+        }
+
+        // Store apps are known by their package and task; people know them by the app's own name.
+        public string Title
+        {
+            get
+            {
+                return Display ?? Name;
+            }
+        }
+
         internal bool CanChange
         {
             get
@@ -91,6 +111,12 @@ namespace Wintools
                 return;
             }
 
+            if (source == StoreStartup.Source)
+            {
+                StoreStartup.Validate(name);
+                return;
+            }
+
             if (!Sources.Contains(source) || string.IsNullOrWhiteSpace(name) || name.Length > 16383 || name.Any(char.IsControl) || name.IndexOf('\0') >= 0)
                 throw new ArgumentException(Lang.T("Некорректная запись автозагрузки."));
             if (source.EndsWith("folder") && (name != Path.GetFileName(name) || name == "." || name == ".."))
@@ -99,7 +125,7 @@ namespace Wintools
 
         internal static string Location(string source)
         {
-            return source == StartupTasks.Source ? Lang.T("Планировщик · вход в Windows") : source == "user-run" ? Lang.T("Мой вход · реестр") : source == "machine-run" ? Lang.T("Все пользователи · реестр") : source == "machine-run32" ? Lang.T("Все пользователи · реестр 32 бит") : source == "user-folder" ? Lang.T("Мой вход · папка") : Lang.T("Все пользователи · папка");
+            return source == StartupTasks.Source ? Lang.T("Планировщик · вход в Windows") : source == StoreStartup.Source ? Lang.T("Приложение Store · вход в Windows") : source == "user-run" ? Lang.T("Мой вход · реестр") : source == "machine-run" ? Lang.T("Все пользователи · реестр") : source == "machine-run32" ? Lang.T("Все пользователи · реестр 32 бит") : source == "user-folder" ? Lang.T("Мой вход · папка") : Lang.T("Все пользователи · папка");
         }
 
         internal static string ApprovalKey(string source)
@@ -163,6 +189,8 @@ namespace Wintools
             Validate(source, name);
             if (source == StartupTasks.Source)
                 return StartupTasks.Inspect(name);
+            if (source == StoreStartup.Source)
+                return StoreStartup.Inspect(name);
             var row = new StartupEntry
             {
                 Source = source,
@@ -254,9 +282,12 @@ namespace Wintools
             var scheduled = StartupTasks.Read();
             entries.AddRange(scheduled.Entries);
             errors.AddRange(scheduled.Errors);
+            var packaged = StoreStartup.Read();
+            entries.AddRange(packaged.Entries);
+            errors.AddRange(packaged.Errors);
             return new StartupSnapshot
             {
-                Entries = entries.OrderBy(e => e.Name, NaturalOrder.Instance).ToArray(),
+                Entries = entries.OrderBy(e => e.Title, NaturalOrder.Instance).ToArray(),
                 Errors = errors.ToArray()
             };
         }
@@ -269,6 +300,12 @@ namespace Wintools
             if (source == StartupTasks.Source)
             {
                 StartupTasks.Write(name, value, expected);
+                return;
+            }
+
+            if (source == StoreStartup.Source)
+            {
+                StoreStartup.Write(name, value, expected);
                 return;
             }
 

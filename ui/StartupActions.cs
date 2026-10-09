@@ -154,7 +154,7 @@ namespace Wintools
                             return 0;
                         }
 
-                        target = source == StartupTasks.Source ? StartupTasks.Encode(action == "enable") : StartupEntries.Encode(before.Approval, action == "enable");
+                        target = source == StartupTasks.Source || source == StoreStartup.Source ? StartupTasks.Encode(action == "enable") : StartupEntries.Encode(before.Approval, action == "enable");
                     }
 
                     record = new StartupChange

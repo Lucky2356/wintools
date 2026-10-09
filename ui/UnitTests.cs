@@ -646,6 +646,27 @@ namespace Wintools
             Assert(MainWindow.StartupSheet(preferences, "1.0.0") == "whats-new", "Updated user gets no What's new");
             preferences.SeenVersion = "1.0.0";
             Assert(MainWindow.StartupSheet(preferences, "1.0.0") == null, "Dialog shown again on a normal start");
+            Assert(StoreStartup.Family("Microsoft.Teams_24.1.0.0_x64__8wekyb3d8bbwe") == "Microsoft.Teams_8wekyb3d8bbwe" && StoreStartup.Family("broken_name") == null, "Package family misread");
+            var manifest = "<Package xmlns='http://schemas.microsoft.com/appx/manifest/foundation/windows10' xmlns:desktop='http://schemas.microsoft.com/appx/manifest/desktop/windows10'><Applications><Application Id='App' Executable='app.exe'><Extensions><desktop:Extension Category='windows.startupTask' Executable='tray\\tray.exe' EntryPoint='Windows.FullTrustApplication'><desktop:StartupTask TaskId='TrayTask' Enabled='true' DisplayName='Tray'/></desktop:Extension><desktop:Extension Category='windows.startupTask'><desktop:StartupTask TaskId='Second' Enabled='false' DisplayName='Second'/></desktop:Extension></Extensions></Application></Applications></Package>";
+            var packaged = StoreStartup.Parse("Contoso.App_1.0.0.0_x64__abcdefghijklm", "C:\\Apps\\Contoso", manifest, (family, task) => task == "Second" ? (int?)4 : null);
+            Assert(packaged.Length == 2 && packaged[0].Name == "Contoso.App_abcdefghijklm!TrayTask" && packaged[0].Title == "Tray" && packaged[0].Enabled == true && packaged[0].CanChange && packaged[0].Command == "C:\\Apps\\Contoso\\tray\\tray.exe", "Store startup task misread");
+            Assert(packaged[1].Enabled == true && !packaged[1].CanChange && packaged[1].Command == "C:\\Apps\\Contoso\\app.exe", "Policy-controlled Store startup task offered for change");
+            Assert(StoreStartup.Parse("Contoso.App_1.0.0.0_x64__abcdefghijklm", "C:\\Apps", manifest, (family, task) => 1)[0].Enabled == false, "Disabled Store startup task shown as enabled");
+            StoreStartup.Validate("Contoso.App_abcdefghijklm!TrayTask");
+            bool invalidStore = false;
+            try
+            {
+                StoreStartup.Validate("..\\x!y");
+            }
+            catch (ArgumentException)
+            {
+                invalidStore = true;
+            }
+
+            Assert(invalidStore, "Invalid Store startup name accepted");
+            Assert(BootPerformance.CommandFile("\"C:\\Program Files\\App\\App.exe\" --tray") == "app.exe" && BootPerformance.CommandFile("C:\\Tools\\Run Me.exe /quiet") == "run me.exe" && BootPerformance.CommandFile("rundll32 shell32.dll") == "rundll32", "Startup command program misread");
+            var boot = new BootReport { Delays = new[] { new BootDelay { File = "app.exe", DegradationMs = 1000 }, new BootDelay { File = "app.exe", DegradationMs = 3000 }, new BootDelay { File = null, DegradationMs = 9000 } } };
+            Assert(BootPerformance.Impact(boot, "\"C:\\App\\APP.EXE\"") == 2000 && BootPerformance.Impact(boot, "other.exe") == null && BootPerformance.Impact(null, "app.exe") == null, "Sign-in impact misjudged");
             var attention = new[] { new HistoryRow { Run = "a", Title = "Старое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 1, 1) }, new HistoryRow { Run = "b", Title = "Новое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 2, 1) }, new HistoryRow { Run = "c", Title = "Готово", Status = "Применено" } };
             var unfinished = MainWindow.Unfinished(attention, new List<string> { "a|Старое" });
             Assert(unfinished.Length == 1 && unfinished[0].Run == "b" && MainWindow.Unfinished(attention, new List<string>()).First().Run == "b", "Unfinished operations misjudged");
