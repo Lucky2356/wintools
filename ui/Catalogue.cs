@@ -77,6 +77,17 @@ namespace Wintools
                 Lang.T("Очистка")
             }
         };
+        private static Dictionary<string, Tweak> index;
+
+        // The engine checks every request against the catalogue; the files are read once per process.
+        internal static Tweak Find(string id)
+        {
+            if (index == null)
+                index = Load().ToDictionary(t => t.Id);
+            Tweak tweak;
+            return index.TryGetValue(id, out tweak) ? tweak : null;
+        }
+
         internal static List<Tweak> Load()
         {
             var definitions = File.ReadAllLines(Path.Combine(Program.Data, "data", "tweaks.def")).Where(l => l.Length > 0 && !l.StartsWith("#")).Select(l => l.Split('|')).ToDictionary(p => p[0]);
@@ -124,6 +135,8 @@ namespace Wintools
         // The version whose "What's new" was last shown; empty until the first start.
         public string SeenVersion = "";
         public string WindowsBuild;
+        // History entries whose "needs attention" notice on the start page was already seen.
+        public List<string> Acknowledged = new List<string>();
         public List<string> Favorites = new List<string>();
         public List<string> Plan = new List<string>();
         internal static readonly string[] TextSizes =

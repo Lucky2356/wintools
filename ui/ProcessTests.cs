@@ -178,6 +178,46 @@ namespace Wintools
                 FinishConfirmation(true);
                 await restoreTask;
                 Assert(calls == 3 && priority == 32, "Process history restore failed");
+                // Game mode: high priority and the fast power plan, kept on disk; after a crash the start page offers to return them.
+                var powerReadBefore = powerRead;
+                var powerRunBefore = powerRun;
+                string balanced = "381b4222-f694-41f0-9685-ff5bb260df2e", fast = GameModeState.FastPlans[1], activePlan = balanced;
+                try
+                {
+                    powerRead = () => new PowerSnapshot { Active = activePlan, Plans = new[] { new PowerPlan { Id = balanced, Name = "Сбалансированная" }, new PowerPlan { Id = fast, Name = "Высокая производительность" } } };
+                    powerRun = (target, expected, restoreId) =>
+                    {
+                        Assert(expected == activePlan, "Game mode sent a stale power plan");
+                        activePlan = target;
+                        return Task.FromResult(new EngineResult { Code = 0, Output = "Тест: схема питания не менялась." });
+                    };
+                    processList.SelectedItem = rows[0];
+                    await ReadProcessSettings();
+                    Assert(gameModeButton.IsEnabled, "Game mode unavailable for a selected process");
+                    var game = StartGameMode();
+                    for (int i = 0; i < 100 && confirmation == null && !game.IsCompleted; i++)
+                        await Task.Delay(10);
+                    Assert(confirmation != null, "Game mode skipped confirmation");
+                    FinishConfirmation(true);
+                    await game;
+                    Assert(priority == 128 && activePlan == fast && gameMode != null && File.Exists(GameModeState.Path) && GameModeState.Load().PriorityBefore == 32 && !CanWatchServices(), "Game mode not applied");
+                    Assert(((string)gameModeButton.Content).StartsWith("Выключить"), "Game mode cannot be turned off");
+                    Capture("portable-ui-game-mode.png");
+                    // A crash: the window forgets the game mode, the file stays.
+                    gameMode = null;
+                    ShowGameLeftover();
+                    Assert(gameBanner.Visibility == Visibility.Visible && gameBannerText.Text.Contains(rows[0].Name), "Leftover game mode not offered for return");
+                    await StopGameMode();
+                    Assert(priority == 32 && activePlan == balanced && !File.Exists(GameModeState.Path) && gameBanner.Visibility == Visibility.Collapsed && ((string)gameModeButton.Content).StartsWith("Включить"), "Game mode not returned");
+                }
+                finally
+                {
+                    powerRead = powerReadBefore;
+                    powerRun = powerRunBefore;
+                    gameMode = null;
+                    GameModeState.Clear();
+                }
+
                 File.WriteAllText(recordPath, "{broken");
                 ReadHistory();
                 Assert(!Get<ListBox>("History").Items.Cast<HistoryRow>().Any(r => r.ProcessChange), "Corrupt process history accepted");

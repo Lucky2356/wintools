@@ -103,6 +103,7 @@ namespace Wintools
             body.Children.Add(pane);
             processDetail = Paragraph(Lang.T("Выберите программу слева. Настройки применяются только к выбранному запуску."));
             panel.Children.Add(processDetail);
+            InitializeGameMode(panel);
             panel.Children.Add(Paragraph(Lang.T("Приоритет процессора")));
             processPriority = new ComboBox
             {
@@ -169,6 +170,7 @@ namespace Wintools
             processApplyPriority.IsEnabled = enabled && processPriority.SelectedIndex >= 0 && ProcessControl.Priorities[processPriority.SelectedIndex] != processSettings.Priority;
             ulong mask = SelectedCpuMask();
             processApplyCpu.IsEnabled = enabled && processSettings.SupportsAffinity && mask != 0 && mask != processSettings.Affinity;
+            RefreshGameMode();
         }
 
         private void FilterProcesses()

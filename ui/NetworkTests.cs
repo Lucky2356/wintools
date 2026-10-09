@@ -58,6 +58,32 @@ namespace Wintools
                 };
                 await ProbeNetwork();
                 Assert(calls == 1 && !networkTestStop.IsEnabled && networkTestStart.IsEnabled, "Network stop ignored");
+                // Latency under load: five quiet pings, then pings while a fake download fills the line.
+                calls = 0;
+                pingNetwork = address => Task.FromResult(new PingMeasurement { Milliseconds = ++calls <= 5 ? 10 : 160, Status = "Ответ получен" });
+                var originalDownload = loadDownload;
+                var originalDuration = loadDuration;
+                try
+                {
+                    loadDownload = async (token, received) =>
+                    {
+                        while (true)
+                        {
+                            await Task.Delay(50, token);
+                            received(125000);
+                        }
+                    };
+                    loadDuration = TimeSpan.FromSeconds(2.5);
+                    await MeasureLoadLatency();
+                    Assert(calls > 6 && loadLatencyResult.Text.Contains("bufferbloat") && loadLatencyResult.Text.Contains("+150") && loadLatencyStart.IsEnabled && networkTestStart.IsEnabled, "Latency under load misreported: " + loadLatencyResult.Text);
+                    Capture("portable-ui-load-latency.png");
+                }
+                finally
+                {
+                    loadDownload = originalDownload;
+                    loadDuration = originalDuration;
+                }
+
                 resolveNetwork = host =>
                 {
                     throw new InvalidOperationException("fixture DNS failure");

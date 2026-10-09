@@ -23,6 +23,8 @@ namespace Wintools
     internal sealed class BootDelay
     {
         public string Kind, Name, TimeUtc;
+        // The program's file name (event 101 only), to match it with startup entries.
+        public string File;
         public long DegradationMs, TotalMs;
     }
 
@@ -166,10 +168,21 @@ namespace Wintools
             long degradation = Number(data, "DegradationTime");
             if (degradation < 0)
                 return null;
+            string file = null;
+            if (id == 101 && !string.IsNullOrWhiteSpace(name))
+                try
+                {
+                    file = Path.GetFileName(name.Trim()).ToLowerInvariant();
+                }
+                catch (ArgumentException)
+                {
+                }
+
             return new BootDelay
             {
                 Kind = kind,
                 Name = label,
+                File = file != null && file.Length > 0 && file.Length <= 260 ? file : null,
                 TimeUtc = timeUtc.ToString("o"),
                 DegradationMs = degradation,
                 TotalMs = Math.Max(0, Number(data, "TotalTime"))
@@ -184,6 +197,42 @@ namespace Wintools
         internal static BootCulprit[] Culprits(BootReport report)
         {
             return report.Delays.GroupBy(d => d.Kind + "|" + d.Name, StringComparer.OrdinalIgnoreCase).Select(g => new { Kind = g.First().Kind, Name = g.First().Name, Count = g.Count(), Max = g.Max(d => d.DegradationMs), Average = (long)g.Average(d => d.DegradationMs), Last = g.Max(d => d.TimeUtc) }).OrderByDescending(g => g.Average * g.Count).Take(15).Select(g => new BootCulprit { Title = g.Name + " · " + g.Kind.ToLowerInvariant(), Detail = Lang.T("Замедлял загрузку ") + g.Count + Lang.T(" раз(а): в среднем на ") + Seconds(g.Average) + Lang.T(", максимум ") + Seconds(g.Max) + Lang.T(". Последний раз ") + DateTime.Parse(g.Last, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToLocalTime().ToString("d", Lang.Culture) }).ToArray();
+        }
+
+        // The program a startup command runs: the quoted or unquoted path up to ".exe", or the first word.
+        internal static string CommandFile(string command)
+        {
+            var text = (command ?? "").Trim();
+            if (text.StartsWith("\""))
+            {
+                int end = text.IndexOf('"', 1);
+                text = end > 0 ? text.Substring(1, end - 1) : text.Substring(1);
+            }
+            else
+            {
+                int exe = text.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+                text = exe > 0 ? text.Substring(0, exe + 4) : text.Split(' ')[0];
+            }
+
+            try
+            {
+                var file = Path.GetFileName(Environment.ExpandEnvironmentVariables(text));
+                return string.IsNullOrEmpty(file) ? null : file.ToLowerInvariant();
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+        }
+
+        // How much a program slowed the sign-in on average, by Windows' own estimate; null when Windows never named it.
+        internal static long? Impact(BootReport report, string command)
+        {
+            var file = CommandFile(command);
+            if (report == null || file == null)
+                return null;
+            var delays = report.Delays.Where(d => d.File == file).ToArray();
+            return delays.Length == 0 ? (long?)null : (long)delays.Average(d => d.DegradationMs);
         }
 
         internal static string Summary(BootReport report)
@@ -242,7 +291,7 @@ namespace Wintools
                 if (boot == null || boot.TotalMs <= 0 || boot.TotalMs >= 86400000 || boot.MainPathMs < 0 || boot.PostBootMs < 0 || !DateTime.TryParse(boot.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
                     throw new IOException(Lang.T("Некорректная запись загрузки."));
             foreach (var delay in report.Delays)
-                if (delay == null || string.IsNullOrWhiteSpace(delay.Name) || delay.Name.Length > 120 || !Kinds.ContainsValue(delay.Kind) || delay.DegradationMs < 0 || delay.DegradationMs >= 86400000 || !DateTime.TryParse(delay.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
+                if (delay == null || string.IsNullOrWhiteSpace(delay.Name) || delay.Name.Length > 120 || delay.File != null && (delay.File.Length > 260 || delay.File.IndexOfAny(new[] { '\\', '/', ':' }) >= 0) || !Kinds.ContainsValue(delay.Kind) || delay.DegradationMs < 0 || delay.DegradationMs >= 86400000 || !DateTime.TryParse(delay.TimeUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out time))
                     throw new IOException(Lang.T("Некорректная запись замедления."));
             return report;
         }

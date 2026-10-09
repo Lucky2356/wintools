@@ -234,8 +234,10 @@ namespace Wintools
             // The smoke run starts from a fresh folder; it exercises every tool and checks the simple mode on its own.
             if (smoke)
                 preferences.Mode = "full";
+            Timings.Mark("Window constructor started");
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Shell.xaml"))
                 Window = (Window)XamlReader.Load(stream);
+            Timings.Mark("Shell.xaml loaded");
             Lang.Translate(Window);
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Icon.ico"))
             {
@@ -243,7 +245,7 @@ namespace Wintools
             }
 
             // Before any page builds its own list styles on top of the shared ones.
-            InitializeAccessibility();
+            Timings.Measure("Accessibility", InitializeAccessibility);
             Text("VersionLabel", Lang.T("Версия ") + Program.Version + " · " + Program.Architecture);
             Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Проверьте наличие обновления."));
             Get<ComboBox>("Category").ItemsSource = Catalogue.Categories;
@@ -393,16 +395,16 @@ namespace Wintools
                 Visible("ClearCollection", false);
                 Filter();
             });
-            InitializeCollections();
-            InitializeHealth();
-            InitializeHome();
-            InitializeApplications();
-            InitializePackages();
-            InitializeNetworkDiagnostics();
-            InitializeIntegrity();
-            InitializeStartup();
-            InitializeProcesses();
-            InitializeGlobalSearch();
+            Timings.Measure("Collections", InitializeCollections);
+            Timings.Measure("Health", InitializeHealth);
+            Timings.Measure("Home", InitializeHome);
+            Timings.Measure("Applications", InitializeApplications);
+            Timings.Measure("Packages", InitializePackages);
+            Timings.Measure("NetworkDiagnostics", InitializeNetworkDiagnostics);
+            Timings.Measure("Integrity", InitializeIntegrity);
+            Timings.Measure("Startup", InitializeStartup);
+            Timings.Measure("Processes", InitializeProcesses);
+            Timings.Measure("GlobalSearch", InitializeGlobalSearch);
             ClickAsync("Preview", async () =>
             {
                 var item = Selected();
@@ -511,6 +513,9 @@ namespace Wintools
             };
             Window.Closing += (s, e) =>
             {
+                // The game mode closes the window itself once its settings are back.
+                if (e.Cancel)
+                    return;
                 if (busy || downloading)
                 {
                     e.Cancel = true;
@@ -567,6 +572,7 @@ namespace Wintools
             };
             Window.Loaded += async (s, e) =>
             {
+                Timings.Mark("Window shown");
                 if (smoke)
                 {
                     try
@@ -609,14 +615,15 @@ namespace Wintools
             };
             if (!smoke)
                 updateTimer.Start();
-            InitializeTextScale();
-            InitializeResponsive();
-            InitializePlan();
-            InitializeProfiles();
-            InitializeSheets();
-            InitializeProblems();
-            InitializeShortcuts();
-            InitializeModes();
+            Timings.Measure("TextScale", InitializeTextScale);
+            Timings.Measure("Responsive", InitializeResponsive);
+            Timings.Measure("Plan", InitializePlan);
+            Timings.Measure("Profiles", InitializeProfiles);
+            Timings.Measure("Sheets", InitializeSheets);
+            Timings.Measure("Problems", InitializeProblems);
+            Timings.Measure("Shortcuts", InitializeShortcuts);
+            Timings.Measure("Modes", InitializeModes);
+            Timings.Measure("Recovery", InitializeRecovery);
             ready = true;
             ApplyTheme();
             Filter();
@@ -630,6 +637,7 @@ namespace Wintools
             RefreshPlan();
             ShowPage(smoke ? 0 : HomeIndex);
             SystemEvents.UserPreferenceChanged += SystemPreferenceChanged;
+            Timings.Mark("Window constructor finished");
         }
 
         private bool PaletteDark()
@@ -1157,6 +1165,10 @@ namespace Wintools
 
         private async Task Smoke()
         {
+            // Measured before any test work: the start as a person sees it.
+            var shown = Timings.Steps.Where(t => t.Key == "since start: Window shown").Select(t => t.Value).FirstOrDefault();
+            Timings.Save(Path.Combine(Program.Home, "portable-timings.txt"));
+            Assert(shown > 0 && shown < 30000, "The window took " + shown + " ms to appear");
             int downloads = 0;
             download = (update, progress) =>
             {

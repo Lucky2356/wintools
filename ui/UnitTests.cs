@@ -34,6 +34,8 @@ namespace Wintools
             var other = TweakStates.Compare(dword, RegistryValueKind.DWord, 1);
             Assert(other.Applied == false && other.Full.Contains("сейчас 1") && other.Text == "Не применено", "Different DWORD not reported");
             Assert(TweakStates.Compare(dword, RegistryValueKind.Unknown, null).Applied == false, "Missing value reported as applied");
+            Assert(TweakStates.Service("disabled", 4).Applied == true && TweakStates.Service("disabled", 3).Applied == false && TweakStates.Service("disabled", null).Applied == true && TweakStates.Service("boot", 4).Applied == null, "Service start type misjudged");
+            Assert(TweakStates.Package("Microsoft.BingNews", new[] { "Microsoft.BingNewsPlus_1_x64__a", "Microsoft.BingWeather_1_x64__a" }).Applied == true && TweakStates.Package("Microsoft.BingNews", new[] { "microsoft.bingnews_4.1_x64__8wekyb3d8bbwe" }).Applied == false && TweakStates.Package("Microsoft.BingNews", null).Applied == null, "Store app state misjudged");
             Assert(TweakStates.Compare(dword, RegistryValueKind.String, "0").Applied == false, "Value of another type reported as applied");
             uint parsed;
             Assert(TweakStates.TryDword("0xffffffff", out parsed) && parsed == uint.MaxValue && TweakStates.TryDword("4294967295", out parsed) && parsed == uint.MaxValue && !TweakStates.TryDword("abc", out parsed), "DWORD parsing differs from the engine");
@@ -644,6 +646,88 @@ namespace Wintools
             Assert(MainWindow.StartupSheet(preferences, "1.0.0") == "whats-new", "Updated user gets no What's new");
             preferences.SeenVersion = "1.0.0";
             Assert(MainWindow.StartupSheet(preferences, "1.0.0") == null, "Dialog shown again on a normal start");
+            Assert(StoreStartup.Family("Microsoft.Teams_24.1.0.0_x64__8wekyb3d8bbwe") == "Microsoft.Teams_8wekyb3d8bbwe" && StoreStartup.Family("broken_name") == null, "Package family misread");
+            var manifest = "<Package xmlns='http://schemas.microsoft.com/appx/manifest/foundation/windows10' xmlns:desktop='http://schemas.microsoft.com/appx/manifest/desktop/windows10'><Applications><Application Id='App' Executable='app.exe'><Extensions><desktop:Extension Category='windows.startupTask' Executable='tray\\tray.exe' EntryPoint='Windows.FullTrustApplication'><desktop:StartupTask TaskId='TrayTask' Enabled='true' DisplayName='Tray'/></desktop:Extension><desktop:Extension Category='windows.startupTask'><desktop:StartupTask TaskId='Second' Enabled='false' DisplayName='Second'/></desktop:Extension></Extensions></Application></Applications></Package>";
+            var packaged = StoreStartup.Parse("Contoso.App_1.0.0.0_x64__abcdefghijklm", "C:\\Apps\\Contoso", manifest, (family, task) => task == "Second" ? (int?)4 : null);
+            Assert(packaged.Length == 2 && packaged[0].Name == "Contoso.App_abcdefghijklm!TrayTask" && packaged[0].Title == "Tray" && packaged[0].Enabled == true && packaged[0].CanChange && packaged[0].Command == "C:\\Apps\\Contoso\\tray\\tray.exe", "Store startup task misread");
+            Assert(packaged[1].Enabled == true && !packaged[1].CanChange && packaged[1].Command == "C:\\Apps\\Contoso\\app.exe", "Policy-controlled Store startup task offered for change");
+            Assert(StoreStartup.Parse("Contoso.App_1.0.0.0_x64__abcdefghijklm", "C:\\Apps", manifest, (family, task) => 1)[0].Enabled == false, "Disabled Store startup task shown as enabled");
+            StoreStartup.Validate("Contoso.App_abcdefghijklm!TrayTask");
+            bool invalidStore = false;
+            try
+            {
+                StoreStartup.Validate("..\\x!y");
+            }
+            catch (ArgumentException)
+            {
+                invalidStore = true;
+            }
+
+            Assert(invalidStore, "Invalid Store startup name accepted");
+            Assert(BootPerformance.CommandFile("\"C:\\Program Files\\App\\App.exe\" --tray") == "app.exe" && BootPerformance.CommandFile("C:\\Tools\\Run Me.exe /quiet") == "run me.exe" && BootPerformance.CommandFile("rundll32 shell32.dll") == "rundll32", "Startup command program misread");
+            var boot = new BootReport { Delays = new[] { new BootDelay { File = "app.exe", DegradationMs = 1000 }, new BootDelay { File = "app.exe", DegradationMs = 3000 }, new BootDelay { File = null, DegradationMs = 9000 } } };
+            Assert(BootPerformance.Impact(boot, "\"C:\\App\\APP.EXE\"") == 2000 && BootPerformance.Impact(boot, "other.exe") == null && BootPerformance.Impact(null, "app.exe") == null, "Sign-in impact misjudged");
+            // DNS comparison against a local server: answers are matched by ID, silence counts as lost.
+            var query = DnsBenchmark.Query(0x1234, "www.example.com");
+            Assert(query.Length == 33 && query[0] == 0x12 && query[1] == 0x34 && query[12] == 3 && query[16] == 7, "DNS query malformed");
+            Assert(DnsBenchmark.Answers(new byte[] { 0x12, 0x34, 0x81, 0x83, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234) && !DnsBenchmark.Answers(new byte[] { 0x12, 0x35, 0x81, 0x80, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234) && !DnsBenchmark.Answers(new byte[] { 0x12, 0x34, 0x01, 0x00, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234) && !DnsBenchmark.Answers(new byte[] { 0x12, 0x34, 0x81, 0x82, 0, 1, 0, 0, 0, 0, 0, 0 }, 0x1234), "DNS answer check wrong");
+            Assert(DnsBenchmark.Median(new long[] { 5, 1, 9 }) == 5 && DnsBenchmark.Median(new long[] { 4, 2 }) == 3 && DnsBenchmark.Median(new long[0]) == null, "Median wrong");
+            using (var stub = new UdpClient(new System.Net.IPEndPoint(System.Net.IPAddress.Loopback, 0)))
+            {
+                int answered = 0;
+                var server = new Thread(() =>
+                {
+                    try
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            var from = new System.Net.IPEndPoint(System.Net.IPAddress.Any, 0);
+                            var asked = stub.Receive(ref from);
+                            // The first question gets a stray reply with a wrong ID before the real one.
+                            if (i == 0)
+                                stub.Send(new byte[] { (byte)(asked[0] ^ 0xFF), asked[1], 0x81, 0x80, 0, 1, 0, 0, 0, 0, 0, 0 }, 12, from);
+                            if (i < 2)
+                            {
+                                asked[2] |= 0x80;
+                                stub.Send(asked, asked.Length, from);
+                                answered++;
+                            }
+                        }
+                    }
+                    catch (SocketException)
+                    {
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                    }
+                }) { IsBackground = true };
+                server.Start();
+                var timing = DnsBenchmark.Measure((System.Net.IPEndPoint)stub.Client.LocalEndPoint, new[] { "a.test", "b.test", "c.test" }, 700).GetAwaiter().GetResult();
+                Assert(answered == 2 && timing.Sent == 3 && timing.Lost == 1 && timing.MedianMs.HasValue && timing.MedianMs < 700, "Local DNS timing wrong: lost " + timing.Lost);
+            }
+
+            string loadTone;
+            Assert(LoadLatency.Verdict(new LoadLatencyResult { IdleMs = 10, LoadedMs = 25, LoadedSent = 20, Mbps = 90 }, out loadTone).StartsWith("Отлично") && loadTone == "Success", "Low latency growth misjudged");
+            Assert(LoadLatency.Verdict(new LoadLatencyResult { IdleMs = 10, LoadedMs = 70, LoadedSent = 20 }, out loadTone).Contains("заметно") && loadTone == "Warning", "Moderate latency growth misjudged");
+            Assert(LoadLatency.Verdict(new LoadLatencyResult { IdleMs = 10, LoadedMs = null, LoadedSent = 20, LoadedLost = 20 }, out loadTone).Contains("перестал") && loadTone == "Danger", "Lost answers under load misjudged");
+            var timings = new List<DnsTiming> { new DnsTiming { Title = "A", MedianMs = 5, Lost = 1, Sent = 5 }, new DnsTiming { Title = "B", MedianMs = 20, Sent = 5 }, new DnsTiming { Title = "C", Sent = 5, Lost = 5 } };
+            DnsBenchmark.Rank(timings);
+            Assert(!timings[0].Fastest && timings[1].Fastest && timings[0].Result.Contains("без ответа 1 из 5") && timings[2].Result == "Не отвечает", "DNS ranking wrong");
+            var attention = new[] { new HistoryRow { Run = "a", Title = "Старое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 1, 1) }, new HistoryRow { Run = "b", Title = "Новое", Status = "Требует внимания", TimeUtc = new DateTime(2026, 2, 1) }, new HistoryRow { Run = "c", Title = "Готово", Status = "Применено" } };
+            var unfinished = MainWindow.Unfinished(attention, new List<string> { "a|Старое" });
+            Assert(unfinished.Length == 1 && unfinished[0].Run == "b" && MainWindow.Unfinished(attention, new List<string>()).First().Run == "b", "Unfinished operations misjudged");
+            var exe = Path.Combine(Path.GetTempPath(), "wintools-previous-" + Guid.NewGuid().ToString("N") + ".exe");
+            Assert(MainWindow.PreviousVersion(exe) == null, "Previous version invented");
+            File.Copy(Program.Exe, exe + ".previous");
+            try
+            {
+                Assert(MainWindow.PreviousVersion(exe) == Program.Version, "Previous version not read");
+            }
+            finally
+            {
+                File.Delete(exe + ".previous");
+            }
+
             Assert(MainWindow.RollbackLevel(catalogue[0]) == "full" && MainWindow.RollbackLevel(catalogue[1]) == "none" && MainWindow.RollbackLevel(new Tweak { Category = "APPS", Kind = "APPX" }) == "partial", "Rollback level wrong");
             Assert(MainWindow.NeedsSignIn(new Tweak { Caveat = "Нужно перезапустить Проводник или выйти и войти в Windows." }) && !MainWindow.NeedsSignIn(new Tweak { Caveat = "Дополнительных условий нет." }), "Sign-in hint wrong");
             Assert(MainWindow.Readable("Обновить") && !MainWindow.Readable("\uE72C") && !MainWindow.Readable("  ") && !MainWindow.Readable("★"), "Readable names misjudged");

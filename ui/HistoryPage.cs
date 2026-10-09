@@ -29,6 +29,9 @@ namespace Wintools
             Visible("History", !(rows.Count == 0 && failed.Count == 0));
             Text("HistoryStatus", failed.Count > 0 ? Lang.T("Журнал частично недоступен: ") + string.Join(", ", failed) + Lang.T(". Доступно записей: ") + rows.Count + Lang.T(". Записи недоступных разделов скрыты. Повторите чтение позже; подробности — в подсказке.") : rows.Count == 0 ? Lang.T("Изменений пока нет. После выполнения действия здесь появится запись.") : Lang.T("Запусков: ") + rows.Count + Lang.T(". Сначала откатывайте самые новые изменения."));
             Get<TextBlock>("HistoryStatus").ToolTip = errors.Count == 0 ? null : string.Join("\n\n", errors);
+            // Smoke runs leave test records behind; the notice is checked on its own there.
+            if (!smoke)
+                ShowAttention(rows);
             RefreshEnabled();
         }
 

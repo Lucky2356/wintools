@@ -40,23 +40,26 @@ namespace Wintools
         }
     }
 
-    // Read-only snapshot of registry and Task Scheduler actions. "Applied" matches the engine's skip rule:
-    // the engine would leave such a value or task unchanged.
+    // Read-only snapshot of registry, service, Task Scheduler and Store app actions. "Applied" matches the engine's skip rule:
+    // the engine would leave such a value, service, task or app unchanged.
     internal static class TweakStates
     {
         internal static bool Supported(Tweak item)
         {
-            return item != null && (item.Kind == "REG" || item.Kind == "TASK");
+            return item != null && (item.Kind == "REG" || item.Kind == "TASK" || item.Kind == "SVC" || item.Kind == "APPX");
         }
 
         internal static Dictionary<string, TweakState> Read(IEnumerable<Tweak> items)
         {
             var result = new Dictionary<string, TweakState>(StringComparer.OrdinalIgnoreCase);
+            string[] packages = null;
             foreach (var item in items.Where(Supported))
             {
                 try
                 {
-                    result[item.Id] = item.Kind == "REG" ? ReadRegistry(item) : ReadTask(item.Target);
+                    if (item.Kind == "APPX" && packages == null)
+                        packages = RegisteredPackages();
+                    result[item.Id] = item.Kind == "REG" ? ReadRegistry(item) : item.Kind == "SVC" ? ReadService(item) : item.Kind == "APPX" ? Package(item.Target, packages) : ReadTask(item.Target);
                 }
                 catch (Exception ex)
                 {
@@ -118,6 +121,41 @@ namespace Wintools
             }
 
             return TweakState.Unknown(Lang.T("Тип значения не проверяется"));
+        }
+
+        // The start type lives in the service's registry key: 2 automatic, 3 manual, 4 disabled. An absent service is skipped by the engine.
+        private static TweakState ReadService(Tweak item)
+        {
+            using (var root = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            using (var key = root.OpenSubKey("SYSTEM\\CurrentControlSet\\Services\\" + item.Target, false))
+                return Service(item.Value, key == null ? null : key.GetValue("Start") as int?);
+        }
+
+        internal static TweakState Service(string wanted, int? start)
+        {
+            if (start == null)
+                return TweakState.Known(true, Lang.T("службы нет в этой Windows"));
+            int expected = wanted == "disabled" ? 4 : wanted == "demand" ? 3 : wanted == "auto" ? 2 : -1;
+            if (expected < 0)
+                return TweakState.Unknown(Lang.T("Тип запуска не проверяется"));
+            var names = new Dictionary<int, string> { { 2, Lang.T("запуск автоматический") }, { 3, Lang.T("запуск вручную") }, { 4, Lang.T("служба отключена") } };
+            string current;
+            return TweakState.Known(start == expected, names.TryGetValue(start.Value, out current) ? current : Lang.T("тип запуска ") + start);
+        }
+
+        // Packages registered for the current user, as full names like Microsoft.BingNews_4.1_x64__8wekyb3d8bbwe.
+        private static string[] RegisteredPackages()
+        {
+            using (var key = Registry.CurrentUser.OpenSubKey("Software\\Classes\\Local Settings\\Software\\Microsoft\\Windows\\CurrentVersion\\AppModel\\Repository\\Packages", false))
+                return key == null ? null : key.GetSubKeyNames();
+        }
+
+        internal static TweakState Package(string name, string[] packages)
+        {
+            if (packages == null)
+                return TweakState.Unknown(Lang.T("Список приложений Store не прочитан"));
+            bool installed = packages.Any(p => p.StartsWith(name + "_", StringComparison.OrdinalIgnoreCase));
+            return TweakState.Known(!installed, installed ? Lang.T("приложение установлено") : Lang.T("приложения нет у этого пользователя"));
         }
 
         internal static bool TryDword(string text, out uint value)

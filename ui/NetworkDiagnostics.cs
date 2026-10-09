@@ -201,6 +201,7 @@ namespace Wintools
             };
             ping.Children.Add(rowsToggle);
             ping.Children.Add(networkTestRows);
+            InitializeLoadLatency(ping);
             InitializeDns(tools);
             InitializeHosts(tools);
             networkTestStart.Click += async (s, e) => await ProbeNetwork();
@@ -240,7 +241,7 @@ namespace Wintools
 
         private async Task ProbeNetwork()
         {
-            if (probingNetwork)
+            if (probingNetwork || measuringLoad)
                 return;
             string host = networkHost.Text.Trim();
             if (!NetworkProbe.ValidHost(host))
@@ -251,7 +252,7 @@ namespace Wintools
 
             probingNetwork = true;
             stopNetwork = false;
-            networkHost.IsEnabled = networkTestStart.IsEnabled = false;
+            networkHost.IsEnabled = networkTestStart.IsEnabled = loadLatencyStart.IsEnabled = false;
             networkTestStop.IsEnabled = true;
             networkTestProgress.Value = 0;
             networkTestProgress.Visibility = Visibility.Visible;
@@ -305,7 +306,7 @@ namespace Wintools
                 {
                     networkTestProgress.Visibility = Visibility.Collapsed;
                     ShowNetworkResult(samples);
-                    networkHost.IsEnabled = networkTestStart.IsEnabled = true;
+                    networkHost.IsEnabled = networkTestStart.IsEnabled = loadLatencyStart.IsEnabled = true;
                     networkTestStop.IsEnabled = false;
                     if (stopNetwork)
                     {
