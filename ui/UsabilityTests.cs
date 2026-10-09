@@ -118,7 +118,8 @@ namespace Wintools
             // The language switch names the other language on purpose, so it can be found by someone who cannot read this one.
             var allowed = new[] { "Русский", "Язык", "Interface language · Язык" };
             var left = new List<string>();
-            foreach (int index in new[] { HomeIndex, 2, 3, 0, 8, 1 })
+            // History is left out: it lists records the Russian smoke created, such as its test Store package.
+            foreach (int index in new[] { HomeIndex, 2, 3, 0, 8 })
             {
                 ShowPage(index);
                 Window.UpdateLayout();
