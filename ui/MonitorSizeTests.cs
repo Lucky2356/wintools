@@ -12,8 +12,8 @@ namespace Wintools
     {
         // Draws the current page as it is laid out on a monitor of the given size in device-independent pixels.
         // The runner screen is small, so the window keeps the monitor's proportions and the layout is zoomed out to fit;
-        // the picture is then rendered at full resolution.
-        private async Task CaptureAt(string name, double width, double height)
+        // the picture is then rendered at full resolution. Larger text zooms the layout further, as the window does.
+        private async Task CaptureAt(string name, double width, double height, double text = 1)
         {
             var root = (FrameworkElement)Window.Content;
             Window.UpdateLayout();
@@ -24,19 +24,20 @@ namespace Wintools
             Window.Height = Math.Round(height * zoom) + frameHeight;
             Window.UpdateLayout();
             // The client area the window really got decides the zoom, so the layout sees exactly the requested size.
-            layoutZoom = Math.Min((Window.ActualWidth - frameWidth) / width, (Window.ActualHeight - frameHeight) / height);
+            double fit = Math.Min((Window.ActualWidth - frameWidth) / width, (Window.ActualHeight - frameHeight) / height);
+            layoutZoom = fit * text;
             AdaptLayout();
             Window.UpdateLayout();
             await Task.Delay(150);
             Window.UpdateLayout();
-            double dpi = 96 / layoutZoom;
-            var bitmap = new RenderTargetBitmap((int)Math.Round(root.ActualWidth), (int)Math.Round(root.ActualHeight), dpi, dpi, PixelFormats.Pbgra32);
+            double dpi = 96 / fit;
+            var bitmap = new RenderTargetBitmap((int)Math.Round(root.ActualWidth * text), (int)Math.Round(root.ActualHeight * text), dpi, dpi, PixelFormats.Pbgra32);
             bitmap.Render(root);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using (var file = File.Create(Path.Combine(Program.Home, name)))
                 encoder.Save(file);
-            Assert(Math.Abs(root.ActualWidth - width) < 24 && Math.Abs(root.ActualHeight - height) < 24, "Layout for " + width + "x" + height + " got " + root.ActualWidth + "x" + root.ActualHeight);
+            Assert(Math.Abs(root.ActualWidth * text - width) < 24 && Math.Abs(root.ActualHeight * text - height) < 24, "Layout for " + width + "x" + height + " at " + text + " got " + root.ActualWidth + "x" + root.ActualHeight);
         }
 
         private void EndCaptureAt(double width, double height)
@@ -90,6 +91,18 @@ namespace Wintools
 
                     if (index == 11)
                         integrityChoice.SelectedIndex = 0;
+                }
+
+                // The largest text size on a Full HD monitor: the layout sees a window of about 1010 × 570 and must still fit.
+                if (size.Width == 1920)
+                {
+                    double text = EffectiveTextScale(2, size.Width, size.Height);
+                    foreach (int index in new[] { HomeIndex, 3, 0 })
+                    {
+                        ShowPage(index);
+                        await CaptureAt("portable-ui-at-fhd-text200-" + index + ".png", size.Width, size.Height, text);
+                        Assert(IsVisibleInWindow("NavHome") && IsVisibleInWindow("PageTitle"), "Navigation clipped at 200 % text");
+                    }
                 }
 
                 if (size.Width == 2560)

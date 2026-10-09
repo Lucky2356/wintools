@@ -81,12 +81,36 @@ namespace Wintools
                         Section(Lang.T("Не принимаю удалённые подключения"), Lang.T("Отключает 3 службы удалённого рабочего стола. Удалённо подключиться к этому ПК через RDP будет нельзя."), false, "SVC-SESSIONENV", "SVC-TERMSERVICE", "SVC-UMRDPSERVICE"),
                         Section(Lang.T("Не использую печать и сканирование"), Lang.T("Отключает 6 служб печати и сканирования, включая печать в PDF."), false, "SVC-SPOOLER", "SVC-PRINTNOTIFY", "SVC-PRINTSCANBROKERSERVICE", "SVC-PRINTDEVICECONFIGURATIONSERVICE", "SVC-STISVC", "SVC-WIARPC")
                     }
+                },
+                new CollectionChoice
+                {
+                    Title = Lang.T("Слабый компьютер"),
+                    Sections = new[]
+                    {
+                        Section(Lang.T("Меньше фоновой работы"), Lang.T("Отключает виджеты, ленту новостей, предварительный запуск и фоновую работу Edge, а также тихую установку предложенных приложений."), true, "UI-WIDGETS", "UI-FEEDS", "EDGE-STARTUP-BOOST", "EDGE-BACKGROUND-OFF", "PRIV-CDM-SILENTAPPS", "PRIV-CDM-PREINSTALL"),
+                        Section(Lang.T("Отзывчивее интерфейс"), Lang.T("Меню открываются без задержки, панель задач работает без анимации, программы автозагрузки стартуют без дополнительной паузы."), true, "UI-MENUDELAY", "UI-TASKBARANIM", "UI-STARTUPDELAY"),
+                        Section(Lang.T("Обновления только из локальной сети"), Lang.T("Компьютер не раздаёт обновления Windows другим компьютерам в интернете: меньше нагрузки на сеть и диск."), true, "UPD-DO-LAN"),
+                        Section(Lang.T("Не ищу по содержимому файлов"), Lang.T("Отключает индексирование Windows Search. Поиск в Пуске и Проводнике станет медленнее и не найдёт текст внутри документов."), false, "PERF-WSEARCH"),
+                        Section(Lang.T("Не использую дополнительные функции Windows"), Lang.T("Отключает 8 служб: демонстрацию магазина, офлайн-карты, факс, медиатеку, кошелёк/NFC, Insider и удалённую установку приложений."), false, "SVC-RETAILDEMO", "SVC-MAPSBROKER", "SVC-FAX", "SVC-WMPNETWORKSVC", "SVC-WALLETSERVICE", "SVC-SEMGRSVC", "SVC-WISVC", "SVC-PUSHTOINSTALL")
+                    }
+                },
+                new CollectionChoice
+                {
+                    Title = Lang.T("Ноутбук: меньше фоновой работы"),
+                    Sections = new[]
+                    {
+                        Section(Lang.T("Edge не работает в фоне"), Lang.T("Edge не запускается заранее после входа и не остаётся работать после закрытия окна."), true, "EDGE-STARTUP-BOOST", "EDGE-BACKGROUND-OFF"),
+                        Section(Lang.T("Меньше уведомлений и предложений"), Lang.T("Убирает виджеты, ленту новостей, всплывающие советы и предложения Windows."), true, "UI-WIDGETS", "UI-FEEDS", "PRIV-SOFTLANDING", "PRIV-CDM-SYSPANE", "PRIV-CDM-SILENTAPPS"),
+                        Section(Lang.T("Без перезагрузки во время работы"), Lang.T("Windows не перезагружает ноутбук после обновлений, пока вы вошли в систему, и не раздаёт обновления через интернет."), true, "UPD-NOREBOOT", "UPD-DO-LAN"),
+                        Section(Lang.T("Не использую Bluetooth"), Lang.T("Отключает 3 службы. Беспроводные наушники, мышь и контроллеры Bluetooth могут перестать работать."), false, "SVC-BTHSERV", "SVC-BTHAVCTPSVC", "SVC-BTAGSERVICE"),
+                        Section(Lang.T("Не принимаю удалённые подключения"), Lang.T("Отключает 3 службы удалённого рабочего стола. Удалённо подключиться к этому ПК через RDP будет нельзя."), false, "SVC-SESSIONENV", "SVC-TERMSERVICE", "SVC-UMRDPSERVICE")
+                    }
                 }
             };
             var root = new StackPanel();
-            root.Children.Add(Intro(Lang.T("Выберите готовую подборку и снимите отметки с того, чем пользуетесь."), Lang.T("Настройте одну из трёх подборок под себя. Отмечайте дополнительные группы только для функций, которыми не пользуетесь. Выбор ничего не меняет в Windows: сначала посмотрите действия или добавьте их в план.")));
+            root.Children.Add(Intro(Lang.T("Выберите готовую подборку и снимите отметки с того, чем пользуетесь."), Lang.T("Настройте одну из пяти подборок под себя. Отмечайте дополнительные группы только для функций, которыми не пользуетесь. Выбор ничего не меняет в Windows: сначала посмотрите действия или добавьте их в план.")));
             InitializeCollectionAssistant(root);
-            // Three collections side by side on a wide screen; every card keeps its buttons on the bottom line.
+            // Collections side by side on a wide screen; every card keeps its buttons on the bottom line.
             collectionCards = new CardFlow(380, 3, true);
             root.Children.Add(collectionCards);
             Get<ScrollViewer>("CollectionsPage").Content = root;
@@ -141,7 +165,7 @@ namespace Wintools
                 collectionPlanButtons.Add(add);
                 choice.Add = add;
                 var browse = ToolButton(actions, Lang.T("Посмотреть действия →"), () => ChooseCollection(CollectionIds(choice)));
-                Window.RegisterName(new[] { "CollectionPrivacy", "CollectionExplorer", "CollectionGaming" }[i], browse);
+                Window.RegisterName(new[] { "CollectionPrivacy", "CollectionExplorer", "CollectionGaming", "CollectionLight", "CollectionLaptop" }[i], browse);
                 var guided = ToolButton(actions, Lang.T("Подобрать по ответам…"), () => OpenCollectionAssistant(choice));
                 guided.SetResourceReference(FrameworkElement.StyleProperty, "Ghost");
                 collectionPlanButtons.Add(guided);

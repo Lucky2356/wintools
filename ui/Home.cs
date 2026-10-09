@@ -29,6 +29,16 @@ namespace Wintools
                 AddScenario(grid, "\uE74D", "Success", Lang.T("Освободить место"), Lang.T("Временные файлы, кэш браузеров и что занимает больше всего места на диске."), Lang.T("Посмотреть"), () => OpenMaintenance(6)),
                 AddScenario(grid, "\uE90F", "Warning", Lang.T("Проверить Windows"), Lang.T("Проверка системных файлов и компонентов без изменений; восстановление — по вашему решению."), Lang.T("Проверить"), () => OpenMaintenance(0))
             };
+            // Ready collections for common situations, each opening its card on the collections page.
+            var sets = new TextBlock { Text = Lang.T("Готовые подборки"), FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 26, 0, 12) };
+            sets.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+            panel.Children.Add(sets);
+            var setTiles = new CardFlow(210, 5, true) { Gap = 8 };
+            panel.Children.Add(setTiles);
+            var setGlyphs = new[] { "\uE72E", "\uEC50", "\uE7FC", "\uE9D9", "\uE7F8" };
+            var setDetails = new[] { Lang.T("Меньше рекламы, советов и сбора данных"), Lang.T("Расширения файлов, чистая история, быстрые меню"), Lang.T("Без фоновой записи игр и лишних служб"), Lang.T("Меньше фоновой работы на старом ПК"), Lang.T("Меньше фона, уведомлений и перезагрузок") };
+            for (int i = 0; i < collectionChoices.Length; i++)
+                AddCollectionTile(setTiles, i, setGlyphs[i], setDetails[i]);
             // Every tool one click away: on a large monitor this fills the start page instead of leaving it half empty.
             var more = new TextBlock { Text = Lang.T("Все инструменты"), FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 26, 0, 12) };
             more.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
@@ -72,6 +82,37 @@ namespace Wintools
             System.Windows.Automation.AutomationProperties.SetName(button, Lang.T((string)source.ToolTip));
             button.Click += (s, e) => ShowPage(index);
             tools.Children.Add(button);
+            homeShortcuts[index] = button;
+        }
+
+        private void AddCollectionTile(Panel tiles, int index, string glyph, string detail)
+        {
+            var row = new Grid();
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            var icon = new TextBlock { Text = glyph, FontSize = 18, Width = 28, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 2, 12, 0), TextWrapping = TextWrapping.NoWrap };
+            icon.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
+            icon.SetResourceReference(TextBlock.ForegroundProperty, "Accent2");
+            row.Children.Add(icon);
+            var words = new StackPanel();
+            Grid.SetColumn(words, 1);
+            words.Children.Add(new TextBlock { Text = collectionChoices[index].Title, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            var about = new TextBlock { Text = detail, FontSize = 12, LineHeight = 17, Margin = new Thickness(0, 2, 0, 0), TextWrapping = TextWrapping.Wrap };
+            about.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            words.Children.Add(about);
+            row.Children.Add(words);
+            var button = new Button { Content = row, Padding = new Thickness(14, 12, 14, 12) };
+            button.SetResourceReference(FrameworkElement.StyleProperty, "Tile");
+            System.Windows.Automation.AutomationProperties.SetName(button, collectionChoices[index].Title + ". " + detail);
+            button.Click += (s, e) =>
+            {
+                ShowPage(2);
+                Window.UpdateLayout();
+                var card = (FrameworkElement)collectionCards.Children[index];
+                card.BringIntoView();
+                card.Focus();
+            };
+            tiles.Children.Add(button);
         }
 
         private void OpenMaintenance(int mode)

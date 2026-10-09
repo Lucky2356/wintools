@@ -64,7 +64,7 @@ namespace Wintools
                 var expected = AssistantIds();
                 NextAssistant();
                 Assert(assistantChoice == null && CollectionIds(gaming).SequenceEqual(expected) && preferences.Plan.SequenceEqual(plan), "Wizard changed plan or did not apply reviewed groups");
-                Assert(collectionChoices.Length == 3, "Wizard added a top-level collection");
+                Assert(collectionChoices.Length == 5, "Wizard added a top-level collection");
             }
             finally
             {

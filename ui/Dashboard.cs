@@ -46,6 +46,7 @@ namespace Wintools
         private const double RingSize = 56, RingStroke = 6;
         private readonly ResourceReader dashboardReader = new ResourceReader();
         private DispatcherTimer dashboardTimer;
+        private TimeSpan liveInterval = TimeSpan.FromSeconds(2);
         private Gauge cpuGauge, memoryGauge, diskGauge, uptimeGauge;
         private TextBlock dashboardHeadline, dashboardDetail, dashboardMark;
         private Border dashboardBadge;
@@ -151,7 +152,7 @@ namespace Wintools
             dashboardTimer = new DispatcherTimer();
             dashboardTimer.Tick += (s, e) =>
             {
-                dashboardTimer.Interval = TimeSpan.FromSeconds(2);
+                dashboardTimer.Interval = liveInterval;
                 if (closed)
                     dashboardTimer.Stop();
                 else if (page == HomeIndex && Window.WindowState != WindowState.Minimized)

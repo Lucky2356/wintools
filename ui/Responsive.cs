@@ -90,7 +90,8 @@ namespace Wintools
             Get<Border>("ActionCard").Padding = tight ? new Thickness(14, 12, 14, 12) : new Thickness(20, 18, 20, 18);
             Get<TextBlock>("ActionTitle").FontSize = tight ? 16 : 20;
             Visible("ActionLabel", !tight);
-            Get<TextBlock>("Metadata").Margin = tight ? new Thickness(0, 4, 0, 8) : new Thickness(0, 6, 0, 14);
+            Get<TextBlock>("Metadata").Margin = tight ? new Thickness(0, 4, 0, 6) : new Thickness(0, 6, 0, 8);
+            Get<FrameworkElement>("Facts").Margin = tight ? new Thickness(0, 0, 0, 6) : new Thickness(0, 0, 0, 12);
             Get<TextBox>("Output").Height = dense ? 64 : 140;
         }
     }

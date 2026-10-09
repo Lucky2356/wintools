@@ -116,6 +116,13 @@ namespace Wintools
         public bool IncludePreview = Program.Version.Contains("-");
         public bool RestorePoint = true;
         public bool VerifyAfterUpdates = true;
+        // "simple" hides expert tools and high-risk actions; "full" shows everything. New users start simple.
+        public string Mode = "simple";
+        // Fewer effects and slower live graphs for older or busy computers.
+        public bool Lite;
+        public bool Welcomed;
+        // The version whose "What's new" was last shown; empty until the first start.
+        public string SeenVersion = "";
         public string WindowsBuild;
         public List<string> Favorites = new List<string>();
         public List<string> Plan = new List<string>();
@@ -124,40 +131,60 @@ namespace Wintools
             "system",
             "100",
             "125",
-            "150"
+            "150",
+            "175",
+            "200"
         };
 
         internal static Preferences Load()
         {
             try
             {
-                var result = new JavaScriptSerializer().Deserialize<Preferences>(File.ReadAllText(Path.Combine(Program.Data, "preferences.json"))) ?? new Preferences();
-                if (!new[]
-                {
-                    "system",
-                    "light",
-                    "dark"
-                }.Contains(result.Theme))
-                    result.Theme = "system";
-                if (!new[]
-                {
-                    "system",
-                    "ru",
-                    "en"
-                }.Contains(result.Language))
-                    result.Language = "system";
-                if (!TextSizes.Contains(result.TextSize))
-                    result.TextSize = "system";
-                if (result.Favorites == null)
-                    result.Favorites = new List<string>();
-                if (result.Plan == null)
-                    result.Plan = new List<string>();
-                return result;
+                return Parse(File.ReadAllText(Path.Combine(Program.Data, "preferences.json")));
             }
             catch
             {
                 return new Preferences();
             }
+        }
+
+        internal static Preferences Parse(string text)
+        {
+            var result = new JavaScriptSerializer().Deserialize<Preferences>(text) ?? new Preferences();
+            // Preferences saved before the welcome existed belong to people who already know the program:
+            // they keep every tool and skip the introduction, and their first "What's new" is this version's.
+            if (!text.Contains("\"Welcomed\""))
+            {
+                result.Welcomed = true;
+                result.Mode = "full";
+                result.SeenVersion = "";
+            }
+
+            if (result.Mode != "simple" && result.Mode != "full")
+                result.Mode = "full";
+            if (result.SeenVersion == null)
+                result.SeenVersion = "";
+            if (!new[]
+            {
+                "system",
+                "light",
+                "dark"
+            }.Contains(result.Theme))
+                result.Theme = "system";
+            if (!new[]
+            {
+                "system",
+                "ru",
+                "en"
+            }.Contains(result.Language))
+                result.Language = "system";
+            if (!TextSizes.Contains(result.TextSize))
+                result.TextSize = "system";
+            if (result.Favorites == null)
+                result.Favorites = new List<string>();
+            if (result.Plan == null)
+                result.Plan = new List<string>();
+            return result;
         }
 
         internal void Save()

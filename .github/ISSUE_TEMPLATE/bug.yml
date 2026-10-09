@@ -1,0 +1,30 @@
+name: Ошибка · Bug
+description: Что-то работает не так · Something does not work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо! Можно писать по-русски или по-английски. Thanks! Russian or English is fine.
+        Пакет диагностики: «Настройки → Собрать пакет диагностики». Имя пользователя и компьютера в нём заменяются.
+        Diagnostics package: Settings → Create diagnostics bundle. User and computer names are replaced.
+  - type: textarea
+    id: what
+    attributes:
+      label: Что произошло · What happened
+      description: Что вы сделали, что ожидали и что получили · What you did, expected and got
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Версия Wintools и Windows · Wintools and Windows version
+      placeholder: "Wintools 0.34.0 · Windows 11 24H2 · x64"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Подробности операции · Operation details
+      description: Текст из «Подробности» внизу окна или вложенный пакет диагностики · Text from Details at the bottom of the window or the attached diagnostics package
+      render: text

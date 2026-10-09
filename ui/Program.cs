@@ -44,6 +44,16 @@ namespace Wintools
             }
         }
 
+        // The process architecture as Windows reports it: x64 on Intel and AMD, ARM64 when .NET runs natively on Arm.
+        internal static string Architecture
+        {
+            get
+            {
+                var value = (Environment.GetEnvironmentVariable("PROCESSOR_ARCHITECTURE") ?? "").ToUpperInvariant();
+                return value == "AMD64" ? "x64" : value == "ARM64" ? "ARM64" : value.Length == 0 ? (Environment.Is64BitProcess ? "64-bit" : "32-bit") : value.ToLowerInvariant();
+            }
+        }
+
         internal static bool Hosted
         {
             get
@@ -51,6 +61,9 @@ namespace Wintools
                 return Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true" && Environment.GetEnvironmentVariable("RUNNER_ENVIRONMENT") == "github-hosted";
             }
         }
+
+        // The English screenshots run after the main smoke in the same disposable folder.
+        internal static bool EnglishSmoke { get; private set; }
 
         internal const string DpiSwitch = "Switch.System.Windows.DoNotScaleForDpiChanges";
         internal const string PopupDpiSwitch = "Switch.System.Windows.DoNotUsePresentationDpiCapabilityTier2OrGreater";
@@ -63,11 +76,13 @@ namespace Wintools
             AppContext.SetSwitch(DpiSwitch, false);
             AppContext.SetSwitch(PopupDpiSwitch, false);
             Application.EnableVisualStyles();
+            bool apply = false;
             try
             {
                 // Tests compare Russian texts, so test modes always run in the source language.
                 bool testMode = args.Length == 1 && (args[0] == "--ui-smoke" || args[0] == "--self-test" || args[0] == "--unit-test");
-                Lang.Initialize(testMode ? "ru" : Preferences.Load().Language, testMode);
+                EnglishSmoke = args.Length == 1 && args[0] == "--ui-smoke-english";
+                Lang.Initialize(EnglishSmoke ? "en" : testMode ? "ru" : Preferences.Load().Language, testMode);
                 if (args.Length > 0 && args[0] == "--replace")
                     return Updates.Replace(args);
                 if (args.Length > 0 && args[0] == "--startup-worker")
@@ -93,12 +108,13 @@ namespace Wintools
                 if (args.Length == 1 && args[0] == "--unit-test")
                     return UnitTests.Run();
                 bool test = args.Length == 1 && args[0] == "--self-test";
-                bool smoke = args.Length == 1 && args[0] == "--ui-smoke";
+                bool smoke = args.Length == 1 && args[0] == "--ui-smoke" || EnglishSmoke;
+                apply = Cli.Requested(args);
                 if (test && !Hosted)
                     throw new InvalidOperationException("System integration tests run only on GitHub-hosted runners.");
-                if (smoke && !Hosted && Directory.Exists(Data))
+                if (smoke && !Hosted && (EnglishSmoke || Directory.Exists(Data)))
                     throw new InvalidOperationException("UI smoke requires a fresh portable directory so existing preferences and history cannot be changed.");
-                if (args.Length > 0 && !test && !smoke)
+                if (args.Length > 0 && !test && !smoke && !apply)
                     throw new ArgumentException("Unknown argument.");
                 using (var gate = new Mutex(false, MutexName(Home)))
                 {
@@ -112,6 +128,8 @@ namespace Wintools
                         acquired = true;
                     }
 
+                    if (!acquired && apply)
+                        return Cli.Fail(args, Lang.T("Этот portable-каталог уже открыт в другом экземпляре."));
                     if (!acquired)
                         throw new InvalidOperationException(Lang.T("Этот portable-каталог уже открыт в другом экземпляре."));
                     try
@@ -120,6 +138,8 @@ namespace Wintools
                         RemoveStaleWorkFiles();
                         if (test)
                             return SelfTests.Run();
+                        if (apply)
+                            return Cli.Apply(args);
                         var application = new System.Windows.Application
                         {
                             ShutdownMode = System.Windows.ShutdownMode.OnMainWindowClose
@@ -143,6 +163,8 @@ namespace Wintools
             }
             catch (Exception ex)
             {
+                if (apply)
+                    return Cli.Fail(args, ex.Message);
                 if (Hosted)
                 {
                     File.WriteAllText(Path.Combine(Home, "portable-error.txt"), ex.ToString());

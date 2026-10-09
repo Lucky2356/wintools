@@ -29,6 +29,7 @@ namespace Wintools
                 Margin = new Thickness(0, 0, 0, 14)
             };
             Card(card);
+            hostsCard = card;
             parent.Children.Add(card);
             var heading = Paragraph(Lang.T("Блокировка сайтов через hosts"));
             heading.SetResourceReference(FrameworkElement.StyleProperty, "CardTitle");

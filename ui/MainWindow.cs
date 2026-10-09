@@ -141,7 +141,7 @@ namespace Wintools
             Lang.T("Установка программ"),
             Lang.T("Ваш компьютер сегодня")
         };
-        private static readonly string[] PageHints = { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Три подборки с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди."), Lang.T("Состояние ПК и самые частые задачи в один клик.") };
+        private static readonly string[] PageHints = { Lang.T("Выберите раздел или найдите нужное действие."), Lang.T("Исходные состояния и откат сохранённых запусков."), Lang.T("Пять подборок с настройкой под ваши задачи."), Lang.T("Автообновление, защита и данные приложения."), Lang.T("Соберите действия, проверьте и выполните по порядку."), Lang.T("Снимок установленных служб Windows."), Lang.T("Показатели и подсказки вместо технического лога."), Lang.T("Сохранились ли применённые настройки?"), Lang.T("Выберите улучшение под свою задачу."), Lang.T("Поиск, запуск и управление установленными приложениями."), Lang.T("Задержка, ответы сервера и стабильность соединения."), Lang.T("Очистка файлов, проверка и восстановление Windows."), Lang.T("Выберите, какие программы нужны сразу после входа."), Lang.T("Приоритет и доступные процессоры для выбранного запуска."), Lang.T("Популярные программы из каталога winget: установка и обновление по очереди."), Lang.T("Состояние ПК и самые частые задачи в один клик.") };
         private readonly string[] pages =
         {
             "CataloguePage",
@@ -231,6 +231,9 @@ namespace Wintools
         internal MainWindow(bool smokeMode)
         {
             smoke = smokeMode;
+            // The smoke run starts from a fresh folder; it exercises every tool and checks the simple mode on its own.
+            if (smoke)
+                preferences.Mode = "full";
             using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Wintools.Shell.xaml"))
                 Window = (Window)XamlReader.Load(stream);
             Lang.Translate(Window);
@@ -239,7 +242,7 @@ namespace Wintools
                 Window.Icon = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
             }
 
-            Text("VersionLabel", Lang.T("Версия ") + Program.Version + " · x64");
+            Text("VersionLabel", Lang.T("Версия ") + Program.Version + " · " + Program.Architecture);
             Text("UpdateStatus", Lang.T("Установлена версия ") + Program.Version + Lang.T(". Проверьте наличие обновления."));
             Get<ComboBox>("Category").ItemsSource = Catalogue.Categories;
             Get<ComboBox>("Category").SelectedIndex = 0;
@@ -334,6 +337,10 @@ namespace Wintools
                 preferences.AutoCheck = Checked("AutoCheck");
                 SavePreferences();
                 ShowUpdateMode();
+                if (!preferences.Welcomed)
+                    ShowWelcome();
+                else if (preferences.SeenVersion != Program.Version)
+                    ShowWhatsNew();
                 await RefreshServices();
                 if (preferences.AutoCheck)
                     await CheckUpdates(false);
@@ -566,7 +573,10 @@ namespace Wintools
                 {
                     try
                     {
-                        await Smoke();
+                        if (Program.EnglishSmoke)
+                            await EnglishSmoke();
+                        else
+                            await Smoke();
                     }
                     catch (Exception ex)
                     {
@@ -599,6 +609,11 @@ namespace Wintools
             InitializeResponsive();
             InitializePlan();
             InitializeProfiles();
+            InitializeSheets();
+            InitializeProblems();
+            InitializeShortcuts();
+            InitializeAccessibility();
+            InitializeModes();
             ready = true;
             ApplyTheme();
             Filter();
@@ -657,7 +672,7 @@ namespace Wintools
         private void ShowPage(int index)
         {
             // Startup, processes and services live in the collapsed expert group; opening one of them shows the group.
-            if (index == 5 || index == 12 || index == 13)
+            if ((index == 5 || index == 12 || index == 13) && !Simple)
                 ShowAdvancedNav(true);
             page = index;
             StatusForPage(index);
@@ -685,6 +700,8 @@ namespace Wintools
             }
 
             Text("PageTitle", PageTitles[index]);
+            var shown = Get<DependencyObject>(pages[index]);
+            Window.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, new Action(() => NameControls(shown)));
             if (index == HomeIndex && cpuGauge != null)
                 RefreshDashboard();
             Text("PageHint", PageHints[index]);
@@ -767,7 +784,8 @@ namespace Wintools
                 return;
             var item = Selected();
             Text("ActionTitle", item == null ? Lang.T("Выберите действие") : item.Title);
-            Text("Metadata", item == null ? "" : Risk(item) + "  ·  Windows " + (item.Os == "any" ? "10 / 11" : item.Os == "win11" ? "11" : "10"));
+            Text("Metadata", item == null ? "" : Lang.T("Для Windows ") + (item.Os == "any" ? "10 / 11" : item.Os == "win11" ? "11" : "10"));
+            ShowFacts(item);
             Text("Description", item == null ? Lang.T("Результаты поиска появятся слева. Выберите действие, чтобы прочитать его описание.") : item.Description + StateDetail(item));
             Text("Rollback", item == null ? "—" : item.Rollback);
             Get<Button>("Star").Content = item != null && preferences.Favorites.Contains(item.Id) ? "★" : "☆";
@@ -901,7 +919,7 @@ namespace Wintools
             var pending = confirmation;
             confirmation = null;
             Visible("ConfirmOverlay", false);
-            Get<Grid>("Body").IsEnabled = true;
+            Get<Grid>("Body").IsEnabled = !SheetOpen;
             pending.SetResult(accepted);
         }
 
@@ -1336,6 +1354,7 @@ namespace Wintools
             await CollectionAssistantSmoke();
             await CatalogueStateSmoke();
             HistoryIsolationSmoke();
+            await UsabilitySmoke();
             await MonitorSizesSmoke();
             ShowPage(0);
             Window.Width = Window.MinWidth;

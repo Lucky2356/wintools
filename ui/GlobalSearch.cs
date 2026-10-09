@@ -106,7 +106,7 @@ namespace Wintools
             Get<Button>("NavSearch").Click += (s, e) => OpenGlobalSearch();
             Window.PreviewKeyDown += (s, e) =>
             {
-                if (e.Key == Key.K && (Keyboard.Modifiers & ModifierKeys.Control) != 0 && confirmation == null)
+                if (e.Key == Key.K && (Keyboard.Modifiers & ModifierKeys.Control) != 0 && confirmation == null && !SheetOpen)
                 {
                     OpenGlobalSearch();
                     e.Handled = true;
@@ -155,6 +155,8 @@ namespace Wintools
             for (int i = 0; i < PageTitles.Length; i++)
             {
                 int index = i;
+                if (Simple && ExpertPages.Contains(index))
+                    continue;
                 var label = Get<Button>(nav[i]).Content as string ?? PageTitles[i];
                 if (Matches(query, label, PageTitles[i]))
                     hits.Add(new SearchHit { Title = label, Detail = Lang.T("Раздел · ") + PageTitles[i], Open = () => ShowPage(index) });
@@ -162,7 +164,7 @@ namespace Wintools
 
             if (query.Length < 2)
                 return hits.ToArray();
-            foreach (var item in catalogue.Where(t => Matches(query, t.Title, t.Id, t.Description)).Take(15))
+            foreach (var item in catalogue.Where(t => (!Simple || t.Risk != "high") && Matches(query, t.Title, t.Id, t.Description)).Take(15))
             {
                 var id = item.Id;
                 hits.Add(new SearchHit { Title = item.Title, Detail = Lang.T("Настройка · ") + Catalogue.Categories[item.Category] + " · " + Risk(item), Open = () =>
@@ -174,7 +176,7 @@ namespace Wintools
                 } });
             }
 
-            foreach (var service in (services ?? new ServiceState[0]).Where(s => Matches(query, s.Label, s.Name)).Take(8))
+            foreach (var service in (Simple ? new ServiceState[0] : services ?? new ServiceState[0]).Where(s => Matches(query, s.Label, s.Name)).Take(8))
             {
                 var name = service.Name;
                 hits.Add(new SearchHit { Title = service.Title, Detail = Lang.T("Служба · ") + service.RunningLabel, Open = () =>

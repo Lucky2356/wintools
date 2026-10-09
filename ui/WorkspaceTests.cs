@@ -11,8 +11,8 @@ namespace Wintools
     {
         private async Task WorkspaceSmoke()
         {
-            Assert(collectionChoices.Length == 3, "Unexpected top-level collections");
-            Assert(collectionChoices.Select(c => c.Sections.SelectMany(s => s.Ids).Distinct().Count()).SequenceEqual(new[] { 45, 29, 38 }), "Expanded collection sizes changed");
+            Assert(collectionChoices.Length == 5, "Unexpected top-level collections");
+            Assert(collectionChoices.Select(c => c.Sections.SelectMany(s => s.Ids).Distinct().Count()).SequenceEqual(new[] { 45, 29, 38, 19, 15 }), "Expanded collection sizes changed");
             foreach (var choice in collectionChoices)
             {
                 for (int i = 0; i < choice.Sections.Length; i++)

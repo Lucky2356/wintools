@@ -128,7 +128,8 @@ namespace Wintools
         private TextBox serviceSearch;
         private CheckBox runningOnly;
         private ListBox serviceList;
-        private Button serviceRefresh, healthStart, verificationStart, verificationPlan;
+        private Button serviceRefresh, healthStart, verificationStart, verificationPlan, verificationSave;
+        private string[][] verificationRows = new string[0][];
         private string[] verificationDrift = new string[0];
         private ProgressBar healthProgress;
         private string priorMemory;
@@ -272,6 +273,8 @@ namespace Wintools
             panel.Children.Add(verificationResult);
             verificationPlan = ToolButton(panel, Lang.T("Добавить изменившиеся в план"), AddDriftToPlan);
             verificationPlan.Visibility = Visibility.Collapsed;
+            verificationSave = ToolButton(panel, Lang.T("Сохранить отчёт (HTML)"), SaveVerificationReport);
+            verificationSave.Visibility = Visibility.Collapsed;
             ToolButton(panel, Lang.T("Открыть историю и откат →"), () => ShowPage(1));
             var optimization = ToolPage("OptimizationPage");
             // The power plan, the first step and the advice cards flow into columns on a wide screen.
@@ -537,6 +540,7 @@ namespace Wintools
                 var rows = Regex.Matches(result.Output, @"(?m)^VERIFY ([A-Z0-9-]+) (MATCH|DRIFT|UNSUPPORTED|ERROR): (.*)$");
                 var text = new StringBuilder();
                 var drift = new List<string>();
+                var report = new List<string[]>();
                 int matched = 0, changed = 0, unknown = 0;
                 foreach (Match row in rows)
                 {
@@ -562,9 +566,12 @@ namespace Wintools
                     }
 
                     text.AppendLine(label + " · " + (item == null ? row.Groups[1].Value : item.Title));
+                    report.Add(new[] { status, label, item == null ? row.Groups[1].Value : item.Title, row.Groups[1].Value, row.Groups[3].Value.Trim() });
                 }
 
                 verificationDrift = drift.ToArray();
+                verificationRows = report.ToArray();
+                verificationSave.Visibility = report.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
                 verificationPlan.Visibility = drift.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
                 verificationResult.Text = text.ToString();
                 verificationStatus.Text = rows.Count == 0 ? (result.Code == 0 ? Lang.T("Нет активных записей для проверки. Сначала примените действие из каталога.") : Lang.T("Проверка не завершена. Откройте вывод операции для подробностей.")) : Lang.T("Совпадает: ") + matched + Lang.T(" · Изменилось: ") + changed + Lang.T(" · Не проверено: ") + unknown + Lang.T(". Ничего не исправлялось автоматически.");
