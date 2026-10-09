@@ -12,48 +12,70 @@ namespace Wintools
 {
     internal sealed partial class MainWindow
     {
-        private Border attentionBanner;
+        private Border attentionBanner, gameBanner;
+        private TextBlock gameBannerText;
         private TextBlock attentionText;
         private HistoryRow[] attentionRows = new HistoryRow[0];
         private Button rollbackButton;
 
         // After a crash, a closed laptop lid or a failed step the start page says so once, with the way to history.
-        private Border AttentionBanner()
+        private UIElement AttentionBanner()
         {
-            attentionBanner = new Border { BorderThickness = new Thickness(3, 1, 1, 1), CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 0, 0, 16), Visibility = Visibility.Collapsed };
-            attentionBanner.SetResourceReference(Border.BackgroundProperty, "Surface");
-            attentionBanner.SetResourceReference(Border.BorderBrushProperty, "Warning");
+            var panel = new StackPanel();
+            attentionBanner = Banner(Lang.T("Прошлая операция не завершилась"), Lang.T("Открыть историю"), () =>
+            {
+                AcknowledgeAttention();
+                ShowPage(1);
+            }, AcknowledgeAttention, out attentionText);
+            panel.Children.Add(attentionBanner);
+            gameBanner = Banner(Lang.T("Игровой режим остался включённым"), Lang.T("Вернуть настройки"), async () => await StopGameMode(), () => gameBanner.Visibility = Visibility.Collapsed, out gameBannerText);
+            panel.Children.Add(gameBanner);
+            return panel;
+        }
+
+        private Border Banner(string heading, string action, Action primary, Action dismiss, out TextBlock text)
+        {
+            var banner = new Border { BorderThickness = new Thickness(3, 1, 1, 1), CornerRadius = new CornerRadius(8), Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 0, 0, 16), Visibility = Visibility.Collapsed };
+            banner.SetResourceReference(Border.BackgroundProperty, "Surface");
+            banner.SetResourceReference(Border.BorderBrushProperty, "Warning");
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition());
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var icon = new TextBlock { Text = "", FontSize = 18, Margin = new Thickness(0, 2, 12, 0) };
+            var icon = new TextBlock { Text = "\uE7BA", FontSize = 18, Margin = new Thickness(0, 2, 12, 0) };
             icon.SetResourceReference(TextBlock.FontFamilyProperty, "IconFont");
             icon.SetResourceReference(TextBlock.ForegroundProperty, "Warning");
             grid.Children.Add(icon);
             var words = new StackPanel();
-            words.Children.Add(new TextBlock { Text = Lang.T("Прошлая операция не завершилась"), FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
-            attentionText = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
-            attentionText.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
-            words.Children.Add(attentionText);
+            words.Children.Add(new TextBlock { Text = heading, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            text = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) };
+            text.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            words.Children.Add(text);
             Grid.SetColumn(words, 1);
             grid.Children.Add(words);
             var buttons = new WrapPanel { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12, 0, 0, 0) };
-            var open = new Button { Content = Lang.T("Открыть историю"), Margin = new Thickness(0, 0, 8, 0) };
-            open.Click += (s, e) =>
-            {
-                AcknowledgeAttention();
-                ShowPage(1);
-            };
+            var open = new Button { Content = action, Margin = new Thickness(0, 0, 8, 0) };
+            open.Click += (s, e) => primary();
             buttons.Children.Add(open);
             var hide = new Button { Content = Lang.T("Скрыть") };
             hide.SetResourceReference(FrameworkElement.StyleProperty, "Ghost");
-            hide.Click += (s, e) => AcknowledgeAttention();
+            hide.Click += (s, e) => dismiss();
             buttons.Children.Add(hide);
             Grid.SetColumn(buttons, 2);
             grid.Children.Add(buttons);
-            attentionBanner.Child = grid;
-            return attentionBanner;
+            banner.Child = grid;
+            return banner;
+        }
+
+        // A game mode that is still on disk while no game mode runs means Wintools ended without returning it.
+        private void ShowGameLeftover()
+        {
+            if (gameBanner == null)
+                return;
+            var leftover = gameMode == null ? GameModeState.Load() : null;
+            gameBanner.Visibility = leftover == null ? Visibility.Collapsed : Visibility.Visible;
+            if (leftover != null)
+                gameBannerText.Text = Lang.T("Wintools закрылся, пока игровой режим для «") + leftover.Name + Lang.T("» был включён. Верните схему питания и приоритет — изменения, сделанные позже вами, останутся.");
         }
 
         private void InitializeRecovery()
@@ -64,6 +86,7 @@ namespace Wintools
             rollbackButton.Click += async (s, e) => await RollBack();
             row.Children.Add(rollbackButton);
             ShowRollback();
+            ShowGameLeftover();
         }
 
         // History entries that stopped half way or failed and that the person has not seen on the start page yet.

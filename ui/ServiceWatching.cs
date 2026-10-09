@@ -51,7 +51,7 @@ namespace Wintools
 
         private bool CanWatchServices()
         {
-            return serviceWatch != null && serviceWatch.IsChecked == true && page == 5 && !closed && !busy && Window.WindowState != WindowState.Minimized;
+            return serviceWatch != null && serviceWatch.IsChecked == true && page == 5 && !closed && !busy && gameMode == null && Window.WindowState != WindowState.Minimized;
         }
 
         private void ServiceVisibility()

@@ -513,6 +513,9 @@ namespace Wintools
             };
             Window.Closing += (s, e) =>
             {
+                // The game mode closes the window itself once its settings are back.
+                if (e.Cancel)
+                    return;
                 if (busy || downloading)
                 {
                     e.Cancel = true;
