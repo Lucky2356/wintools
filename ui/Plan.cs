@@ -12,7 +12,7 @@ namespace Wintools
         private bool stopPlan;
         private bool runningPlan;
         private Func<Tweak, bool, Action<string>, Task<EngineResult>> planAction;
-        private static bool CanPlan(Tweak item)
+        internal static bool CanPlan(Tweak item)
         {
             return item != null && item.Category != "CLEAN" && item.Kind != "EDGE";
         }

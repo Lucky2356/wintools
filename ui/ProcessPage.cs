@@ -79,6 +79,7 @@ namespace Wintools
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 Margin = new Thickness(0, 0, 10, 0)
             };
+            System.Windows.Automation.AutomationProperties.SetName(processList, Lang.T("Работающие процессы"));
             VirtualizingPanel.SetIsVirtualizing(processList, true);
             VirtualizingPanel.SetVirtualizationMode(processList, VirtualizationMode.Recycling);
             ScrollViewer.SetCanContentScroll(processList, true);

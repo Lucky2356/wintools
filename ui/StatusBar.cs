@@ -39,6 +39,7 @@ namespace Wintools
             statusPage = page;
             statusStamp = Environment.TickCount;
             UpdateStatusDot();
+            AnnounceStatus();
         }
 
         private void UpdateStatusDot()
@@ -47,7 +48,13 @@ namespace Wintools
             if (busy)
             {
                 dot.SetResourceReference(Shape.FillProperty, "Accent");
-                if (dot.Tag == null)
+                // The pulse is decoration: it stays off in the light interface and when Windows animations are off.
+                if (!Motion)
+                {
+                    dot.Tag = null;
+                    dot.BeginAnimation(UIElement.OpacityProperty, null);
+                }
+                else if (dot.Tag == null)
                 {
                     dot.Tag = "pulse";
                     dot.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(1, 0.25, TimeSpan.FromSeconds(0.7)) { AutoReverse = true, RepeatBehavior = RepeatBehavior.Forever });
@@ -60,6 +67,8 @@ namespace Wintools
             dot.BeginAnimation(UIElement.OpacityProperty, null);
             string tone = StatusTone.Of(Get<TextBlock>("Status").Text);
             dot.SetResourceReference(Shape.FillProperty, tone == "Muted" ? "Success" : tone);
+            // A failure offers its next steps right where it is reported.
+            Visible("ReportProblem", tone == "Danger");
         }
 
         // A message written just before switching pages travels with the switch (it describes the result there);

@@ -66,16 +66,36 @@ namespace Wintools
             "#005FB8",
             "#FFFFFF",
             "#E1ECF7",
-            "#C42B1C",
+            "#B42318",
             "#F3F3F3",
-            "#0F7B0F",
-            "#9D5D00",
+            "#0E6E0E",
+            "#8A5300",
             "#66000000",
             "#6B4FBB",
             "#F9F9F9",
             "#E4E4E4",
             "#E5E5E5"
         };
+        // Text colours that must stay readable (WCAG AA, 4.5:1) on every surface they are drawn on.
+        internal static readonly string[] Foregrounds = { "Text", "Muted", "Accent", "Danger", "Success", "Warning" };
+        internal static readonly string[] Surfaces = { "Background", "Layer", "Surface", "Raised", "Selection", "NavSelected", "Hover" };
+
+        internal static double Contrast(string first, string second)
+        {
+            Func<string, double> luminance = value =>
+            {
+                var color = (Color)ColorConverter.ConvertFromString(value);
+                Func<byte, double> channel = c =>
+                {
+                    double v = c / 255.0;
+                    return v <= 0.03928 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
+                };
+                return 0.2126 * channel(color.R) + 0.7152 * channel(color.G) + 0.0722 * channel(color.B);
+            };
+            double a = luminance(first), b = luminance(second);
+            return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+        }
+
         internal static bool IsDark(string mode)
         {
             if (mode == "dark")

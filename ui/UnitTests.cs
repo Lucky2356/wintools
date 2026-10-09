@@ -549,7 +549,7 @@ namespace Wintools
 
         private static void TextScale()
         {
-            Assert(MainWindow.RequestedTextScale("system", 1) == 1 && MainWindow.RequestedTextScale("system", 1.3) == 1.3 && MainWindow.RequestedTextScale("system", 2.25) == 1.5 && MainWindow.RequestedTextScale("125", 2) == 1.25 && MainWindow.RequestedTextScale("100", 2) == 1, "Requested text size wrong");
+            Assert(MainWindow.RequestedTextScale("system", 1) == 1 && MainWindow.RequestedTextScale("system", 1.3) == 1.3 && MainWindow.RequestedTextScale("system", 2.25) == 2 && MainWindow.RequestedTextScale("200", 1) == 2 && MainWindow.RequestedTextScale("175", 1) == 1.75 && MainWindow.RequestedTextScale("125", 2) == 1.25 && MainWindow.RequestedTextScale("100", 2) == 1, "Requested text size wrong");
             Assert(MainWindow.EffectiveTextScale(1.5, 1600, 1000) == 1.5 && MainWindow.EffectiveTextScale(1.5, 1366, 768) == 1.35 && MainWindow.EffectiveTextScale(1.5, 800, 560) == 1 && MainWindow.EffectiveTextScale(1.25, 1000, 700) == 1.25, "Text zoom does not respect the smallest layout");
             Assert(!WindowPlacement.Plausible(null) && !WindowPlacement.Plausible(new[] { 0, 0, 100, 100 }) && !WindowPlacement.Plausible(new[] { -40000, -40000, -39000, -39200 }) && WindowPlacement.Plausible(new[] { 100, 100, 900, 700 }), "Saved window bounds checked wrongly");
         }
@@ -565,6 +565,73 @@ namespace Wintools
             Assert(NetworkProbe.Verdict(good, out tone).Length > 0 && tone == "Success" && NetworkProbe.Verdict(lossy, out tone).Length > 0 && tone == "Warning" && NetworkProbe.Verdict(new[] { new PingMeasurement() }, out tone).Length > 0 && tone == "Danger" && NetworkProbe.Verdict(new PingMeasurement[0], out tone) == "", "Network verdict wrong");
             Assert(NaturalOrder.Instance.Compare("Приложение 2", "Приложение 10") < 0 && NaturalOrder.Instance.Compare("b", "A") > 0, "Names not sorted naturally");
             Assert(MainWindow.UpdateMode(true, true).Contains("автоматически") && MainWindow.UpdateMode(false, true).Contains("Проверить сейчас") && MainWindow.UpdateMode(false, false).Contains("выключено"), "Update mode summary wrong");
+        }
+
+        // Readable colours, the first-start preferences, "What's new", the command line and the facts under an action.
+        private static void Usability()
+        {
+            foreach (bool dark in new[] { true, false })
+            {
+                var colors = NativeTheme.Colors(dark);
+                foreach (var foreground in NativeTheme.Foregrounds)
+                    foreach (var surface in NativeTheme.Surfaces)
+                        Assert(NativeTheme.Contrast(colors[foreground], colors[surface]) >= 4.5, (dark ? "Dark" : "Light") + " " + foreground + " on " + surface + " is below 4.5:1: " + NativeTheme.Contrast(colors[foreground], colors[surface]).ToString("0.00"));
+                Assert(NativeTheme.Contrast(colors["AccentText"], colors["Accent"]) >= 4.5, "Accent button text unreadable");
+            }
+
+            var fresh = new Preferences();
+            Assert(!fresh.Welcomed && fresh.Mode == "simple" && fresh.SeenVersion == "", "New users do not start with the welcome and the simple mode");
+            var existing = Preferences.Parse("{\"Theme\":\"dark\",\"AutoCheck\":false}");
+            Assert(existing.Welcomed && existing.Mode == "full" && existing.Theme == "dark" && !existing.AutoCheck && existing.SeenVersion == "", "Existing users lost tools or got the welcome");
+            var saved = Preferences.Parse("{\"Welcomed\":true,\"Mode\":\"simple\",\"SeenVersion\":\"0.34.0\",\"Lite\":true,\"TextSize\":\"200\"}");
+            Assert(saved.Welcomed && saved.Mode == "simple" && saved.SeenVersion == "0.34.0" && saved.Lite && saved.TextSize == "200", "Saved usability preferences not read");
+            Assert(Preferences.Parse("{\"Welcomed\":true,\"Mode\":\"odd\"}").Mode == "full", "Unknown mode not repaired");
+
+            var changelog = "# Изменения\r\n\r\n## 1.2.0\r\n\r\n- Первый **пункт** с `кодом`\r\n  и продолжением.\r\n- Второй пункт.\r\n\r\n## 1.1.0\r\n\r\n- Старое.\r\n";
+            var points = MainWindow.WhatsNew(changelog, "1.2.0");
+            Assert(points.Length == 2 && points[0] == "Первый пункт с кодом и продолжением." && points[1] == "Второй пункт.", "What's new parsed wrongly: " + string.Join(" | ", points));
+            Assert(MainWindow.WhatsNew(changelog, "1.2").Length == 0 && MainWindow.WhatsNew(changelog, "9.9.9").Length == 0, "What's new matched another version");
+
+            var request = Cli.Parse(new[] { "--apply", "p.json", "--report", "r.txt", "--dry-run" });
+            Assert(request.Profile == "p.json" && request.Report == "r.txt" && request.Dry, "Command line parsed wrongly");
+            bool refused = false;
+            try
+            {
+                Cli.Parse(new[] { "--apply", "p.json", "--force" });
+            }
+            catch (ArgumentException)
+            {
+                refused = true;
+            }
+
+            Assert(refused && !Cli.Requested(new[] { "--apply" }) && Cli.Requested(new[] { "--apply", "x" }), "Unknown command-line option accepted");
+            var catalogue = new List<Tweak>
+            {
+                new Tweak { Id = "UI-FILEEXT", Category = "UI", Kind = "REG", Risk = "low" },
+                new Tweak { Id = "CLN-USERTEMP", Category = "CLEAN", Kind = "CLEAN", Risk = "low" }
+            };
+            Assert(Cli.ReadProfile("{\"Schema\":\"wintools/profile/1\",\"Actions\":[\"UI-FILEEXT\",\"UI-FILEEXT\"]}", catalogue).Length == 1, "Profile duplicates kept");
+            foreach (var invalid in new[] { "{\"Schema\":\"wintools/profile/1\",\"Actions\":[\"CLN-USERTEMP\"]}", "{\"Schema\":\"wintools/profile/1\",\"Actions\":[\"NOPE\"]}", "{\"Actions\":[\"UI-FILEEXT\"]}" })
+            {
+                bool rejected = false;
+                try
+                {
+                    Cli.ReadProfile(invalid, catalogue);
+                }
+                catch (IOException)
+                {
+                    rejected = true;
+                }
+
+                Assert(rejected, "Unsafe command-line profile accepted: " + invalid);
+            }
+
+            Assert(MainWindow.RollbackLevel(catalogue[0]) == "full" && MainWindow.RollbackLevel(catalogue[1]) == "none" && MainWindow.RollbackLevel(new Tweak { Category = "APPS", Kind = "APPX" }) == "partial", "Rollback level wrong");
+            Assert(MainWindow.NeedsSignIn(new Tweak { Caveat = "Нужно перезапустить Проводник или выйти и войти в Windows." }) && !MainWindow.NeedsSignIn(new Tweak { Caveat = "Дополнительных условий нет." }), "Sign-in hint wrong");
+            Assert(MainWindow.Readable("Обновить") && !MainWindow.Readable("\uE72C") && !MainWindow.Readable("  ") && !MainWindow.Readable("★"), "Readable names misjudged");
+            Assert(AccessibleName.Describe(new SearchHit { Title = "Сеть", Detail = "Раздел" }) == "Сеть. Раздел" && AccessibleName.Describe("Текст") == "Текст" && AccessibleName.Describe(new object()) == "" && AccessibleName.Describe(new KeyValuePair<string, string>("PRIV", "Приватность")) == "Приватность", "Accessible row names wrong");
+            var html = MainWindow.VerificationHtml(new[] { new[] { "DRIFT", "Изменилась", "<script>x</script>", "UI-FILEEXT", "a & b" }, new[] { "MATCH", "Совпадает", "Тема", "UI-DARK", "" } }, "Windows 11", new DateTime(2026, 10, 9, 12, 0, 0));
+            Assert(html.StartsWith("<!doctype html>") && !html.Contains("<script>") && html.Contains("&lt;script&gt;") && html.Contains("a &amp; b") && html.IndexOf("UI-FILEEXT") < html.IndexOf("UI-DARK") && !html.Contains(Environment.UserName + "\\") && !html.Contains(Environment.MachineName), "Verification report unsafe or unordered");
         }
 
         internal static int Run()
@@ -584,7 +651,8 @@ namespace Wintools
             Placement();
             TextScale();
             Tones();
-            File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed.");
+            Usability();
+            File.WriteAllText(Path.Combine(Program.Home, "portable-unit-tests.txt"), "Unit tests passed. Process: " + Program.Architecture + ", .NET " + Environment.Version + ".");
             return 0;
         }
     }

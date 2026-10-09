@@ -30,7 +30,7 @@ namespace Wintools
             return 1;
         }
 
-        // The whole interface grows with the text so spacing stays in proportion; the Windows factor is capped at 150 %.
+        // The whole interface grows with the text so spacing stays in proportion; the Windows factor is capped at 200 %.
         internal static double RequestedTextScale(string setting, double system)
         {
             switch (setting)
@@ -41,8 +41,12 @@ namespace Wintools
                     return 1.25;
                 case "150":
                     return 1.5;
+                case "175":
+                    return 1.75;
+                case "200":
+                    return 2;
                 default:
-                    return Math.Min(1.5, Math.Max(1, system));
+                    return Math.Min(2, Math.Max(1, system));
             }
         }
 

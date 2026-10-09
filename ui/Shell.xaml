@@ -325,11 +325,9 @@
      </ToggleButton>
      <ContentPresenter Margin="12,0,32,0" VerticalAlignment="Center" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
      <Border x:Name="Focus" BorderBrush="{DynamicResource Text}" BorderThickness="2" CornerRadius="6" Margin="-3" Visibility="Collapsed" IsHitTestVisible="False"/>
-     <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="2" HorizontalOffset="-8" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" PopupAnimation="Fade">
+     <Popup x:Name="PART_Popup" Placement="Bottom" VerticalOffset="2" HorizontalOffset="-8" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" PopupAnimation="{DynamicResource PopupMotion}">
       <Grid Margin="8,0,8,12" LayoutTransform="{DynamicResource UiZoom}" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="360">
-       <Border Background="{DynamicResource Surface}" CornerRadius="8">
-        <Border.Effect><DropShadowEffect BlurRadius="18" ShadowDepth="5" Direction="270" Opacity="0.28" Color="Black"/></Border.Effect>
-       </Border>
+       <Border Background="{DynamicResource Surface}" CornerRadius="8" Effect="{DynamicResource ShadowSmall}"/>
        <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="4">
         <ScrollViewer><ItemsPresenter/></ScrollViewer>
        </Border>
@@ -464,6 +462,9 @@
     <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8" Padding="4" LayoutTransform="{DynamicResource UiZoom}"><StackPanel IsItemsHost="True"/></Border>
    </ControlTemplate></Setter.Value></Setter>
   </Style>
+  <!-- Shadows are resources so the light interface can turn them off in one place. -->
+  <DropShadowEffect x:Key="ShadowSmall" BlurRadius="18" ShadowDepth="5" Direction="270" Opacity="0.28" Color="Black"/>
+  <DropShadowEffect x:Key="ShadowLarge" BlurRadius="40" ShadowDepth="10" Direction="270" Opacity="0.35" Color="Black"/>
  </Window.Resources>
 
  <Grid>
@@ -650,7 +651,8 @@
            <StackPanel>
             <TextBlock x:Name="ActionLabel" Text="Выбранное действие" Style="{StaticResource SectionLabel}" Margin="0,0,0,8"/>
             <TextBlock x:Name="ActionTitle" FontFamily="{StaticResource DisplayFont}" FontSize="20" FontWeight="SemiBold"/>
-            <TextBlock x:Name="Metadata" Style="{StaticResource MutedText}" FontSize="13" Margin="0,6,0,14"/>
+            <TextBlock x:Name="Metadata" Style="{StaticResource MutedText}" FontSize="13" Margin="0,6,0,8"/>
+            <WrapPanel x:Name="Facts" Margin="0,0,0,12"/>
            </StackPanel>
            <TextBlock Text="Что изменится" Style="{StaticResource SectionLabel}"/>
            <TextBlock x:Name="Description" LineHeight="23" Margin="0,0,0,4"/>
@@ -805,9 +807,25 @@
          <TextBlock Text="Язык применится после перезапуска Wintools." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
          <TextBlock Text="Размер текста" FontWeight="SemiBold" Margin="0,16,0,6"/>
          <ComboBox x:Name="TextSize" Width="240" HorizontalAlignment="Left" AutomationProperties.Name="Размер текста">
-          <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Обычный"/><ComboBoxItem Content="Крупный · 125 %"/><ComboBoxItem Content="Очень крупный · 150 %"/>
+          <ComboBoxItem Content="Как в Windows"/><ComboBoxItem Content="Обычный"/><ComboBoxItem Content="Крупный · 125 %"/><ComboBoxItem Content="Очень крупный · 150 %"/><ComboBoxItem Content="Огромный · 175 %"/><ComboBoxItem Content="Максимальный · 200 %"/>
          </ComboBox>
          <TextBlock Text="Увеличивает весь интерфейс сразу. «Как в Windows» следует параметру «Размер текста» в специальных возможностях." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
+        </StackPanel>
+       </Border>
+       <Border Style="{StaticResource Card}" Padding="22">
+        <StackPanel>
+         <TextBlock Text="Удобство и доступность" FontFamily="{StaticResource DisplayFont}" FontSize="18" FontWeight="SemiBold"/>
+         <TextBlock Text="Режим интерфейса" FontWeight="SemiBold" Margin="0,14,0,6"/>
+         <ComboBox x:Name="Mode" Width="280" HorizontalAlignment="Left" AutomationProperties.Name="Режим интерфейса">
+          <ComboBoxItem Content="Простой — основные разделы"/><ComboBoxItem Content="Полный — все инструменты"/>
+         </ComboBox>
+         <TextBlock Text="Простой режим скрывает службы, процессы, автозагрузку, сверку, блокировку сайтов и действия высокого риска. История и откат доступны в обоих режимах." Style="{StaticResource MutedText}" FontSize="12" Margin="0,6,0,0"/>
+         <CheckBox x:Name="Lite" Content="Облегчённый интерфейс для слабых компьютеров" Margin="0,14,0,6"/>
+         <TextBlock Text="Без теней и анимации, графики нагрузки обновляются вдвое реже. Анимация также отключается, если она выключена в параметрах Windows." Style="{StaticResource MutedText}" FontSize="12"/>
+         <WrapPanel Margin="0,14,0,0">
+          <Button x:Name="ShowWelcome" Content="Показать знакомство снова" Margin="0,0,8,8"/>
+          <Button x:Name="ShowShortcuts" Content="Горячие клавиши · F1" Margin="0,0,0,8"/>
+         </WrapPanel>
         </StackPanel>
        </Border>
        <Border Style="{StaticResource Card}" Padding="22">
@@ -838,12 +856,13 @@
     <Border x:Name="Console" Grid.Row="1" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" Padding="36,0,28,0">
      <DockPanel>
       <Grid DockPanel.Dock="Top" MinHeight="40">
-       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+       <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
        <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{DynamicResource Success}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-       <TextBlock x:Name="Status" Grid.Column="1" Text="Готово к работе" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Foreground="{DynamicResource Muted}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-       <Button x:Name="LogToggle" Grid.Column="2" Content="Подробности  ▾" Style="{StaticResource Ghost}" FontSize="12" Padding="10,4" MinHeight="30" Margin="0,4"/>
+       <TextBlock x:Name="Status" Grid.Column="1" Text="Готово к работе" AutomationProperties.LiveSetting="Polite" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Foreground="{DynamicResource Muted}" FontSize="13" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+       <Button x:Name="ReportProblem" Grid.Column="2" Content="Что делать?" ToolTip="Подсказки и пакет диагностики для сообщения о проблеме" Style="{StaticResource Link}" FontSize="12" Padding="10,4" MinHeight="30" Margin="0,4,4,4" Visibility="Collapsed"/>
+       <Button x:Name="LogToggle" Grid.Column="3" Content="Подробности  ▾" Style="{StaticResource Ghost}" FontSize="12" Padding="10,4" MinHeight="30" Margin="0,4"/>
       </Grid>
-      <TextBox x:Name="Output" IsReadOnly="True" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
+      <TextBox x:Name="Output" IsReadOnly="True" AutomationProperties.Name="Подробности операции" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top"
                Height="110" Margin="0,0,0,10" Padding="10,8" Background="{DynamicResource Surface}" Visibility="Collapsed" Text="Результаты предпросмотра и выполнения появятся здесь."/>
      </DockPanel>
     </Border>
@@ -854,9 +873,7 @@
   <!-- Confirmation dialog in the manner of a Windows 11 content dialog: the question on the card, the answers on a footer band. -->
   <Grid x:Name="ConfirmOverlay" Background="{DynamicResource Scrim}" Visibility="Collapsed">
    <Grid MaxWidth="560" Margin="24" VerticalAlignment="Center" HorizontalAlignment="Center">
-    <Border Background="{DynamicResource Surface}" CornerRadius="8">
-     <Border.Effect><DropShadowEffect BlurRadius="40" ShadowDepth="10" Direction="270" Opacity="0.35" Color="Black"/></Border.Effect>
-    </Border>
+    <Border Background="{DynamicResource Surface}" CornerRadius="8" Effect="{DynamicResource ShadowLarge}"/>
     <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Border}" BorderThickness="1" CornerRadius="8">
      <DockPanel>
       <Border DockPanel.Dock="Bottom" Background="{DynamicResource Layer}" BorderBrush="{DynamicResource Divider}" BorderThickness="0,1,0,0" CornerRadius="0,0,8,8" Padding="24,20">
