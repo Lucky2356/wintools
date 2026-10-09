@@ -14,6 +14,14 @@ namespace Wintools
         private string welcomeMode;
         private Button[] welcomeModes;
 
+        // Which dialog the start shows: the welcome until it was finished once, then "What's new" once per version.
+        internal static string StartupSheet(Preferences preferences, string version)
+        {
+            if (!preferences.Welcomed)
+                return "welcome";
+            return preferences.SeenVersion != version ? "whats-new" : null;
+        }
+
         // The first start explains the program in three short steps; nothing in Windows changes here.
         private void ShowWelcome()
         {

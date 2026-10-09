@@ -339,10 +339,6 @@ namespace Wintools
                 preferences.AutoCheck = Checked("AutoCheck");
                 SavePreferences();
                 ShowUpdateMode();
-                if (!preferences.Welcomed)
-                    ShowWelcome();
-                else if (preferences.SeenVersion != Program.Version)
-                    ShowWhatsNew();
                 await RefreshServices();
                 if (preferences.AutoCheck)
                     await CheckUpdates(false);
@@ -596,6 +592,12 @@ namespace Wintools
                     return;
                 }
 
+                // The first start introduces the program; the first start after an update lists what changed.
+                var sheet = StartupSheet(preferences, Program.Version);
+                if (sheet == "welcome")
+                    ShowWelcome();
+                else if (sheet == "whats-new")
+                    ShowWhatsNew();
                 await RefreshServices();
                 if (preferences.AutoCheck)
                     await CheckUpdates(false);
@@ -661,6 +663,8 @@ namespace Wintools
                         return;
                     ApplyTheme();
                     RefreshSystemTextScale();
+                    // Turning animations off in Windows takes effect without restarting Wintools.
+                    ApplyLite();
                 }));
         }
 

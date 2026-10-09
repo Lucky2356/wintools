@@ -604,7 +604,18 @@ namespace Wintools
                 refused = true;
             }
 
-            Assert(refused && !Cli.Requested(new[] { "--apply" }) && Cli.Requested(new[] { "--apply", "x" }), "Unknown command-line option accepted");
+            bool incomplete = false;
+            try
+            {
+                Cli.Parse(new[] { "--apply" });
+            }
+            catch (ArgumentException)
+            {
+                incomplete = true;
+            }
+
+            // A bare --apply is still a command-line request, refused with code 2 instead of opening the window.
+            Assert(refused && incomplete && Cli.Requested(new[] { "--apply" }) && !Cli.Requested(new[] { "--ui-smoke" }), "Command-line request recognised wrongly");
             var catalogue = new List<Tweak>
             {
                 new Tweak { Id = "UI-FILEEXT", Category = "UI", Kind = "REG", Risk = "low" },
@@ -626,6 +637,13 @@ namespace Wintools
                 Assert(rejected, "Unsafe command-line profile accepted: " + invalid);
             }
 
+            var preferences = new Preferences();
+            Assert(MainWindow.StartupSheet(preferences, "1.0.0") == "welcome", "New user gets no welcome");
+            preferences.Welcomed = true;
+            preferences.SeenVersion = "0.9.0";
+            Assert(MainWindow.StartupSheet(preferences, "1.0.0") == "whats-new", "Updated user gets no What's new");
+            preferences.SeenVersion = "1.0.0";
+            Assert(MainWindow.StartupSheet(preferences, "1.0.0") == null, "Dialog shown again on a normal start");
             Assert(MainWindow.RollbackLevel(catalogue[0]) == "full" && MainWindow.RollbackLevel(catalogue[1]) == "none" && MainWindow.RollbackLevel(new Tweak { Category = "APPS", Kind = "APPX" }) == "partial", "Rollback level wrong");
             Assert(MainWindow.NeedsSignIn(new Tweak { Caveat = "Нужно перезапустить Проводник или выйти и войти в Windows." }) && !MainWindow.NeedsSignIn(new Tweak { Caveat = "Дополнительных условий нет." }), "Sign-in hint wrong");
             Assert(MainWindow.Readable("Обновить") && !MainWindow.Readable("\uE72C") && !MainWindow.Readable("  ") && !MainWindow.Readable("★"), "Readable names misjudged");

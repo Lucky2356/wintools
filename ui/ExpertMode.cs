@@ -83,6 +83,7 @@ namespace Wintools
             var mode = Get<ComboBox>("Mode");
             if (mode.SelectedIndex != (simple ? 0 : 1))
                 mode.SelectedIndex = simple ? 0 : 1;
+            RefreshCollectionModes();
             Filter();
         }
 

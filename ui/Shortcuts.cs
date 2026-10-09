@@ -72,6 +72,12 @@ namespace Wintools
                 return;
             }
 
+            if (page == 1)
+            {
+                ReadHistory();
+                return;
+            }
+
             if (page != 9 && page != 12 && page != 13)
                 return;
             var labels = new[] { Lang.T("Обновить список"), Lang.T("Обновить") };

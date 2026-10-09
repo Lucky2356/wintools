@@ -189,9 +189,35 @@ namespace Wintools
             return ids.Distinct().Where(id => catalogue.Any(t => t.Id == id && (t.Os == "any" || t.Os == family))).ToArray();
         }
 
+        // Sections made only of high-risk actions wait for the full mode, as those actions do in the catalogue.
+        private void RefreshCollectionModes()
+        {
+            if (collectionChoices == null)
+                return;
+            int build = Environment.OSVersion.Version.Build;
+            foreach (var choice in collectionChoices)
+            {
+                for (int i = 0; i < choice.Sections.Length; i++)
+                {
+                    var section = choice.Sections[i];
+                    var ids = CollectionAvailableIds(section.Ids, build);
+                    bool expertOnly = Simple && ids.Length > 0 && ids.All(id => catalogue.First(t => t.Id == id).Risk == "high");
+                    var check = choice.Checks[i];
+                    check.IsEnabled = ids.Length > 0 && !expertOnly;
+                    if (!check.IsEnabled)
+                        check.IsChecked = false;
+                    check.ToolTip = expertOnly ? Lang.T("Доступно в полном режиме: здесь только действия высокого риска.") : ids.Length < section.Ids.Length ? Lang.T("Действия для другой версии Windows исключены из выбора.") : null;
+                }
+            }
+
+            RefreshCollectionCounts();
+        }
+
         private string[] CollectionIds(CollectionChoice choice)
         {
-            return CollectionAvailableIds(choice.Sections.Where((s, i) => choice.Checks[i].IsChecked == true).SelectMany(s => s.Ids), Environment.OSVersion.Version.Build);
+            var ids = CollectionAvailableIds(choice.Sections.Where((s, i) => choice.Checks[i].IsChecked == true).SelectMany(s => s.Ids), Environment.OSVersion.Version.Build);
+            // The simple mode never plans what it hides in the catalogue, whichever way the section was ticked.
+            return Simple ? ids.Where(id => catalogue.First(t => t.Id == id).Risk != "high").ToArray() : ids;
         }
 
         private void RefreshCollectionCounts()
