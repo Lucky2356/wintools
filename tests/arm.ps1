@@ -24,9 +24,12 @@ if($release -ge 533320 -and $result -notmatch 'Process: ARM64'){throw "Not runni
 # A profile dry run through the command line exercises the engine worker on this architecture.
 $profileFile=Join-Path $fixture 'cli-profile.json';$report=Join-Path $fixture 'cli-report.txt'
 [IO.File]::WriteAllText($profileFile,'{"Schema":"wintools/profile/1","Actions":["UI-FILEEXT"]}')
-Run-Portable $exe "--apply `"$profileFile`" --report `"$report`" --dry-run"
+# The engine refuses system changes on Windows Server; the Arm runner is client Windows 11 and must succeed.
+$server=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name InstallationType).InstallationType -ne 'Client'
+Run-Portable $exe "--apply `"$profileFile`" --report `"$report`" --dry-run" $(if($server){1}else{0})
 $text=Get-Content $report -Raw
 Write-Output $text
-if($text -notmatch 'OK\s+UI-FILEEXT'){throw 'Profile dry run not reported'}
+if(-not $server -and $text -notmatch 'OK\s+UI-FILEEXT'){throw 'Profile dry run not reported'}
+if($server -and $text -notmatch 'FAILED\s+UI-FILEEXT'){throw 'Server refusal not reported'}
 Write-Output 'ARM64 unit tests and command line passed.'
 exit 0

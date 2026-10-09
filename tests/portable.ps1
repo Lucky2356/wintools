@@ -14,18 +14,22 @@ function Run-Portable($path,$arguments,$expected=0){
   if(-not $finished){throw "Portable test timed out: $arguments"}
   if($process.ExitCode -ne $expected){
     Get-ChildItem $fixture -Recurse -Filter '*error.txt' | ForEach-Object {Get-Content $_.FullName}
+    Get-ChildItem $fixture -Filter 'cli-report.txt' | ForEach-Object {Get-Content $_.FullName}
     # Screenshots taken before the failure show the broken layout in the uploaded artifact.
     Get-ChildItem $fixture -Filter 'portable-ui*.png' | Copy-Item -Destination (Split-Path $Executable -Parent) -Force
     throw "Portable exit $($process.ExitCode), expected $expected"
   }
 }
-# The command line applies a profile without the window: a dry run succeeds, an invalid profile is refused with code 2.
+# The command line applies a profile without the window. The engine refuses system changes on Windows Server,
+# so on the hosted Server runners the dry run must end with code 1 and report that refusal; on client Windows it succeeds.
 function Test-ProfileCommandLine($exe,$fixture){
   $profileFile=Join-Path $fixture 'cli-profile.json';$report=Join-Path $fixture 'cli-report.txt'
+  $server=(Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name InstallationType).InstallationType -ne 'Client'
   [IO.File]::WriteAllText($profileFile,'{"Schema":"wintools/profile/1","Actions":["UI-FILEEXT"]}')
-  Run-Portable $exe "--apply `"$profileFile`" --report `"$report`" --dry-run"
+  Run-Portable $exe "--apply `"$profileFile`" --report `"$report`" --dry-run" $(if($server){1}else{0})
   $text=Get-Content $report -Raw
-  if($text -notmatch 'OK\s+UI-FILEEXT'){throw "Profile dry run not reported: $text"}
+  if($server -and ($text -notmatch 'FAILED\s+UI-FILEEXT' -or $text -notmatch 'Unsupported installation type')){throw "Server refusal not reported: $text"}
+  if(-not $server -and $text -notmatch 'OK\s+UI-FILEEXT'){throw "Profile dry run not reported: $text"}
   [IO.File]::WriteAllText($profileFile,'{"Schema":"other","Actions":["UI-FILEEXT"]}')
   Run-Portable $exe "--apply `"$profileFile`" --report `"$report`"" 2
   if((Get-Content $report -Raw) -notmatch ': 2'){throw 'Invalid profile not reported'}
