@@ -33,6 +33,8 @@ function Test-ProfileCommandLine($exe,$fixture){
   [IO.File]::WriteAllText($profileFile,'{"Schema":"other","Actions":["UI-FILEEXT"]}')
   Run-Portable $exe "--apply `"$profileFile`" --report `"$report`"" 2
   if((Get-Content $report -Raw) -notmatch ': 2'){throw 'Invalid profile not reported'}
+  # A bare --apply is a refused request (code 2), not a window with an error.
+  Run-Portable $exe '--apply' 2
 }
 Run-Portable $exe '--unit-test'
 Run-Portable $exe '--self-test'

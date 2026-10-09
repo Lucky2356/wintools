@@ -1962,5 +1962,9 @@
 "Что делать?": "What to do?",
 "Подсказки и пакет диагностики для сообщения о проблеме": "Tips and a diagnostics package for reporting a problem",
 "Подробности операции": "Operation details",
-"Службы Windows": "Windows services"
+"Службы Windows": "Windows services",
+"Доступно в полном режиме: здесь только действия высокого риска.": "Available in Full mode: this group has only high-risk actions.",
+"Применение профиля начато, отчёт будет дописан по завершении.": "Applying the profile has started; the report is completed when it ends.",
+"Не удалось записать отчёт: ": "Could not write the report: ",
+"Не удалось записать отчёт. Код действий: ": "Could not write the report. Action code: "
 }

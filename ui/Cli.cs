@@ -14,7 +14,7 @@ namespace Wintools
     {
         internal static bool Requested(string[] args)
         {
-            return args.Length >= 2 && args[0] == "--apply";
+            return args.Length >= 1 && args[0] == "--apply";
         }
 
         internal sealed class Request
@@ -25,7 +25,7 @@ namespace Wintools
 
         internal static Request Parse(string[] args)
         {
-            if (!Requested(args))
+            if (!Requested(args) || args.Length < 2 || args[1].StartsWith("--"))
                 throw new ArgumentException("Usage: --apply <profile.json> [--report <file>] [--dry-run]");
             var request = new Request { Profile = args[1] };
             for (int i = 2; i < args.Length; i++)
@@ -61,6 +61,9 @@ namespace Wintools
             try
             {
                 request = Parse(args);
+                // An audit report that cannot be written must stop the run before Windows changes.
+                if (request.Report != null && !Save(request.Report, Lang.T("Применение профиля начато, отчёт будет дописан по завершении.") + Environment.NewLine))
+                    return Refuse(Lang.T("Не удалось записать отчёт: ") + request.Report);
                 report.AppendLine("Wintools " + Program.Version + " · " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + (request.Dry ? Lang.T(" · предпросмотр без изменений") : ""));
                 report.AppendLine(Lang.T("Профиль: ") + Path.GetFullPath(request.Profile));
                 if (new FileInfo(request.Profile).Length > 65536)
@@ -93,7 +96,8 @@ namespace Wintools
 
             report.AppendLine();
             report.AppendLine(Lang.T("Код завершения: ") + code);
-            Save(request == null ? null : request.Report, report.ToString());
+            if (!Save(request == null ? null : request.Report, report.ToString()))
+                return Refuse(Lang.T("Не удалось записать отчёт. Код действий: ") + code);
             return code;
         }
 
@@ -109,11 +113,19 @@ namespace Wintools
             {
             }
 
-            Save(path, Lang.T("Ошибка: ") + message + Environment.NewLine + Lang.T("Код завершения: ") + 2 + Environment.NewLine);
+            if (!Save(path, Lang.T("Ошибка: ") + message + Environment.NewLine + Lang.T("Код завершения: ") + 2 + Environment.NewLine))
+                Console.Error.WriteLine(message);
             return 2;
         }
 
-        private static void Save(string path, string text)
+        // Without a report the error still reaches a script that redirects the standard error stream.
+        private static int Refuse(string message)
+        {
+            Console.Error.WriteLine(message);
+            return 2;
+        }
+
+        private static bool Save(string path, string text)
         {
             try
             {
@@ -125,12 +137,23 @@ namespace Wintools
                 }
 
                 File.WriteAllText(path, text, new UTF8Encoding(true));
+                return true;
             }
             catch (IOException)
             {
+                return false;
             }
             catch (UnauthorizedAccessException)
             {
+                return false;
+            }
+            catch (ArgumentException)
+            {
+                return false;
+            }
+            catch (NotSupportedException)
+            {
+                return false;
             }
         }
     }

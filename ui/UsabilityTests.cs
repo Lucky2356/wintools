@@ -15,6 +15,16 @@ namespace Wintools
         {
             Assert(preferences.Mode == "full" && !preferences.Welcomed, "Smoke did not start as a fresh full-mode run");
             ShowPage(HomeIndex);
+            // The update switch only changes the update setting; the welcome belongs to the start of the window.
+            var autoCheck = Get<CheckBox>("AutoCheck");
+            bool autoCheckBefore = preferences.AutoCheck;
+            autoCheck.IsChecked = false;
+            autoCheck.RaiseEvent(new RoutedEventArgs(CheckBox.ClickEvent));
+            Assert(!SheetOpen && !preferences.AutoCheck, "The update switch opened a dialog");
+            preferences.AutoCheck = autoCheckBefore;
+            autoCheck.IsChecked = autoCheckBefore;
+            SavePreferences();
+            ShowUpdateMode();
             ShowWelcome();
             Assert(SheetOpen && !Get<Grid>("Body").IsEnabled, "Welcome did not open as a dialog");
             var missing = new List<string>();

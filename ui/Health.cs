@@ -530,6 +530,9 @@ namespace Wintools
             SetBusy(true);
             verificationStart.IsEnabled = false;
             verificationResult.Text = "";
+            // A report belongs to one run: a failed new run must not leave the previous one ready to save.
+            verificationRows = new string[0][];
+            verificationSave.Visibility = Visibility.Collapsed;
             verificationStatus.Text = Lang.T("Сверяем записи истории с Windows… Ничего не изменяем.");
             try
             {
