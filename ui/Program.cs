@@ -73,6 +73,7 @@ namespace Wintools
         {
             // csc emits no target framework, so .NET treats the program as pre-4.6.2 and WPF ignores per-monitor DPI changes.
             // Turning the compatibility switch off before any WPF type loads lets a window moved to a 4K or HD screen rescale sharply.
+            Timings.Mark("Main");
             AppContext.SetSwitch(DpiSwitch, false);
             AppContext.SetSwitch(PopupDpiSwitch, false);
             Application.EnableVisualStyles();

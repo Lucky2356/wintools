@@ -30,7 +30,7 @@ namespace Wintools
                 "system-change"
             }.Contains(verb))
                 throw new ArgumentException("Unknown operation.");
-            var selected = id == "-" ? null : Catalogue.Load().FirstOrDefault(t => t.Id == id);
+            var selected = id == "-" ? null : Catalogue.Find(id);
             if (id != "-" && selected == null)
                 throw new ArgumentException("Unknown catalogue ID.");
             if (new[]
