@@ -47,7 +47,7 @@ namespace Wintools
             Assert(rows.Length > 50 && rows.All(r => r.Item.Risk != "high"), "Simple catalogue shows high-risk actions");
             Get<ListBox>("Items").SelectedIndex = 0;
             Assert(Get<WrapPanel>("Facts").Children.Count >= 2, "Action facts missing");
-            Get<Button>("BackToGroups").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            // The catalogue stays a list: later checks of the compact window expect the action card on screen.
             Get<ComboBox>("Mode").SelectedIndex = 1;
             Window.UpdateLayout();
             Assert(preferences.Mode == "full" && Get<UIElement>("Verify").Visibility == Visibility.Visible && Get<UIElement>("Risky").Visibility == Visibility.Visible && hostsCard.Visibility == Visibility.Visible, "Full mode did not return the tools");
